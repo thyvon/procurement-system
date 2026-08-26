@@ -7,6 +7,7 @@ use Modules\Products\Http\Controllers\ProductController;
 use Modules\Products\Http\Controllers\ProductGroupController;
 use Modules\Products\Http\Controllers\ProductRefController;
 use Modules\Products\Http\Controllers\UomController;
+use Modules\Products\Http\Controllers\VariationController;
 
 Route::prefix('v1/products')
     ->name('products.')
@@ -20,6 +21,10 @@ Route::prefix('v1/products')
         Route::apiResource('groups', ProductGroupController::class)->names('groups');
 
         Route::apiResource('uoms', UomController::class)->names('uoms');
+
+        Route::get('variation-templates', [VariationController::class, 'templateIndex'])->name('variation-templates.index');
+        Route::post('variation-templates', [VariationController::class, 'templateStore'])->name('variation-templates.store');
+        Route::post('merge-variation', [VariationController::class, 'merge'])->name('merge-variation');
 
         // /items must not shadow /refs, /categories etc. — register last.
         Route::apiResource('items', ProductController::class)

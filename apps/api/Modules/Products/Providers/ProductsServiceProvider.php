@@ -8,11 +8,13 @@ use Modules\Products\Models\Product;
 use Modules\Products\Models\ProductCategory;
 use Modules\Products\Models\ProductGroup;
 use Modules\Products\Models\Uom;
+use Modules\Products\Models\VariationTemplate;
 use Modules\Products\Policies\BrandPolicy;
 use Modules\Products\Policies\ProductCategoryPolicy;
 use Modules\Products\Policies\ProductGroupPolicy;
 use Modules\Products\Policies\ProductPolicy;
 use Modules\Products\Policies\UomPolicy;
+use Modules\Products\Policies\VariationTemplatePolicy;
 use Modules\Products\Repositories\BrandRepository;
 use Modules\Products\Repositories\BrandRepositoryInterface;
 use Modules\Products\Repositories\ProductCategoryRepository;
@@ -23,6 +25,8 @@ use Modules\Products\Repositories\ProductRepository;
 use Modules\Products\Repositories\ProductRepositoryInterface;
 use Modules\Products\Repositories\UomRepository;
 use Modules\Products\Repositories\UomRepositoryInterface;
+use Modules\Products\Repositories\VariationTemplateRepository;
+use Modules\Products\Repositories\VariationTemplateRepositoryInterface;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
 class ProductsServiceProvider extends ModuleServiceProvider
@@ -45,6 +49,7 @@ class ProductsServiceProvider extends ModuleServiceProvider
         $this->app->bind(ProductGroupRepositoryInterface::class, ProductGroupRepository::class);
         $this->app->bind(UomRepositoryInterface::class, UomRepository::class);
         $this->app->bind(ProductRepositoryInterface::class, ProductRepository::class);
+        $this->app->bind(VariationTemplateRepositoryInterface::class, VariationTemplateRepository::class);
     }
 
     public function boot(): void
@@ -56,5 +61,6 @@ class ProductsServiceProvider extends ModuleServiceProvider
         Gate::policy(ProductGroup::class, ProductGroupPolicy::class);
         Gate::policy(Uom::class, UomPolicy::class);
         Gate::policy(Product::class, ProductPolicy::class);
+        Gate::policy(VariationTemplate::class, VariationTemplatePolicy::class);
     }
 }
