@@ -96,6 +96,7 @@ class Product extends Model
 
     public function searchableAs(): string
     {
-        return 'products';
+        // Respect scout.prefix so dev/test/prod indexes never collide.
+        return config('scout.prefix').'products';
     }
 }
