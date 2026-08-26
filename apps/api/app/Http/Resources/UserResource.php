@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Auth\Http\Resources;
+namespace App\Http\Resources;
 
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -21,6 +21,9 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'entityId' => $this->entity_id,
+            'isActive' => $this->is_active ?? null,
+            'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')->values()),
+            'createdAt' => $this->created_at?->toIso8601String(),
         ];
     }
 }

@@ -3,13 +3,13 @@
 namespace Modules\Auth\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Modules\Auth\Http\Requests\LoginRequest;
 use Modules\Auth\Http\Requests\RefreshRequest;
-use Modules\Auth\Http\Resources\UserResource;
 use Modules\Auth\Services\AuthService;
 use Modules\Auth\Services\InvalidRefreshTokenException;
 

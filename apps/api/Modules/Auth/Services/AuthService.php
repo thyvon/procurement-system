@@ -5,9 +5,10 @@ namespace Modules\Auth\Services;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Auth\Contracts\RevokesUserTokens;
 use Modules\Auth\Models\RefreshToken;
 
-class AuthService
+class AuthService implements RevokesUserTokens
 {
     public function issuePair(User $user): array
     {
@@ -85,18 +86,16 @@ class AuthService
 
     public function revokeFamily(User $user): void
     {
-        DB::transaction(function () use ($user) {
-            $latest = RefreshToken::query()
-                ->where('user_id', $user->getKey())
-                ->orderByDesc('created_at')
-                ->first();
+        $this->revokeAllFor($user);
+    }
 
-            if ($latest !== null) {
-                RefreshToken::query()
-                    ->where('family_id', $latest->family_id)
-                    ->whereNull('revoked_at')
-                    ->update(['revoked_at' => now()]);
-            }
+    public function revokeAllFor(User $user): void
+    {
+        DB::transaction(function () use ($user) {
+            RefreshToken::query()
+                ->where('user_id', $user->getKey())
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
 
             $user->tokens()->delete();
         });

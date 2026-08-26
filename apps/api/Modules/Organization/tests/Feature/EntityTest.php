@@ -6,10 +6,8 @@ use Modules\Organization\Models\Entity;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
-    foreach (['web', 'sanctum'] as $guard) {
-        foreach (['admin', 'staff'] as $role) {
-            Role::findOrCreate($role, $guard);
-        }
+    foreach (['admin', 'staff'] as $role) {
+        Role::findOrCreate($role, 'sanctum');
     }
 
     $this->entityA = Entity::create([

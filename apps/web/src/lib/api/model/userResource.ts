@@ -11,4 +11,9 @@ export interface UserResource {
   email: string;
   /** @nullable */
   entityId: string | null;
+  /** @nullable */
+  isActive: string | null;
+  roles?: unknown[];
+  /** @nullable */
+  createdAt: string | null;
 }
