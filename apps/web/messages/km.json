@@ -22,6 +22,11 @@
   },
   "nav": {
     "dashboard": "ផ្ទាំងគ្រប់គ្រង",
+    "products": "??????",
+    "categories": "??????",
+    "brands": "????",
+    "groups": "?????",
+    "uoms": "?????",
     "catalog": "បញ្ជីទំនិញ",
     "suppliers": "អ្នកផ្គត់ផ្គង់",
     "requisitions": "សំណើទិញ",
@@ -49,3 +54,5 @@
     "status": "ស្ថានភាព"
   }
 }
+
+

@@ -33,7 +33,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { key: "dashboard", href: "/dashboard", icon: LayoutDashboard, enabled: true },
-  { key: "catalog", href: "#", icon: Boxes, enabled: false },
+  { key: "products", href: "/products", icon: Boxes, enabled: true },
   { key: "suppliers", href: "#", icon: Store, enabled: false },
   { key: "requisitions", href: "#", icon: ClipboardList, enabled: false },
   { key: "approvals", href: "#", icon: FileCheck2, enabled: false },
@@ -95,3 +95,4 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+

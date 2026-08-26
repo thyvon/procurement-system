@@ -22,7 +22,11 @@
   },
   "nav": {
     "dashboard": "Dashboard",
-    "catalog": "Catalog",
+    "products": "Products",
+    "categories": "Categories",
+    "brands": "Brands",
+    "groups": "Groups",
+    "uoms": "Units",
     "suppliers": "Suppliers",
     "requisitions": "Requisitions",
     "approvals": "Approvals",
@@ -49,3 +53,5 @@
     "status": "Status"
   }
 }
+
+

@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Modules\Products\Http\Requests\IndexProductsRequest;
 use Modules\Products\Http\Requests\StoreProductRequest;
 use Modules\Products\Http\Requests\UpdateProductRequest;
 use Modules\Products\Http\Resources\ProductResource;
@@ -18,7 +18,7 @@ class ProductController extends Controller
 {
     public function __construct(private readonly ProductRepositoryInterface $repo) {}
 
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(IndexProductsRequest $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Product::class);
 
