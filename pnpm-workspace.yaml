@@ -1,0 +1,19 @@
+packages:
+  - "apps/web"
+  - "packages/*"
+
+onlyBuiltDependencies:
+  - esbuild
+  - unrs-resolver
+
+# Supply-chain policy: default blocks releases < ~24h old. We pin exact
+# versions (foundation.md §2.2/D14) and rely on review + Renovate instead.
+minimumReleaseAge: 0
+
+# Deps are installed explicitly at the workspace root; skip the auto
+# `pnpm install` check before running scripts (it breaks in CI and hooks).
+verifyDepsBeforeRun: false
+
+allowBuilds:
+  esbuild: set this to true or false
+  unrs-resolver: set this to true or false

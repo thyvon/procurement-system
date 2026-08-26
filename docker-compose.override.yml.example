@@ -1,0 +1,8 @@
+# Copy to docker-compose.override.yml for machine-specific tweaks.
+# The real override file is gitignored.
+services:
+  api:
+    volumes:
+      - ./apps/api:/var/www/html
+    environment:
+      XDEBUG_MODE: develop,debug

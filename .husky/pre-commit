@@ -1,0 +1,11 @@
+# Machine paths: project PHP 8.4 wins over system PHP; npm globals provide pnpm
+export PATH="/c/php84:$HOME/AppData/Roaming/npm:$PATH"
+
+echo "husky pre-commit: API gates + web gates"
+
+# API: style, static analysis, boundaries
+(cd apps/api && composer pint:test && composer stan && composer deptrac) || exit 1
+
+# Web: lint + typecheck
+pnpm --filter web lint || exit 1
+pnpm --filter web typecheck || exit 1

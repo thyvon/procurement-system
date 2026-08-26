@@ -1,0 +1,13 @@
+{
+  "name": "procurement-system",
+  "private": true,
+  "scripts": {
+    "web": "pnpm --filter web dev",
+    "build:web": "pnpm --filter web build",
+    "generate-client": "pnpm --filter web generate-client",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9"
+  }
+}

@@ -1,0 +1,23 @@
+# API
+apps/api/vendor/
+apps/api/.env
+apps/api/.env.local
+apps/api/storage/*.key
+apps/api/bootstrap/cache/*.php
+apps/api/.phpunit.cache/
+
+# Web
+apps/web/node_modules/
+apps/web/.next/
+apps/web/.env.local
+apps/web/.env*.local
+
+# Local tooling (standalone PHP runtime — machine-specific)
+/tools/
+
+# General
+.DS_Store
+Thumbs.db
+*.log
+node_modules
+docker-compose.override.yml

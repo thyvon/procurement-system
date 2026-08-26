@@ -1,0 +1,8 @@
+**/node_modules
+**/.next
+**/vendor
+**/.env
+**/.env.local
+apps/api/storage
+.git
+docs

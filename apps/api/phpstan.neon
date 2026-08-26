@@ -1,0 +1,10 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+        - database
+        - routes
+        # - Modules   # uncomment when the first module is scaffolded (nwidart/laravel-modules)
+    level: 6

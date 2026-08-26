@@ -1,0 +1,40 @@
+# Dependency boundary rules — foundation.md §3.1 / setup doc §8.1
+#
+# GROWTH PATTERN: when a real module lands (e.g. Catalog), add a layer pair:
+#
+#   - name: CatalogPublic
+#     collectors:
+#       - type: className
+#         regex: ^Modules\\Catalog\\(Contracts|Facades|Http\\Resources)\\.*
+#   - name: CatalogInternal
+#     collectors:
+#       - type: className
+#         regex: ^Modules\\Catalog\\(?!Contracts|Facades|Http\\Resources).*
+#
+# ...and add `CatalogInternal` to every OTHER module's forbidden list.
+# Only the owning module may depend on its own internals.
+deptrac:
+  paths:
+    - ./Modules
+    - ./app
+  exclude_files:
+    - '#.*test.*#'
+  layers:
+    - name: Support
+      collectors:
+        - type: directory
+          value: app/Support
+    - name: Http
+      collectors:
+        - type: directory
+          value: app/Http
+    - name: Models
+      collectors:
+        - type: directory
+          value: app/Models
+  ruleset:
+    Support: ~
+    Http:
+      - Support
+      - Models
+    Models: ~
