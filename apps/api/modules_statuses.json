@@ -2,5 +2,6 @@
     "Example": true,
     "Auth": true,
     "Organization": true,
-    "Users": true
+    "Users": true,
+    "Products": true
 }
