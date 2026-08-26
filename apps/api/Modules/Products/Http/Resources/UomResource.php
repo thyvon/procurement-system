@@ -1,0 +1,27 @@
+<?php
+
+namespace Modules\Products\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\Products\Models\Uom;
+
+/**
+ * @mixin Uom
+ */
+class UomResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'shortName' => $this->short_name,
+            'isActive' => $this->is_active,
+            'subUnits' => UomSubUnitResource::collection($this->whenLoaded('subUnits')),
+        ];
+    }
+}

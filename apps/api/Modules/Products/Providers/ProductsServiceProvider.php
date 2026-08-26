@@ -2,45 +2,53 @@
 
 namespace Modules\Products\Providers;
 
-use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Gate;
+use Modules\Products\Models\Brand;
+use Modules\Products\Models\ProductCategory;
+use Modules\Products\Models\ProductGroup;
+use Modules\Products\Models\Uom;
+use Modules\Products\Policies\BrandPolicy;
+use Modules\Products\Policies\ProductCategoryPolicy;
+use Modules\Products\Policies\ProductGroupPolicy;
+use Modules\Products\Policies\UomPolicy;
+use Modules\Products\Repositories\BrandRepository;
+use Modules\Products\Repositories\BrandRepositoryInterface;
+use Modules\Products\Repositories\ProductCategoryRepository;
+use Modules\Products\Repositories\ProductCategoryRepositoryInterface;
+use Modules\Products\Repositories\ProductGroupRepository;
+use Modules\Products\Repositories\ProductGroupRepositoryInterface;
+use Modules\Products\Repositories\UomRepository;
+use Modules\Products\Repositories\UomRepositoryInterface;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
 class ProductsServiceProvider extends ModuleServiceProvider
 {
-    /**
-     * The name of the module.
-     */
     protected string $name = 'Products';
 
-    /**
-     * The lowercase version of the module name.
-     */
     protected string $nameLower = 'products';
 
-    /**
-     * Command classes to register.
-     *
-     * @var string[]
-     */
-    // protected array $commands = [];
-
-    /**
-     * Provider classes to register.
-     *
-     * @var string[]
-     */
     protected array $providers = [
         EventServiceProvider::class,
         RouteServiceProvider::class,
     ];
 
-    /**
-     * Define module schedules.
-     *
-     * @param  $schedule
-     */
-    // protected function configureSchedules(Schedule $schedule): void
-    // {
-    //     $schedule->command('inspire')->hourly();
-    // }
+    public function register(): void
+    {
+        parent::register();
+
+        $this->app->bind(ProductCategoryRepositoryInterface::class, ProductCategoryRepository::class);
+        $this->app->bind(BrandRepositoryInterface::class, BrandRepository::class);
+        $this->app->bind(ProductGroupRepositoryInterface::class, ProductGroupRepository::class);
+        $this->app->bind(UomRepositoryInterface::class, UomRepository::class);
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        Gate::policy(ProductCategory::class, ProductCategoryPolicy::class);
+        Gate::policy(Brand::class, BrandPolicy::class);
+        Gate::policy(ProductGroup::class, ProductGroupPolicy::class);
+        Gate::policy(Uom::class, UomPolicy::class);
+    }
 }
