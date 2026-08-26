@@ -29,7 +29,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            $status = $e instanceof HttpException ? $e->getStatusCode() : 500;
+            $status = match (true) {
+                $e instanceof ValidationException => 422,
+                $e instanceof HttpException => $e->getStatusCode(),
+                default => 500,
+            };
 
             if ($status >= 500 && ! config('app.debug')) {
                 $message = 'Server Error';
