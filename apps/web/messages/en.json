@@ -1,0 +1,51 @@
+{
+  "app": {
+    "name": "Procurement"
+  },
+  "common": {
+    "loading": "Loading…",
+    "soon": "Coming soon"
+  },
+  "auth": {
+    "signInTitle": "Sign in to your account",
+    "email": "Email",
+    "password": "Password",
+    "emailPlaceholder": "admin@procurement.local",
+    "passwordPlaceholder": "••••••••••",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Enter a valid email address",
+    "passwordRequired": "Password is required",
+    "invalidCredentials": "Invalid email or password.",
+    "unexpectedResponse": "Unexpected login response.",
+    "submit": "Sign in",
+    "submitting": "Signing in…"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "catalog": "Catalog",
+    "suppliers": "Suppliers",
+    "requisitions": "Requisitions",
+    "approvals": "Approvals",
+    "reports": "Reports",
+    "settings": "Settings"
+  },
+  "topbar": {
+    "signOut": "Sign out",
+    "profile": "Profile",
+    "theme": "Theme",
+    "language": "Language",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "greeting": "Welcome back",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "entityId": "Entity ID",
+    "name": "Name",
+    "email": "Email",
+    "status": "Status"
+  }
+}

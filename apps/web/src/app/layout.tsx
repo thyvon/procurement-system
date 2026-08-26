@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Noto_Sans_Khmer } from "next/font/google";
+import { getLocale, getMessages } from "next-intl/server";
+import { ThemeProvider } from "@/components/layout/theme-provider";
 import Providers from "./providers";
 import "./globals.css";
 
@@ -8,9 +10,14 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const geistMono = Geist({
+const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const notoSansKhmer = Noto_Sans_Khmer({
+  variable: "--font-noto-khmer",
+  subsets: ["khmer"],
 });
 
 export const metadata: Metadata = {
@@ -18,14 +25,24 @@ export const metadata: Metadata = {
   description: "Procurement Management System",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({
+  children,
+}: LayoutProps<"/">) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang={locale}
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} ${notoSansKhmer.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
+      <body className="font-sans min-h-full flex flex-col">
+        <ThemeProvider>
+          <Providers locale={locale} messages={messages}>
+            {children}
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );
