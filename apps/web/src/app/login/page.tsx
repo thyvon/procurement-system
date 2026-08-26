@@ -25,10 +25,13 @@ export default function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: (data: LoginForm) => authLogin(data),
     onSuccess: (response) => {
-      const payload = response.data as {
-        access_token?: string;
-        refresh_token?: string;
-      };
+      // API envelope: { data: { user, access_token, refresh_token, ... } }
+      const payload = (
+        response.data as {
+          data?: { access_token?: string; refresh_token?: string };
+        }
+      ).data;
+
       if (!payload?.access_token || !payload?.refresh_token) {
         setServerError("Unexpected login response.");
         return;
