@@ -23,19 +23,10 @@ return new class extends Migration
 
             $table->index(['family_id', 'revoked_at']);
         });
-
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('entity_id', 26)->nullable()->after('id');
-            $table->index('entity_id');
-        });
     }
 
     public function down(): void
     {
         Schema::dropIfExists('refresh_tokens');
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropIndex(['entity_id']);
-            $table->dropColumn('entity_id');
-        });
     }
 };

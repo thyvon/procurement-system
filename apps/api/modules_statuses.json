@@ -1,4 +1,5 @@
 {
     "Example": true,
-    "Auth": true
+    "Auth": true,
+    "Organization": true
 }

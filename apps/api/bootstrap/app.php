@@ -2,6 +2,8 @@
 
 use App\Http\Middleware\CorrelationId;
 use App\Http\Middleware\EntityScope;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -31,17 +33,19 @@ return Application::configure(basePath: dirname(__DIR__))
 
             $status = match (true) {
                 $e instanceof ValidationException => 422,
+                $e instanceof AuthenticationException => 401,
+                $e instanceof AuthorizationException => 403,
                 $e instanceof HttpException => $e->getStatusCode(),
                 default => 500,
             };
 
-            if ($status >= 500 && ! config('app.debug')) {
-                $message = 'Server Error';
-            } elseif ($e instanceof ValidationException) {
-                $message = collect($e->errors())->flatten()->first() ?? $e->getMessage();
-            } else {
-                $message = $e->getMessage() ?: 'Server Error';
-            }
+            $message = match (true) {
+                $status >= 500 && ! config('app.debug') => 'Server Error',
+                $e instanceof ValidationException => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                $e instanceof AuthenticationException => 'Unauthenticated.',
+                $e instanceof AuthorizationException && blank($e->getMessage()) => 'Forbidden.',
+                default => $e->getMessage() ?: 'Server Error',
+            };
 
             return response()->json([
                 'statusCode' => $status,

@@ -5,21 +5,41 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+use Modules\Organization\Models\Entity;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $entity = Entity::query()->firstOrCreate(
+            ['code' => 'MAIN'],
+            [
+                'name' => 'Main Organization',
+                'timezone' => 'UTC',
+                'locale' => 'en',
+                'is_active' => true,
+            ],
+        );
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        foreach (['web', 'sanctum'] as $guard) {
+            foreach (['admin', 'staff'] as $role) {
+                Role::findOrCreate($role, $guard);
+            }
+        }
+
+        $admin = User::query()->firstOrCreate(
+            ['email' => 'admin@procurement.local'],
+            [
+                'name' => 'Admin',
+                'password' => Hash::make('secret-password'),
+                'entity_id' => $entity->getKey(),
+            ],
+        );
+
+        $admin->assignRole('admin');
     }
 }

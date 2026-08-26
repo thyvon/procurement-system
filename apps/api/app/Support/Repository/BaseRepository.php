@@ -35,9 +35,10 @@ abstract class BaseRepository implements RepositoryInterface
 
     public function create(array $attributes): Model
     {
-        return $this->model->newInstance($attributes)->save()
-            ? $this->model->newInstance()
-            : throw new \RuntimeException('Failed to persist model.');
+        $instance = $this->model->newInstance($attributes);
+        $instance->save();
+
+        return $instance;
     }
 
     public function update(Model $model, array $attributes): Model

@@ -37,4 +37,5 @@ deptrac:
     Http:
       - Support
       - Models
-    Models: ~
+    Models:
+      - Support
