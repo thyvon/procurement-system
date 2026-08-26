@@ -84,7 +84,7 @@ export const getUsersUsersIndexUrl = () => {
 
 
 
-  return `http://localhost:8000/v1/users`
+  return `http://localhost:8000/api/v1/users`
 }
 
 export const usersUsersIndex = async ( options?: RequestInit): Promise<usersUsersIndexResponse> => {
@@ -111,7 +111,7 @@ export const usersUsersIndex = async ( options?: RequestInit): Promise<usersUser
 
 export const getUsersUsersIndexQueryKey = () => {
     return [
-    `http://localhost:8000/v1/users`
+    `http://localhost:8000/api/v1/users`
     ] as const;
     }
 
@@ -266,7 +266,7 @@ export const getUsersUsersStoreUrl = () => {
 
 
 
-  return `http://localhost:8000/v1/users`
+  return `http://localhost:8000/api/v1/users`
 }
 
 export const usersUsersStore = async (storeUserRequest: StoreUserRequest, options?: RequestInit): Promise<usersUsersStoreResponse> => {
@@ -299,7 +299,7 @@ const res = await fetch(getUsersUsersStoreUrl(),
 
 export const getUsersUsersStoreQueryKey = (storeUserRequest?: StoreUserRequest,) => {
     return [
-    'POST', `http://localhost:8000/v1/users`, storeUserRequest
+    'POST', `http://localhost:8000/api/v1/users`, storeUserRequest
     ] as const;
     }
 
@@ -402,7 +402,7 @@ export const getUsersUsersShowUrl = (user: number,) => {
 
 
 
-  return `http://localhost:8000/v1/users/${user}`
+  return `http://localhost:8000/api/v1/users/${user}`
 }
 
 export const usersUsersShow = async (user: number, options?: RequestInit): Promise<usersUsersShowResponse> => {
@@ -429,7 +429,7 @@ export const usersUsersShow = async (user: number, options?: RequestInit): Promi
 
 export const getUsersUsersShowQueryKey = (user: number,) => {
     return [
-    `http://localhost:8000/v1/users/${user}`
+    `http://localhost:8000/api/v1/users/${user}`
     ] as const;
     }
 
@@ -589,7 +589,7 @@ export const getUsersUsersUpdateUrl = (user: number,) => {
 
 
 
-  return `http://localhost:8000/v1/users/${user}`
+  return `http://localhost:8000/api/v1/users/${user}`
 }
 
 export const usersUsersUpdate = async (user: number,
@@ -624,7 +624,7 @@ const res = await fetch(getUsersUsersUpdateUrl(user),
 export const getUsersUsersUpdateQueryKey = (user: number,
     updateUserRequest?: UpdateUserRequest,) => {
     return [
-    'PUT', `http://localhost:8000/v1/users/${user}`, updateUserRequest
+    'PUT', `http://localhost:8000/api/v1/users/${user}`, updateUserRequest
     ] as const;
     }
 
@@ -732,7 +732,7 @@ export const getUsersUsersDestroyUrl = (user: number,) => {
 
 
 
-  return `http://localhost:8000/v1/users/${user}`
+  return `http://localhost:8000/api/v1/users/${user}`
 }
 
 export const usersUsersDestroy = async (user: number, options?: RequestInit): Promise<usersUsersDestroyResponse> => {
@@ -759,7 +759,7 @@ export const usersUsersDestroy = async (user: number, options?: RequestInit): Pr
 
 export const getUsersUsersDestroyQueryKey = (user: number,) => {
     return [
-    'DELETE', `http://localhost:8000/v1/users/${user}`
+    'DELETE', `http://localhost:8000/api/v1/users/${user}`
     ] as const;
     }
 

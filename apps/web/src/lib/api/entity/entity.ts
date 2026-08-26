@@ -84,7 +84,7 @@ export const getEntitiesEntitiesIndexUrl = () => {
 
 
 
-  return `http://localhost:8000/v1/entities`
+  return `http://localhost:8000/api/v1/entities`
 }
 
 export const entitiesEntitiesIndex = async ( options?: RequestInit): Promise<entitiesEntitiesIndexResponse> => {
@@ -111,7 +111,7 @@ export const entitiesEntitiesIndex = async ( options?: RequestInit): Promise<ent
 
 export const getEntitiesEntitiesIndexQueryKey = () => {
     return [
-    `http://localhost:8000/v1/entities`
+    `http://localhost:8000/api/v1/entities`
     ] as const;
     }
 
@@ -266,7 +266,7 @@ export const getEntitiesEntitiesStoreUrl = () => {
 
 
 
-  return `http://localhost:8000/v1/entities`
+  return `http://localhost:8000/api/v1/entities`
 }
 
 export const entitiesEntitiesStore = async (storeEntityRequest: StoreEntityRequest, options?: RequestInit): Promise<entitiesEntitiesStoreResponse> => {
@@ -299,7 +299,7 @@ const res = await fetch(getEntitiesEntitiesStoreUrl(),
 
 export const getEntitiesEntitiesStoreQueryKey = (storeEntityRequest?: StoreEntityRequest,) => {
     return [
-    'POST', `http://localhost:8000/v1/entities`, storeEntityRequest
+    'POST', `http://localhost:8000/api/v1/entities`, storeEntityRequest
     ] as const;
     }
 
@@ -402,7 +402,7 @@ export const getEntitiesEntitiesShowUrl = (entity: string,) => {
 
 
 
-  return `http://localhost:8000/v1/entities/${entity}`
+  return `http://localhost:8000/api/v1/entities/${entity}`
 }
 
 export const entitiesEntitiesShow = async (entity: string, options?: RequestInit): Promise<entitiesEntitiesShowResponse> => {
@@ -429,7 +429,7 @@ export const entitiesEntitiesShow = async (entity: string, options?: RequestInit
 
 export const getEntitiesEntitiesShowQueryKey = (entity: string,) => {
     return [
-    `http://localhost:8000/v1/entities/${entity}`
+    `http://localhost:8000/api/v1/entities/${entity}`
     ] as const;
     }
 
@@ -589,7 +589,7 @@ export const getEntitiesEntitiesUpdateUrl = (entity: string,) => {
 
 
 
-  return `http://localhost:8000/v1/entities/${entity}`
+  return `http://localhost:8000/api/v1/entities/${entity}`
 }
 
 export const entitiesEntitiesUpdate = async (entity: string,
@@ -624,7 +624,7 @@ const res = await fetch(getEntitiesEntitiesUpdateUrl(entity),
 export const getEntitiesEntitiesUpdateQueryKey = (entity: string,
     updateEntityRequest?: UpdateEntityRequest,) => {
     return [
-    'PUT', `http://localhost:8000/v1/entities/${entity}`, updateEntityRequest
+    'PUT', `http://localhost:8000/api/v1/entities/${entity}`, updateEntityRequest
     ] as const;
     }
 
@@ -732,7 +732,7 @@ export const getEntitiesEntitiesDestroyUrl = (entity: string,) => {
 
 
 
-  return `http://localhost:8000/v1/entities/${entity}`
+  return `http://localhost:8000/api/v1/entities/${entity}`
 }
 
 export const entitiesEntitiesDestroy = async (entity: string, options?: RequestInit): Promise<entitiesEntitiesDestroyResponse> => {
@@ -759,7 +759,7 @@ export const entitiesEntitiesDestroy = async (entity: string, options?: RequestI
 
 export const getEntitiesEntitiesDestroyQueryKey = (entity: string,) => {
     return [
-    'DELETE', `http://localhost:8000/v1/entities/${entity}`
+    'DELETE', `http://localhost:8000/api/v1/entities/${entity}`
     ] as const;
     }
 

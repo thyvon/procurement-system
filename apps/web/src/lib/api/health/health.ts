@@ -58,7 +58,7 @@ export const getHealthUrl = () => {
 
 
 
-  return `http://localhost:8000/health`
+  return `http://localhost:8000/api/health`
 }
 
 export const health = async ( options?: RequestInit): Promise<healthResponse> => {
@@ -85,7 +85,7 @@ export const health = async ( options?: RequestInit): Promise<healthResponse> =>
 
 export const getHealthQueryKey = () => {
     return [
-    `http://localhost:8000/health`
+    `http://localhost:8000/api/health`
     ] as const;
     }
 
