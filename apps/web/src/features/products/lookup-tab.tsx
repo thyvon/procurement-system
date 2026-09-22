@@ -14,6 +14,18 @@ import {
   productsGroupsStore,
   productsGroupsUpdate,
 } from "@/lib/api/product-group/product-group";
+import {
+  productsCategoriesDestroy,
+  productsCategoriesIndex,
+  productsCategoriesStore,
+  productsCategoriesUpdate,
+} from "@/lib/api/product-category/product-category";
+import {
+  productsUomsDestroy,
+  productsUomsIndex,
+  productsUomsStore,
+  productsUomsUpdate,
+} from "@/lib/api/uom/uom";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,7 +44,7 @@ type LookupItem = {
   description: string | null;
 };
 
-type Kind = "brands" | "groups";
+type Kind = "brands" | "groups" | "categories" | "uoms";
 
 const api = {
   brands: {
@@ -49,11 +61,26 @@ const api = {
       productsGroupsUpdate(id, d, withAuth()),
     remove: (id: string) => productsGroupsDestroy(id, withAuth()),
   },
+  categories: {
+    list: () => productsCategoriesIndex(withAuth()),
+    create: (d: { name: string; description?: string }) =>
+      productsCategoriesStore({ name: d.name, code: d.name.slice(0, 10).toUpperCase() }, withAuth()),
+    update: (id: string, d: { name?: string; description?: string }) =>
+      productsCategoriesUpdate(id, { name: d.name }, withAuth()),
+    remove: (id: string) => productsCategoriesDestroy(id, withAuth()),
+  },
+  uoms: {
+    list: () => productsUomsIndex(withAuth()),
+    create: (d: { name: string; description?: string }) =>
+      productsUomsStore({ name: d.name, short_name: d.name.slice(0, 10) }, withAuth()),
+    update: (id: string, d: { name?: string; description?: string }) =>
+      productsUomsUpdate(id, { name: d.name, short_name: d.name?.slice(0, 10) }, withAuth()),
+    remove: (id: string) => productsUomsDestroy(id, withAuth()),
+  },
 };
 
 /**
- * Shared name/description lookup manager used by the Brands and Groups tabs.
- * One component, two resources — same behaviour everywhere.
+ * Shared name/description lookup manager used by the Brands, Groups, Categories, and UoMs tabs.
  */
 export function LookupTab({ kind }: { kind: Kind }) {
   const qc = useQueryClient();

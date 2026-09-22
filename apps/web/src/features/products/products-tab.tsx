@@ -2,22 +2,13 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   productsItemsDestroy,
   productsItemsIndex,
-  productsItemsStore,
-  productsItemsUpdate,
 } from "@/lib/api/product/product";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { unwrap, withAuth } from "./api";
 import { ImportDialog } from "./import-dialog";
 
@@ -29,13 +20,10 @@ type Product = {
   purchasePrice: number | null;
 };
 
-const empty = { code: "", name: "", name_km: "", purchase_price: "" };
-
 export function ProductsTab() {
   const qc = useQueryClient();
+  const router = useRouter();
   const [search, setSearch] = useState("");
-  const [dialog, setDialog] = useState<{ open: boolean; product?: Product }>({ open: false });
-  const [form, setForm] = useState(empty);
   const [importOpen, setImportOpen] = useState(false);
 
   const query = useQuery({
@@ -48,20 +36,6 @@ export function ProductsTab() {
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["products"] });
-
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      if (dialog.product) {
-        return productsItemsUpdate(dialog.product.id, form as never, withAuth());
-      }
-      return productsItemsStore(form as never, withAuth());
-    },
-    onSuccess: () => {
-      setDialog({ open: false });
-      setForm(empty);
-      invalidate();
-    },
-  });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => productsItemsDestroy(id, withAuth()),
@@ -81,12 +55,7 @@ export function ProductsTab() {
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             Import
           </Button>
-          <Button
-            onClick={() => {
-              setForm(empty);
-              setDialog({ open: true });
-            }}
-          >
+          <Button onClick={() => router.push("/products/create")}>
             New product
           </Button>
         </div>
@@ -111,15 +80,7 @@ export function ProductsTab() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setForm({
-                    code: p.code,
-                    name: p.name,
-                    name_km: p.nameKm ?? "",
-                    purchase_price: p.purchasePrice?.toString() ?? "",
-                  });
-                  setDialog({ open: true, product: p });
-                }}
+                onClick={() => router.push(`/products/${p.id}/edit`)}
               >
                 Edit
               </Button>
@@ -132,46 +93,6 @@ export function ProductsTab() {
       </div>
 
       <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
-
-      <Dialog open={dialog.open} onOpenChange={(v) => setDialog((d) => ({ ...d, open: v }))}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{dialog.product ? "Edit" : "New"} product</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Code</Label>
-              <Input value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Name (English)</Label>
-              <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Name (ខ្មែរ)</Label>
-              <Input
-                lang="km"
-                value={form.name_km}
-                onChange={(e) => setForm((f) => ({ ...f, name_km: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Purchase price</Label>
-              <Input
-                type="number"
-                step="0.0001"
-                value={form.purchase_price}
-                onChange={(e) => setForm((f) => ({ ...f, purchase_price: e.target.value }))}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

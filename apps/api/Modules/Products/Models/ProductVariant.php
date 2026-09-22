@@ -13,7 +13,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'product_id',
     'code',
     'name',
+    'description',
     'option_values',
+    'sub_unit_id',
     'purchase_price',
     'sub_unit_purchase_price',
     'image_url',
@@ -36,5 +38,10 @@ class ProductVariant extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function subUnit(): BelongsTo
+    {
+        return $this->belongsTo(UomSubUnit::class, 'sub_unit_id');
     }
 }

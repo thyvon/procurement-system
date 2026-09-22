@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
@@ -74,6 +75,21 @@ class Product extends Model
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class);
+    }
+
+    /**
+     * Templates whose options define this product's variation matrix axes.
+     *
+     * @return BelongsToMany<VariationTemplate, $this>
+     */
+    public function variationTemplates(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            VariationTemplate::class,
+            'product_variation_template',
+            'product_id',
+            'variation_template_id',
+        );
     }
 
     /**
