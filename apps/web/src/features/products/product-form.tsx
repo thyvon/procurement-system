@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Save, Sparkles, Plus } from "lucide-react";
+import { ArrowLeft, Save, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import { Combobox as ComboboxNS } from "@base-ui/react/combobox";
-import { unwrap, withAuth } from "./api";
+import { unwrap, withAuth } from "@/lib/api-client";
 import {
   productsItemsStore,
   productsItemsUpdate,
@@ -41,20 +41,12 @@ import {
 import { VariantMatrix, type VariantRow } from "./components/variant-matrix";
 import { EntityQuickAddModal } from "./components/entity-quick-add-modal";
 
-type ProductType = "single" | "variation";
+type ProductType = "single" | "variable";
 
 const PRODUCT_TYPES: { value: ProductType; label: string }[] = [
   { value: "single", label: "Single Product" },
-  { value: "variation", label: "Variation" },
+  { value: "variable", label: "Variation" },
 ];
-
-const autoCode = (name: string): string => {
-  const letters = (name.match(/[a-z0-9]/gi) || []).join("").slice(0, 6).toUpperCase() || "PRD";
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ123456789";
-  let suffix = "";
-  for (let i = 0; i < 6; i++) suffix += chars[Math.floor(Math.random() * chars.length)];
-  return `${letters}-${suffix}`;
-};
 
 interface ProductFormProps {
   mode: "create" | "edit";
@@ -88,6 +80,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
     (initialData?.product_type as ProductType) ?? "single"
   );
   const [categoryId, setCategoryId] = useState(initialData?.product_category_id ?? "");
+  const [subCategoryId, setSubCategoryId] = useState("");
   const [groupId, setGroupId] = useState(initialData?.product_group_id ?? "");
   const [brandId, setBrandId] = useState(initialData?.brand_id ?? "");
   const [uomId, setUomId] = useState(initialData?.uom_id ?? "");
@@ -100,14 +93,14 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
 
   const { data: categoriesData } = useQuery({
     queryKey: ["categories"],
-    queryFn: async () => unwrap<Array<{ id: string; name: string; code: string; parent_id: string | null }>>(
+    queryFn: async () => unwrap<Array<{ id: string; name: string; code: string; parentId: string | null }>>(
       await productsCategoriesIndex(withAuth())
     ),
   });
 
   const { data: groupsData } = useQuery({
     queryKey: ["groups"],
-    queryFn: async () => unwrap<Array<{ id: string; name: string; category_id: string | null }>>(
+    queryFn: async () => unwrap<Array<{ id: string; name: string }>>(
       await productsGroupsIndex(withAuth())
     ),
   });
@@ -131,7 +124,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
     queryFn: async () => unwrap<Array<{ id: string; name: string; options?: Array<{ id: string; value: string }> }>>(
       await productsVariationTemplatesIndex(withAuth())
     ),
-    enabled: productType === "variation",
+    enabled: productType === "variable",
   });
 
   const categories = useMemo(() => categoriesData ?? [], [categoriesData]);
@@ -141,18 +134,13 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
   const templates = useMemo(() => templatesData ?? [], [templatesData]);
 
   const parentCategories = useMemo(
-    () => categories.filter((c) => !c.parent_id),
+    () => categories.filter((c) => !c.parentId),
     [categories]
   );
 
   const subCategories = useMemo(
-    () => categories.filter((c) => c.parent_id === categoryId),
+    () => categories.filter((c) => c.parentId === categoryId),
     [categories, categoryId]
-  );
-
-  const filteredGroups = useMemo(
-    () => groups.filter((g) => g.category_id === (subCategories.length > 0 ? subCategories[0]?.id : categoryId)),
-    [groups, categoryId, subCategories]
   );
 
   const selectedUom = useMemo(() => uoms.find((u) => u.id === uomId), [uoms, uomId]);
@@ -163,15 +151,13 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const finalCode = code.trim() || autoCode(name.trim());
-
       const payload = {
-        code: finalCode,
+        code: code.trim() || undefined,
         name: name.trim(),
         name_km: nameKm.trim() || undefined,
         description: description.trim() || undefined,
         product_type: productType,
-        category_id: categoryId || undefined,
+        category_id: subCategoryId || categoryId || undefined,
         group_id: groupId || undefined,
         brand_id: brandId || undefined,
         uom_id: uomId || undefined,
@@ -180,17 +166,14 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
       };
 
       if (isEdit && initialData?.id) {
-        return productsItemsUpdate(initialData.id, payload as never, withAuth());
+        return unwrap(await productsItemsUpdate(initialData.id, payload as never, withAuth()));
       }
-      return productsItemsStore(payload as never, withAuth());
+      return unwrap(await productsItemsStore(payload as never, withAuth()));
     },
     onSuccess: () => {
       toast.success(isEdit ? "Product updated." : "Product created.");
       invalidate();
       router.push("/products");
-    },
-    onError: (err: Error) => {
-      toast.error(err.message || "Failed to save product.");
     },
   });
 
@@ -203,11 +186,22 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
   };
 
   const handleQuickAddSaved = (entity: string, newId?: string) => {
-    if (entity === "category" && newId) setCategoryId(newId);
+    if (entity === "category" && newId) {
+      setCategoryId(newId);
+      setSubCategoryId("");
+    }
     if (entity === "group" && newId) setGroupId(newId);
     if (entity === "brand" && newId) setBrandId(newId);
     if (entity === "uom" && newId) setUomId(newId);
-    qc.invalidateQueries({ queryKey: [entity === "group" ? "groups" : `${entity}s`] });
+    const key =
+      entity === "category"
+        ? "categories"
+        : entity === "group"
+          ? "groups"
+          : entity === "brand"
+            ? "brands"
+            : "uoms";
+    qc.invalidateQueries({ queryKey: [key] });
   };
 
   return (
@@ -244,27 +238,12 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
               <div className="mt-2 space-y-4">
                 <Field orientation="vertical">
                   <FieldLabel>Product Code</FieldLabel>
-                  <div className="flex gap-1.5">
-                    <div className="flex-1">
-                      <Input
-                        value={code}
-                        onChange={(e) => setCode(e.target.value.toUpperCase())}
-                        placeholder="Auto-generated if blank"
-                        className="font-mono"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="shrink-0"
-                      onClick={() => name.trim() && setCode(autoCode(name.trim()))}
-                      disabled={!name.trim()}
-                      aria-label="Generate code from name"
-                    >
-                      <Sparkles className="size-4" />
-                    </Button>
-                  </div>
+                  <Input
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    placeholder="Auto-generated if blank"
+                    className="font-mono"
+                  />
                 </Field>
                 <Field orientation="vertical">
                   <FieldLabel>Name (KH)</FieldLabel>
@@ -306,11 +285,11 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                       getValue: (t) => t.value,
                       getLabel: (t) => t.label,
                     })}
-                    value={productType}
-                    onValueChange={(val) => {
-                      setProductType(val as ProductType);
-                      if (val !== "variation") setTemplateIds([]);
-                    }}
+                        value={productType}
+                        onValueChange={(val) => {
+                          setProductType(val as ProductType);
+                          if (val !== "variable") setTemplateIds([]);
+                        }}
                   >
                     <ComboboxInput placeholder="Select type..." />
                     <ComboboxContent>
@@ -337,6 +316,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                         value={categoryId}
                         onValueChange={(val) => {
                           setCategoryId(val as string);
+                          setSubCategoryId("");
                           setGroupId("");
                         }}
                       >
@@ -367,8 +347,8 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                   <Field orientation="vertical">
                     <FieldLabel>Sub-Category</FieldLabel>
                     <Select
-                      value={groupId}
-                      onValueChange={(v) => setGroupId(v ?? "")}
+                      value={subCategoryId}
+                      onValueChange={(v) => setSubCategoryId(v ?? "")}
                       items={subCategories.map((c) => ({ value: c.id, label: c.name }))}
                     >
                       <SelectTrigger className="w-full">
@@ -391,20 +371,15 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                       <Select
                         value={groupId}
                         onValueChange={(v) => setGroupId(v ?? "")}
-                        disabled={!categoryId}
-                        items={filteredGroups.map((g) => ({ value: g.id, label: g.name }))}
+                        items={groups.map((g) => ({ value: g.id, label: g.name }))}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder={
-                            categoryId
-                              ? filteredGroups.length
-                                ? "Select group..."
-                                : "No groups in this category"
-                              : "Select category first"
+                            groups.length ? "Select group..." : "No groups yet"
                           } />
                         </SelectTrigger>
                         <SelectContent>
-                          {filteredGroups.map((g) => (
+                          {groups.map((g) => (
                             <SelectItem key={g.id} value={g.id}>
                               {g.name}
                             </SelectItem>
@@ -537,7 +512,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
         </CardContent>
       </Card>
 
-      {productType === "variation" && (
+      {productType === "variable" && (
         <Card>
           <CardHeader>
             <CardTitle>Variation Product</CardTitle>
@@ -596,7 +571,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
             uoms={uoms}
             productCode={code}
             productName={name}
-            isVariation={productType === "variation"}
+            isVariation={productType === "variable"}
           />
         </CardContent>
       </Card>

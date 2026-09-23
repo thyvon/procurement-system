@@ -18,7 +18,7 @@ class StoreUomRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'short_name' => ['required', 'string', 'max:16'],
+            'short_name' => ['nullable', 'string', 'max:16'],
             'is_active' => ['sometimes', 'boolean'],
             'sub_units' => ['sometimes', 'array'],
             'sub_units.*.name' => ['required_with:sub_units', 'string', 'max:255'],

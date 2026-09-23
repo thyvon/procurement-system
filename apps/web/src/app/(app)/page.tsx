@@ -1,10 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { authMe } from "@/lib/api/auth/auth";
-import type { UserResource } from "@/lib/api/model";
-import { authHeaders } from "@/lib/auth/token-store";
+import { useMe } from "@/hooks/use-me";
+import { PageSkeleton } from "@/components/layout/page-skeleton";
 import {
   Card,
   CardContent,
@@ -16,16 +14,13 @@ import {
 export default function HomePage() {
   const t = useTranslations("dashboard");
 
-  const meQuery = useQuery({
-    queryKey: ["me"],
-    queryFn: () => authMe({ headers: authHeaders() }),
-    staleTime: 5 * 60 * 1000,
-  });
+  const meQuery = useMe();
 
-  const user =
-    meQuery.data?.status === 200
-      ? (meQuery.data.data as { data: UserResource }).data
-      : null;
+  const user = meQuery.data ?? null;
+
+  if (meQuery.isPending) {
+    return <PageSkeleton />;
+  }
 
   return (
     <div>

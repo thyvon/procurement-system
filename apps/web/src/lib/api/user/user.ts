@@ -27,7 +27,9 @@ import type {
   AuthorizationExceptionResponse,
   ModelNotFoundExceptionResponse,
   StoreUserRequest,
+  UpdateAvatarRequest,
   UpdateUserRequest,
+  UsersAvatar200,
   UsersUsersDestroy200,
   UsersUsersIndex200,
   UsersUsersShow200,
@@ -817,6 +819,150 @@ export function useUsersUsersDestroy<TData = Awaited<ReturnType<typeof usersUser
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getUsersUsersDestroyQueryOptions(user,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type usersAvatarResponse200 = {
+  data: UsersAvatar200
+  status: 200
+}
+
+export type usersAvatarResponse401 = {
+  data: AuthenticationExceptionResponse
+  status: 401
+}
+
+export type usersAvatarResponse403 = {
+  data: AuthorizationExceptionResponse
+  status: 403
+}
+
+export type usersAvatarResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
+export type usersAvatarResponse422 = {
+  data: ValidationExceptionResponse
+  status: 422
+}
+
+export type usersAvatarResponseSuccess = (usersAvatarResponse200) & {
+  headers: Headers;
+};
+export type usersAvatarResponseError = (usersAvatarResponse401 | usersAvatarResponse403 | usersAvatarResponse404 | usersAvatarResponse422) & {
+  headers: Headers;
+};
+
+export type usersAvatarResponse = (usersAvatarResponseSuccess | usersAvatarResponseError)
+
+export const getUsersAvatarUrl = (user: number,) => {
+
+
+
+
+  return `http://localhost:8000/api/v1/users/${user}/avatar`
+}
+
+export const usersAvatar = async (user: number,
+    updateAvatarRequest: UpdateAvatarRequest, options?: RequestInit): Promise<usersAvatarResponse> => {
+    const formData = new FormData();
+formData.append(`image`, updateAvatarRequest.image);
+
+  const res = await fetch(getUsersAvatarUrl(user),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: usersAvatarResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as usersAvatarResponse
+}
+
+
+
+
+
+export const getUsersAvatarQueryKey = (user: number,
+    updateAvatarRequest?: UpdateAvatarRequest,) => {
+    return [
+    'POST', `http://localhost:8000/api/v1/users/${user}/avatar`, updateAvatarRequest
+    ] as const;
+    }
+
+
+export const getUsersAvatarQueryOptions = <TData = Awaited<ReturnType<typeof usersAvatar>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(user: number,
+    updateAvatarRequest: UpdateAvatarRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersAvatar>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getUsersAvatarQueryKey(user,updateAvatarRequest);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof usersAvatar>>> = ({ signal }) => usersAvatar(user,updateAvatarRequest, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: user !== null && user !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof usersAvatar>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type UsersAvatarQueryResult = NonNullable<Awaited<ReturnType<typeof usersAvatar>>>
+export type UsersAvatarQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse
+
+
+export function useUsersAvatar<TData = Awaited<ReturnType<typeof usersAvatar>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ user: number,
+    updateAvatarRequest: UpdateAvatarRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersAvatar>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersAvatar>>,
+          TError,
+          Awaited<ReturnType<typeof usersAvatar>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useUsersAvatar<TData = Awaited<ReturnType<typeof usersAvatar>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ user: number,
+    updateAvatarRequest: UpdateAvatarRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersAvatar>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersAvatar>>,
+          TError,
+          Awaited<ReturnType<typeof usersAvatar>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useUsersAvatar<TData = Awaited<ReturnType<typeof usersAvatar>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ user: number,
+    updateAvatarRequest: UpdateAvatarRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersAvatar>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useUsersAvatar<TData = Awaited<ReturnType<typeof usersAvatar>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ user: number,
+    updateAvatarRequest: UpdateAvatarRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersAvatar>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getUsersAvatarQueryOptions(user,updateAvatarRequest,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

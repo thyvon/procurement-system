@@ -21,7 +21,7 @@ class StoreProductRequest extends FormRequest
 
         return [
             'code' => [
-                'required',
+                'nullable',
                 'string',
                 'max:64',
                 Rule::unique('products', 'code')->where('entity_id', $entityId),

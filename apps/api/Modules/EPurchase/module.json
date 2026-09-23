@@ -1,0 +1,11 @@
+{
+    "name": "EPurchase",
+    "alias": "epurchase",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\EPurchase\\Providers\\EPurchaseServiceProvider"
+    ],
+    "files": []
+}

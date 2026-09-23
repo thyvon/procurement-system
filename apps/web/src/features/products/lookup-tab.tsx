@@ -36,7 +36,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { unwrap, withAuth } from "./api";
+import { Skeleton } from "@/components/ui/skeleton";
+import { unwrap, withAuth } from "@/lib/api-client";
 
 type LookupItem = {
   id: string;
@@ -64,7 +65,7 @@ const api = {
   categories: {
     list: () => productsCategoriesIndex(withAuth()),
     create: (d: { name: string; description?: string }) =>
-      productsCategoriesStore({ name: d.name, short_code: d.name.slice(0, 10).toUpperCase() }, withAuth()),
+      productsCategoriesStore({ name: d.name }, withAuth()),
     update: (id: string, d: { name?: string; description?: string }) =>
       productsCategoriesUpdate(id, { name: d.name }, withAuth()),
     remove: (id: string) => productsCategoriesDestroy(id, withAuth()),
@@ -72,9 +73,9 @@ const api = {
   uoms: {
     list: () => productsUomsIndex(withAuth()),
     create: (d: { name: string; description?: string }) =>
-      productsUomsStore({ name: d.name, short_name: d.name.slice(0, 10) }, withAuth()),
+      productsUomsStore({ name: d.name }, withAuth()),
     update: (id: string, d: { name?: string; description?: string }) =>
-      productsUomsUpdate(id, { name: d.name, short_name: d.name?.slice(0, 10) }, withAuth()),
+      productsUomsUpdate(id, { name: d.name }, withAuth()),
     remove: (id: string) => productsUomsDestroy(id, withAuth()),
   },
 };
@@ -97,8 +98,8 @@ export function LookupTab({ kind }: { kind: Kind }) {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (editing) return api[kind].update(editing.id, form);
-      return api[kind].create(form);
+      if (editing) return unwrap(await api[kind].update(editing.id, form));
+      return unwrap(await api[kind].create(form));
     },
     onSuccess: () => {
       setOpen(false);
@@ -109,7 +110,7 @@ export function LookupTab({ kind }: { kind: Kind }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api[kind].remove(id),
+    mutationFn: async (id: string) => unwrap(await api[kind].remove(id)),
     onSuccess: invalidate,
   });
 
@@ -130,7 +131,22 @@ export function LookupTab({ kind }: { kind: Kind }) {
       </div>
 
       <div className="rounded-xl border bg-card">
-        {query.isPending && <p className="p-6 text-sm text-muted-foreground">Loading…</p>}
+        {query.isPending &&
+          Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between border-b px-4 py-3 last:border-b-0"
+            >
+              <div className="space-y-1.5">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-14" />
+                <Skeleton className="h-8 w-16" />
+              </div>
+            </div>
+          ))}
         {items.length === 0 && !query.isPending && (
           <p className="p-6 text-sm text-muted-foreground">Nothing here yet.</p>
         )}

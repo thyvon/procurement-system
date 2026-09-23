@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { unwrap, withAuth } from "./api";
+import { unwrap, withAuth } from "@/lib/api-client";
 
 type ImportResult = {
   imported: number;
@@ -36,13 +36,15 @@ export function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChan
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet.Sheets[sheet.SheetNames[0]], {
         defval: "",
       });
-      return productsImportStore(
-        { rows: rows as never },
-        withAuth(),
+      return unwrap<ImportResult>(
+        await productsImportStore(
+          { rows: rows as never },
+          withAuth(),
+        ),
       );
     },
-    onSuccess: (res) => {
-      setResult(unwrap<ImportResult>(res));
+    onSuccess: (result) => {
+      setResult(result);
       qc.invalidateQueries({ queryKey: ["products"] });
     },
   });

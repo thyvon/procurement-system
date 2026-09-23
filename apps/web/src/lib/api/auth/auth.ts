@@ -23,6 +23,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AuthCompanyLogin200,
+  AuthCompanyLogin401,
+  AuthCompanyLogin502,
   AuthLogin200,
   AuthLogin401,
   AuthLogout200,
@@ -30,6 +33,7 @@ import type {
   AuthRefresh200,
   AuthRefresh401,
   AuthenticationExceptionResponse,
+  CompanyLoginRequest,
   LoginRequest,
   RefreshRequest,
   ValidationExceptionResponse
@@ -174,6 +178,142 @@ export function useAuthLogin<TData = Awaited<ReturnType<typeof authLogin>>, TErr
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getAuthLoginQueryOptions(loginRequest,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type authCompanyLoginResponse200 = {
+  data: AuthCompanyLogin200
+  status: 200
+}
+
+export type authCompanyLoginResponse401 = {
+  data: AuthCompanyLogin401
+  status: 401
+}
+
+export type authCompanyLoginResponse422 = {
+  data: ValidationExceptionResponse
+  status: 422
+}
+
+export type authCompanyLoginResponse502 = {
+  data: AuthCompanyLogin502
+  status: 502
+}
+
+export type authCompanyLoginResponseSuccess = (authCompanyLoginResponse200) & {
+  headers: Headers;
+};
+export type authCompanyLoginResponseError = (authCompanyLoginResponse401 | authCompanyLoginResponse422 | authCompanyLoginResponse502) & {
+  headers: Headers;
+};
+
+export type authCompanyLoginResponse = (authCompanyLoginResponseSuccess | authCompanyLoginResponseError)
+
+export const getAuthCompanyLoginUrl = () => {
+
+
+
+
+  return `http://localhost:8000/api/v1/auth/company-login`
+}
+
+export const authCompanyLogin = async (companyLoginRequest: CompanyLoginRequest, options?: RequestInit): Promise<authCompanyLoginResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+const res = await fetch(getAuthCompanyLoginUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(companyLoginRequest)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: authCompanyLoginResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as authCompanyLoginResponse
+}
+
+
+
+
+
+export const getAuthCompanyLoginQueryKey = (companyLoginRequest?: CompanyLoginRequest,) => {
+    return [
+    'POST', `http://localhost:8000/api/v1/auth/company-login`, companyLoginRequest
+    ] as const;
+    }
+
+
+export const getAuthCompanyLoginQueryOptions = <TData = Awaited<ReturnType<typeof authCompanyLogin>>, TError = AuthCompanyLogin401 | ValidationExceptionResponse | AuthCompanyLogin502>(companyLoginRequest: CompanyLoginRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authCompanyLogin>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAuthCompanyLoginQueryKey(companyLoginRequest);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof authCompanyLogin>>> = ({ signal }) => authCompanyLogin(companyLoginRequest, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof authCompanyLogin>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AuthCompanyLoginQueryResult = NonNullable<Awaited<ReturnType<typeof authCompanyLogin>>>
+export type AuthCompanyLoginQueryError = AuthCompanyLogin401 | ValidationExceptionResponse | AuthCompanyLogin502
+
+
+export function useAuthCompanyLogin<TData = Awaited<ReturnType<typeof authCompanyLogin>>, TError = AuthCompanyLogin401 | ValidationExceptionResponse | AuthCompanyLogin502>(
+ companyLoginRequest: CompanyLoginRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof authCompanyLogin>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof authCompanyLogin>>,
+          TError,
+          Awaited<ReturnType<typeof authCompanyLogin>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAuthCompanyLogin<TData = Awaited<ReturnType<typeof authCompanyLogin>>, TError = AuthCompanyLogin401 | ValidationExceptionResponse | AuthCompanyLogin502>(
+ companyLoginRequest: CompanyLoginRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authCompanyLogin>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof authCompanyLogin>>,
+          TError,
+          Awaited<ReturnType<typeof authCompanyLogin>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAuthCompanyLogin<TData = Awaited<ReturnType<typeof authCompanyLogin>>, TError = AuthCompanyLogin401 | ValidationExceptionResponse | AuthCompanyLogin502>(
+ companyLoginRequest: CompanyLoginRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authCompanyLogin>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useAuthCompanyLogin<TData = Awaited<ReturnType<typeof authCompanyLogin>>, TError = AuthCompanyLogin401 | ValidationExceptionResponse | AuthCompanyLogin502>(
+ companyLoginRequest: CompanyLoginRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authCompanyLogin>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAuthCompanyLoginQueryOptions(companyLoginRequest,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

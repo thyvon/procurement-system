@@ -9,8 +9,11 @@ import type { StoreUomRequestSubUnitsItem } from './storeUomRequestSubUnitsItem'
 export interface StoreUomRequest {
   /** @maxLength 255 */
   name: string;
-  /** @maxLength 16 */
-  short_name: string;
+  /**
+     * @maxLength 16
+     * @nullable
+     */
+  short_name?: string | null;
   is_active?: boolean;
   sub_units?: StoreUomRequestSubUnitsItem[];
 }

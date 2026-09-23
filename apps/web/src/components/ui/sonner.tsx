@@ -9,6 +9,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme="light"
       className="toaster group"
+      // Sonner injects its own [data-sonner-toaster] font-family (Latin-only)
+      // at runtime after our CSS; an inline style on each toast wins over it
+      // and lets Khmer text fall back to Battambang like the rest of the app.
+      style={{
+        fontFamily:
+          "var(--font-inter), var(--font-battambang), ui-sans-serif, system-ui, sans-serif",
+      }}
       toastOptions={{
         classNames: {
           toast:

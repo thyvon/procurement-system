@@ -8,8 +8,11 @@
 export interface StoreProductCategoryRequest {
   /** @nullable */
   parent_id?: string | null;
-  /** @maxLength 16 */
-  short_code?: string;
+  /**
+     * @maxLength 16
+     * @nullable
+     */
+  short_code?: string | null;
   /** @maxLength 255 */
   name: string;
   /**

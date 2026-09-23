@@ -47,6 +47,18 @@ it('creates a variation template with options', function () {
         ->assertJsonPath('data.options.0.value', 'Small');
 });
 
+it('lists variation templates', function () {
+    VariationTemplate::create([
+        'name' => 'Color', 'entity_id' => $this->entity->getKey(),
+    ]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/products/variation-templates')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.name', 'Color');
+});
+
 it('rejects duplicate template names within entity with 422', function () {
     VariationTemplate::create([
         'name' => 'Color', 'entity_id' => $this->entity->getKey(),

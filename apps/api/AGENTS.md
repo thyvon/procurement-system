@@ -158,3 +158,17 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - After the feature tests pass, ask the user to run the complete suite with `php artisan test --compact`.
 
 </laravel-boost-guidelines>
+
+# Project rules (this repo)
+
+Project-wide rules live in the root `AGENTS.md` (API-first principle, consistency rule, verification, testing). The API-specific rules:
+
+- **Mimic the sibling**: before adding an endpoint/file, open the nearest existing sibling (lookups → Brand/Group/Uom; CRUD → Product) and copy its structure exactly. Never invent a second pattern; if two conventions conflict, follow the majority and mention it.
+- **Structure**: nwidart module layout only — `Modules/<Name>/{Http/{Controllers,Requests,Resources}, Models, Policies, Repositories, routes/api.php, Tests/Feature}`. No new top-level folders.
+- **Endpoint recipe**: versioned `Route::apiResource` (`v1/...` + `auth:sanctum`) → `Store*/Update*` FormRequest (validation only, `authorize(): true`) → `$this->authorize()` policy → Repository → `*Resource`. Multi-model writes → Service. Logic duplicated across controllers → extract **one** shared Service (e.g. `Modules/Products/Services/CodeGenerationService`).
+- **Envelope**: success `{data}` (201 for creates); errors always `{statusCode, message, error, correlationId[, errors]}` from `bootstrap/app.php` — never hand-built 422s without `errors`.
+- **Casing**: responses camelCase only through Resources (never raw Eloquent); requests snake_case only.
+- **Server-side only**: codes/IDs/defaults (`PRD-yy-NNN`, `CAT-yy-NNN`, `short_code`, `short_name`).
+- **Verification**: PHP ≥ 8.4 (default `php` is 8.2 — use the php84 terminal); after PHP edits run `vendor/bin/pint --dirty --format agent`, then the narrowest tests (`php artisan test --compact Modules/<X>/Tests/Feature/<File>`). If Meilisearch/Docker is down, set `SCOUT_DRIVER=null` (only search tests fail — infra).
+- **Tests**: Pest `it(...)` style (the Boost PHPUnit note above is generic — the code in this repo is Pest; mimic the existing feature tests); assert the envelope; **never delete a failing test** — update it to the new contract.
+- Known debt (don't copy): see root `AGENTS.md` → "Known inconsistencies" (inline validation in `ProductImportController` — no FormRequest, 422 without `errors`; `VariationController::merge` takes a plain `Request`; `ProductRefController` returns raw snake_case models).

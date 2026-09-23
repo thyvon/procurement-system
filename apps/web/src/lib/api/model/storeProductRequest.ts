@@ -7,8 +7,11 @@
 import type { StoreProductRequestProductType } from './storeProductRequestProductType';
 
 export interface StoreProductRequest {
-  /** @maxLength 64 */
-  code: string;
+  /**
+     * @maxLength 64
+     * @nullable
+     */
+  code?: string | null;
   /** @maxLength 255 */
   name: string;
   /**

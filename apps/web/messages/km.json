@@ -8,6 +8,15 @@
   },
   "auth": {
     "signInTitle": "ចូលគណនីរបស់អ្នក",
+    "signInDescription": "សូមបញ្ចូលព័ត៌មានសម្គាល់ខ្លួនរបស់អ្នកដើម្បីចូលគណនី",
+    "tabEmail": "អ៊ីមែល",
+    "tabEPurchase": "ចូលជាមួយ E-Purchase",
+    "employeeId": "លេខកូដបុគ្គលិក",
+    "employeeIdPlaceholder": "firstname.lastname",
+    "employeeIdRequired": "សូមបញ្ចូលលេខកូដបុគ្គលិក",
+    "updating": "កំពុងធ្វើបច្ចុប្បន្នភាព…",
+    "cancel": "បោះបង់",
+    "welcome": "សូមស្វាគមន៍",
     "email": "អ៊ីមែល",
     "password": "ពាក្យសម្ងាត់",
     "emailPlaceholder": "admin@procurement.local",
@@ -56,7 +65,36 @@
   "breadcrumb": {
     "create": "បង្កើត",
     "edit": "កែសម្រួល"
+  },
+  "profile": {
+    "title": "ប្រវត្តិរូប",
+    "changePhoto": "រូបភាពប្រវត្តិរូប",
+    "photoHint": "JPG, PNG ឬ WebP។ អតិបរមា 2 MB។",
+    "cancel": "បោះបង់",
+    "upload": "បញ្ចូល",
+    "uploading": "កំពុងបញ្ចូល…"
+  },
+  "products": {
+    "categories": {
+      "newTitle": "ប្រភេទថ្មី",
+      "editTitle": "កែប្រែប្រភេទ",
+      "newDescription": "បន្ថែមប្រភេទផលិតផលថ្មី។",
+      "editDescription": "ធ្វើបច្ចុប្បន្នភាពព័ត៌មានប្រភេទ។",
+      "name": "ឈ្មោះ",
+      "nameKm": "ឈ្មោះ (ខ្មែរ)",
+      "shortCode": "កូដខ្លី",
+      "sortOrder": "លំដាប់រៀប",
+      "active": "សកម្ម",
+      "parent": "ប្រភេទមេ",
+      "rootOption": "គ្មាន (ប្រភេទកំពូល)",
+      "namePlaceholder": "ឈ្មោះប្រភេទ",
+      "nameKmPlaceholder": "ឈ្មោះខ្មែរ (ស្រេចចិត្ត)",
+      "shortCodePlaceholder": "ឧ. CAT-01",
+      "cancel": "បោះបង់",
+      "save": "រក្សាទុក",
+      "saving": "កំពុងរក្សាទុក...",
+      "created": "បានបង្កើតប្រភេទ។",
+      "updated": "បានធ្វើបច្ចុប្បន្នភាពប្រភេទ។"
+    }
   }
 }
-
-

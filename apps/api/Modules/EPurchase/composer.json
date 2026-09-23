@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/epurchase",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\EPurchase\\": "app/",
+            "Modules\\EPurchase\\Database\\Factories\\": "database/factories/",
+            "Modules\\EPurchase\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\EPurchase\\Tests\\": "tests/"
+        }
+    }
+}

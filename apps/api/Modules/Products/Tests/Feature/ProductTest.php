@@ -53,6 +53,14 @@ it('forbids staff from creating products', function () {
         ->assertStatus(403);
 });
 
+it('generates a code on the server when omitted', function () {
+    $response = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/products/items', ['name' => 'No Code Product'])
+        ->assertStatus(201);
+
+    expect($response->json('data.code'))->toMatch('/^PRD-\d{2}-\d{3}$/');
+});
+
 it('rejects duplicate codes with a 422 envelope', function () {
     createProduct($this->entity, ['code' => 'DUP-1']);
 

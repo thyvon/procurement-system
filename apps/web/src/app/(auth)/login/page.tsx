@@ -1,17 +1,21 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { ClipboardList, Mail, Lock, Eye, EyeOff, Package, ShoppingCart, FileText, Truck, ClipboardCheck, Warehouse } from "lucide-react";
 import { authLogin } from "@/lib/api/auth/auth";
+import { unwrap } from "@/lib/api-client";
 import type { LoginRequest } from "@/lib/api/model";
 import { saveTokens } from "@/lib/auth/token-store";
 import { LocaleSwitch } from "@/components/layout/locale-switch";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { WelcomeLoader } from "@/features/auth/welcome-loader";
+import { CompanyLoginForm } from "@/features/auth/company-login-form";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Field,
   FieldGroup,
@@ -23,7 +27,39 @@ type LoginFormValues = Pick<LoginRequest, "email" | "password">;
 
 function LoginForm() {
   const t = useTranslations("auth");
+  const [tab, setTab] = useState("email");
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col items-center gap-2 text-center">
+        <h1 className="text-2xl font-bold tracking-tight">
+          {t("signInTitle")}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {t("signInDescription")}
+        </p>
+      </div>
+
+      <Tabs value={tab} onValueChange={setTab} className="gap-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="email">{t("tabEmail")}</TabsTrigger>
+          <TabsTrigger value="company">{t("tabEPurchase")}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="email">
+          <EmailLoginForm />
+        </TabsContent>
+        <TabsContent value="company">
+          <CompanyLoginForm />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function EmailLoginForm() {
+  const t = useTranslations("auth");
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -36,24 +72,27 @@ function LoginForm() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: (data: LoginFormValues) => authLogin(data),
-    onSuccess: (response) => {
-      const payload = (
-        response.data as {
-          data?: { access_token?: string; refresh_token?: string };
-        }
-      ).data;
+    mutationFn: async (data: LoginFormValues) => {
+      const payload = unwrap<{
+        access_token?: string;
+        refresh_token?: string;
+      }>(await authLogin(data));
 
-      if (!payload?.access_token || !payload?.refresh_token) {
-        setServerError(t("unexpectedResponse"));
-        return;
+      if (!payload.access_token || !payload.refresh_token) {
+        throw new Error(t("unexpectedResponse"));
       }
-      saveTokens(payload.access_token, payload.refresh_token);
+
+      return payload;
+    },
+    onSuccess: (payload) => {
+      saveTokens(payload.access_token!, payload.refresh_token!);
+      queryClient.clear();
       router.push("/");
     },
-    onError: () => {
-      setServerError(t("invalidCredentials"));
+    onError: (err) => {
+      setServerError(err.message || t("invalidCredentials"));
     },
+    meta: { silent: true },
   });
 
   return (
@@ -64,13 +103,6 @@ function LoginForm() {
       })}
       className="flex flex-col gap-5"
     >
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">{t("signInTitle")}</h1>
-        <p className="text-sm text-muted-foreground">
-          Enter your credentials to access your account
-        </p>
-      </div>
-
       <FieldGroup>
         <Field data-invalid={errors.email ? true : undefined}>
           <FieldLabel htmlFor="email">{t("email")}</FieldLabel>
@@ -153,6 +185,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="grid min-h-svh lg:grid-cols-[1fr_1.2fr]">
+      <WelcomeLoader />
       {/* Left — Form panel */}
       <div className="flex flex-col p-6 md:p-10">
         <div className="flex items-center justify-between">

@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Modules\Products\Http\Requests\StoreVariationTemplateRequest;
 use Modules\Products\Http\Resources\ProductResource;

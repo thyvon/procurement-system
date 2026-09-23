@@ -8,6 +8,7 @@ use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Modules\Products\Http\Requests\StoreUomRequest;
 use Modules\Products\Http\Requests\UpdateUomRequest;
 use Modules\Products\Http\Resources\UomResource;
@@ -37,6 +38,8 @@ class UomController extends Controller
             $data = $request->validated();
             $subUnits = $data['sub_units'] ?? [];
             unset($data['sub_units']);
+
+            $data['short_name'] ??= Str::substr($data['name'], 0, 10);
 
             $uom = $this->repo->create([...$data, 'created_by' => $user->getKey(), 'updated_by' => $user->getKey()]);
             $this->syncSubUnits($uom, $subUnits);

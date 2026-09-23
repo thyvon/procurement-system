@@ -13,10 +13,14 @@ use Modules\Products\Http\Requests\UpdateProductRequest;
 use Modules\Products\Http\Resources\ProductResource;
 use Modules\Products\Models\Product;
 use Modules\Products\Repositories\ProductRepositoryInterface;
+use Modules\Products\Services\CodeGenerationService;
 
 class ProductController extends Controller
 {
-    public function __construct(private readonly ProductRepositoryInterface $repo) {}
+    public function __construct(
+        private readonly ProductRepositoryInterface $repo,
+        private readonly CodeGenerationService $codes,
+    ) {}
 
     public function index(IndexProductsRequest $request): AnonymousResourceCollection
     {
@@ -45,6 +49,10 @@ class ProductController extends Controller
         $data['entity_id'] = $user->entity_id;
         $data['created_by'] = $user->getKey();
         $data['updated_by'] = $user->getKey();
+
+        $data['code'] = trim((string) ($data['code'] ?? '')) !== ''
+            ? $data['code']
+            : $this->codes->next('PRD', Product::class, $user->entity_id);
 
         // Field names map 1:1 to columns except the two relation aliases.
         $data['product_category_id'] = $data['category_id'] ?? null;

@@ -3,5 +3,6 @@
     "Auth": true,
     "Organization": true,
     "Users": true,
-    "Products": true
+    "Products": true,
+    "EPurchase": true
 }

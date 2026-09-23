@@ -9,8 +9,10 @@ use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Modules\Users\Http\Requests\StoreUserRequest;
+use Modules\Users\Http\Requests\UpdateAvatarRequest;
 use Modules\Users\Http\Requests\UpdateUserRequest;
 use Modules\Users\Repositories\UserRepositoryInterface;
+use Modules\Users\Services\AvatarService;
 use Modules\Users\Services\UserRoleService;
 
 class UserController extends Controller
@@ -18,6 +20,7 @@ class UserController extends Controller
     public function __construct(
         private readonly UserRepositoryInterface $users,
         private readonly UserRoleService $roles,
+        private readonly AvatarService $avatars,
     ) {}
 
     public function index(): AnonymousResourceCollection
@@ -79,5 +82,14 @@ class UserController extends Controller
         $this->roles->deactivate($user);
 
         return ApiResponse::success(['deactivated' => true]);
+    }
+
+    public function updateAvatar(UpdateAvatarRequest $request, User $user): UserResource
+    {
+        $this->authorize('update', $user);
+
+        $this->avatars->replaceWithUpload($user, $request->file('image'));
+
+        return new UserResource($user->refresh());
     }
 }

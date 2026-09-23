@@ -10,6 +10,8 @@ export interface ProductCategoryResource {
   /** @nullable */
   parentId: string | null;
   code: string;
+  /** @nullable */
+  shortCode: string | null;
   name: string;
   /** @nullable */
   nameKm: string | null;

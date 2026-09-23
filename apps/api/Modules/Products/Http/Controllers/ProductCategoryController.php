@@ -5,17 +5,22 @@ namespace Modules\Products\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Str;
 use Modules\Products\Http\Requests\StoreProductCategoryRequest;
 use Modules\Products\Http\Requests\UpdateProductCategoryRequest;
 use Modules\Products\Http\Resources\ProductCategoryResource;
 use Modules\Products\Models\ProductCategory;
 use Modules\Products\Repositories\ProductCategoryRepositoryInterface;
+use Modules\Products\Services\CodeGenerationService;
 
 class ProductCategoryController extends Controller
 {
     use Concerns\InteractsWithLookups;
 
-    public function __construct(private readonly ProductCategoryRepositoryInterface $repo) {}
+    public function __construct(
+        private readonly ProductCategoryRepositoryInterface $repo,
+        private readonly CodeGenerationService $codes,
+    ) {}
 
     public function tree(): AnonymousResourceCollection
     {
@@ -33,7 +38,8 @@ class ProductCategoryController extends Controller
     {
         $data = $request->validated();
 
-        $data['code'] = $this->generateCode();
+        $data['code'] = $this->codes->next('CAT', ProductCategory::class, $request->user()?->entity_id);
+        $data['short_code'] ??= Str::upper(Str::substr($data['name'], 0, 10));
 
         return $this->doStore($data);
     }
@@ -68,23 +74,5 @@ class ProductCategoryController extends Controller
     protected function resourceClass(): string
     {
         return ProductCategoryResource::class;
-    }
-
-    private function generateCode(): string
-    {
-        $year = date('y');
-        $entityId = request()->user()?->entity_id;
-        $prefix = "CAT-{$year}-";
-        $sequence = 1;
-
-        do {
-            $code = $prefix.str_pad((string) $sequence, 3, '0', STR_PAD_LEFT);
-            $sequence++;
-        } while (ProductCategory::withTrashed()
-            ->where('entity_id', $entityId)
-            ->where('code', $code)
-            ->exists());
-
-        return $code;
     }
 }

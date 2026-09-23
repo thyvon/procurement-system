@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table"
 import { MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react"
@@ -13,6 +14,7 @@ import {
 } from "@/lib/api/product-category/product-category"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
+import { DataTableSkeleton } from "@/components/ui/data-table-skeleton"
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header"
 import {
   DropdownMenu,
@@ -33,7 +35,14 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { unwrap, withAuth } from "./api"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { unwrap, withAuth } from "@/lib/api-client"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
 
 type Category = {
@@ -137,13 +146,23 @@ function useCategoryColumns({
   ] as ColumnDef<DataTableFeatures, Category>[]
 }
 
+const EMPTY_FORM = {
+  name: "",
+  shortCode: "",
+  nameKm: "",
+  sortOrder: 0,
+  isActive: true,
+  parentId: null as string | null,
+}
+
 export function CategoriesTab() {
+  const t = useTranslations("products.categories")
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState("all")
   const [editing, setEditing] = useState<Category | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null)
   const [formOpen, setFormOpen] = useState(false)
-  const [form, setForm] = useState({ name: "", shortCode: "", nameKm: "", sortOrder: 0, isActive: true })
+  const [form, setForm] = useState({ ...EMPTY_FORM })
 
   const query = useQuery({
     queryKey: ["categories"],
@@ -151,16 +170,41 @@ export function CategoriesTab() {
       unwrap<Category[]>(await productsCategoriesIndex(withAuth())),
   })
 
+  // While editing, hide the category itself and its descendants as parent
+  // options — re-parenting onto a child would form a cycle.
+  const excludedParents = (() => {
+    if (!editing) return new Set<string>()
+    const childrenOf = new Map<string | null, string[]>()
+    for (const cat of query.data ?? []) {
+      childrenOf.set(cat.parentId, [...(childrenOf.get(cat.parentId) ?? []), cat.id])
+    }
+    const excluded = new Set([editing.id])
+    const stack = [editing.id]
+    while (stack.length > 0) {
+      for (const childId of childrenOf.get(stack.pop()!) ?? []) {
+        if (!excluded.has(childId)) {
+          excluded.add(childId)
+          stack.push(childId)
+        }
+      }
+    }
+    return excluded
+  })()
+
+  const parentOptions = (query.data ?? []).filter((c) => !excludedParents.has(c.id))
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload: {
         name: string
+        parent_id?: string | null
         short_code?: string
         name_km?: string
         sort_order?: number
         is_active?: boolean
       } = {
         name: form.name,
+        parent_id: form.parentId,
         name_km: form.nameKm || undefined,
         sort_order: form.sortOrder,
         is_active: form.isActive,
@@ -169,31 +213,25 @@ export function CategoriesTab() {
         payload.short_code = form.shortCode.trim()
       }
       if (editing) {
-        return productsCategoriesUpdate(editing.id, payload, withAuth())
+        return unwrap(await productsCategoriesUpdate(editing.id, payload, withAuth()))
       }
-      return productsCategoriesStore(payload, withAuth())
+      return unwrap(await productsCategoriesStore(payload, withAuth()))
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["categories"] })
       setFormOpen(false)
+      toast.success(editing ? t("updated") : t("created"))
       setEditing(null)
-      setForm({ name: "", shortCode: "", nameKm: "", sortOrder: 0, isActive: true })
-      toast.success(editing ? "Category updated." : "Category created.")
-    },
-    onError: (err) => {
-      toast.error(err.message || "Failed to save category.")
+      setForm({ ...EMPTY_FORM })
     },
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => productsCategoriesDestroy(id, withAuth()),
+    mutationFn: async (id: string) => unwrap(await productsCategoriesDestroy(id, withAuth())),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["categories"] })
       setDeleteTarget(null)
       toast.success("Category deleted.")
-    },
-    onError: (err) => {
-      toast.error(err.message || "Failed to delete category.")
     },
   })
 
@@ -206,11 +244,16 @@ export function CategoriesTab() {
         nameKm: cat.nameKm ?? "",
         sortOrder: cat.sortOrder,
         isActive: cat.isActive,
+        parentId: cat.parentId,
       })
       setFormOpen(true)
     },
     onDeleteRequest: setDeleteTarget,
   })
+
+  if (query.isPending) {
+    return <DataTableSkeleton columns={7} actions={1} />
+  }
 
   return (
     <div>
@@ -231,58 +274,81 @@ export function CategoriesTab() {
           <Button
             onClick={() => {
               setEditing(null)
-              setForm({ name: "", shortCode: "", nameKm: "", sortOrder: 0, isActive: true })
+              setForm({ ...EMPTY_FORM })
               setFormOpen(true)
             }}
           >
             <Plus className="mr-2 size-4" />
-            New category
+            {t("newTitle")}
           </Button>
         }
       />
 
       {/* Create / Edit dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit" : "New"} category</DialogTitle>
+            <DialogTitle>{editing ? t("editTitle") : t("newTitle")}</DialogTitle>
             <DialogDescription>
-              {editing ? "Update the category details." : "Add a new product category."}
+              {editing ? t("editDescription") : t("newDescription")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <Label htmlFor="cat-name" className="w-28 shrink-0 text-right after:content-[':']">Name *</Label>
+              <Label htmlFor="cat-name" className="w-28 shrink-0 text-right after:content-[':']">{t("name")} *</Label>
               <Input
                 id="cat-name"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Category name"
+                placeholder={t("namePlaceholder")}
                 className="flex-1"
               />
             </div>
             <div className="flex items-center gap-3">
-              <Label htmlFor="cat-name-km" className="w-28 shrink-0 text-right after:content-[':']">Name (KH)</Label>
+              <Label htmlFor="cat-name-km" className="w-28 shrink-0 text-right after:content-[':']">{t("nameKm")}</Label>
               <Input
                 id="cat-name-km"
                 value={form.nameKm}
                 onChange={(e) => setForm((f) => ({ ...f, nameKm: e.target.value }))}
-                placeholder="Khmer name (optional)"
+                placeholder={t("nameKmPlaceholder")}
                 className="flex-1"
               />
             </div>
             <div className="flex items-center gap-3">
-              <Label htmlFor="cat-short-code" className="w-28 shrink-0 text-right after:content-[':']">Short Code</Label>
+              <Label className="w-28 shrink-0 text-right after:content-[':']">{t("parent")}</Label>
+              <Select
+                value={form.parentId}
+                onValueChange={(v) => setForm((f) => ({ ...f, parentId: v ?? null }))}
+                items={[
+                  { value: null, label: t("rootOption") },
+                  ...parentOptions.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })),
+                ]}
+              >
+                <SelectTrigger className="min-w-0 flex-1">
+                  <SelectValue className="min-w-0" placeholder={t("rootOption")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>{t("rootOption")}</SelectItem>
+                  {parentOptions.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.code} — {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-3">
+              <Label htmlFor="cat-short-code" className="w-28 shrink-0 text-right after:content-[':']">{t("shortCode")}</Label>
               <Input
                 id="cat-short-code"
                 value={form.shortCode}
                 onChange={(e) => setForm((f) => ({ ...f, shortCode: e.target.value.toUpperCase() }))}
-                placeholder="e.g. CAT-01"
+                placeholder={t("shortCodePlaceholder")}
                 className="flex-1 font-mono"
               />
             </div>
             <div className="flex items-center gap-3">
-              <Label htmlFor="cat-sort" className="w-28 shrink-0 text-right after:content-[':']">Sort Order</Label>
+              <Label htmlFor="cat-sort" className="w-28 shrink-0 text-right after:content-[':']">{t("sortOrder")}</Label>
               <Input
                 id="cat-sort"
                 type="number"
@@ -293,7 +359,7 @@ export function CategoriesTab() {
               />
             </div>
             <div className="flex items-center gap-3">
-              <Label htmlFor="cat-active" className="w-28 shrink-0 text-right after:content-[':']">Active</Label>
+              <Label htmlFor="cat-active" className="w-28 shrink-0 text-right after:content-[':']">{t("active")}</Label>
               <Switch
                 id="cat-active"
                 checked={form.isActive}
@@ -307,13 +373,13 @@ export function CategoriesTab() {
               onClick={() => setFormOpen(false)}
               disabled={saveMutation.isPending}
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending || !form.name.trim()}
             >
-              {saveMutation.isPending ? "Saving..." : "Save"}
+              {saveMutation.isPending ? t("saving") : t("save")}
             </Button>
           </DialogFooter>
         </DialogContent>

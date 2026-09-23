@@ -11,6 +11,8 @@ export interface ProductCategory {
   /** @nullable */
   parent_id: string | null;
   code: string;
+  /** @nullable */
+  short_code: string | null;
   name: string;
   /** @nullable */
   name_km: string | null;

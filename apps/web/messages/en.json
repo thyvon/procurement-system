@@ -8,6 +8,15 @@
   },
   "auth": {
     "signInTitle": "Sign in to your account",
+    "signInDescription": "Enter your credentials to access your account",
+    "tabEmail": "Email",
+    "tabEPurchase": "Login with E-Purchase",
+    "employeeId": "Employee ID",
+    "employeeIdPlaceholder": "firstname.lastname",
+    "employeeIdRequired": "Employee ID is required",
+    "updating": "Updating…",
+    "cancel": "Cancel",
+    "welcome": "Welcome",
     "email": "Email",
     "password": "Password",
     "emailPlaceholder": "admin@procurement.local",
@@ -55,7 +64,36 @@
   "breadcrumb": {
     "create": "Create",
     "edit": "Edit"
+  },
+  "profile": {
+    "title": "Profile",
+    "changePhoto": "Profile photo",
+    "photoHint": "JPG, PNG or WebP. Max 2 MB.",
+    "cancel": "Cancel",
+    "upload": "Upload",
+    "uploading": "Uploading…"
+  },
+  "products": {
+    "categories": {
+      "newTitle": "New category",
+      "editTitle": "Edit category",
+      "newDescription": "Add a new product category.",
+      "editDescription": "Update the category details.",
+      "name": "Name",
+      "nameKm": "Name (KH)",
+      "shortCode": "Short Code",
+      "sortOrder": "Sort Order",
+      "active": "Active",
+      "parent": "Parent",
+      "rootOption": "None (top-level category)",
+      "namePlaceholder": "Category name",
+      "nameKmPlaceholder": "Khmer name (optional)",
+      "shortCodePlaceholder": "e.g. CAT-01",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "created": "Category created.",
+      "updated": "Category updated."
+    }
   }
 }
-
-

@@ -10,4 +10,5 @@ Route::prefix('v1/users')
         Route::apiResource('/', UserController::class)
             ->parameters(['' => 'user'])
             ->names('users');
+        Route::post('/{user}/avatar', [UserController::class, 'updateAvatar'])->name('avatar');
     });

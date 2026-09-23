@@ -11,6 +11,7 @@ import {
 } from "@/lib/api/product/product"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
+import { DataTableSkeleton } from "@/components/ui/data-table-skeleton"
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header"
 import {
   DropdownMenu,
@@ -28,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { unwrap, withAuth } from "./api"
+import { unwrap, withAuth } from "@/lib/api-client"
 import { ImportDialog } from "./import-dialog"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
 
@@ -142,7 +143,7 @@ export function ProductsTab() {
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => productsItemsDestroy(id, withAuth()),
+    mutationFn: async (id: string) => unwrap(await productsItemsDestroy(id, withAuth())),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["products"] })
       setDeleteTarget(null)
@@ -156,16 +157,20 @@ export function ProductsTab() {
   const query = useQuery({
     queryKey: ["products"],
     queryFn: async () =>
-      unwrap<{ data: Product[]; meta: { nextCursor: string | null } }>(
+      unwrap<Product[]>(
         await productsItemsIndex({}, withAuth())
       ),
   })
+
+  if (query.isPending) {
+    return <DataTableSkeleton columns={6} actions={2} />
+  }
 
   return (
     <div>
       <DataTable
         columns={columns}
-        data={query.data?.data ?? []}
+        data={query.data ?? []}
         searchColumn="name"
         searchPlaceholder="Filter by name..."
         filterColumn="isActive"

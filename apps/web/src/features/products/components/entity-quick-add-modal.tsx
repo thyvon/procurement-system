@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { unwrap, withAuth } from "../api";
+import { unwrap, withAuth } from "@/lib/api-client";
 import {
   productsBrandsStore,
 } from "@/lib/api/brand/brand";
@@ -95,7 +95,7 @@ export function EntityQuickAddModal({
         newId = data.id;
       } else if (entity === "uom") {
         const res = await productsUomsStore(
-          { name: name.trim(), short_name: name.trim().slice(0, 10) },
+          { name: name.trim() },
           withAuth()
         );
         const data = unwrap<{ id: string }>(res);

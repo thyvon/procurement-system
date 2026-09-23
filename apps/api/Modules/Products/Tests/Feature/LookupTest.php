@@ -24,15 +24,16 @@ beforeEach(function () {
 });
 
 it('creates a category as admin and returns it localized-ready', function () {
-    $this->actingAs($this->admin, 'sanctum')
+    $response = $this->actingAs($this->admin, 'sanctum')
         ->postJson('/api/v1/products/categories', [
-            'code' => 'OFF',
             'name' => 'Office Supplies',
             'name_km' => 'សម្ភារៈការិយាល័យ',
         ])
         ->assertStatus(201)
-        ->assertJsonPath('data.code', 'OFF')
-        ->assertJsonPath('data.nameKm', 'សម្ភារៈការិយាល័យ');
+        ->assertJsonPath('data.nameKm', 'សម្ភារៈការិយាល័យ')
+        ->assertJsonPath('data.shortCode', 'OFFICE SUP');
+
+    expect($response->json('data.code'))->toMatch('/^CAT-\d{2}-\d{3}$/');
 });
 
 it('forbids staff from creating categories', function () {
@@ -60,14 +61,11 @@ it('returns the category tree with children nested', function () {
         ->and($tree['children'][0]['code'])->toBe('CHILD');
 });
 
-it('rejects duplicate category codes within the entity', function () {
-    ProductCategory::create([
-        'code' => 'DUP', 'name' => 'First', 'entity_id' => $this->entity->getKey(),
-    ]);
-
+it('keeps an explicitly provided short_code', function () {
     $this->actingAs($this->admin, 'sanctum')
-        ->postJson('/api/v1/products/categories', ['code' => 'DUP', 'name' => 'Second'])
-        ->assertStatus(422);
+        ->postJson('/api/v1/products/categories', ['name' => 'Beverages', 'short_code' => 'BEV'])
+        ->assertStatus(201)
+        ->assertJsonPath('data.shortCode', 'BEV');
 });
 
 it('does not reuse codes from soft-deleted categories within the same entity', function () {
@@ -110,6 +108,13 @@ it('creates uom with sub units and conversion factors', function () {
 
     expect($response->json('data.subUnits'))->toHaveCount(1)
         ->and($response->json('data.subUnits.0.conversionFactor'))->toEqual(24.0);
+});
+
+it('defaults uom short_name from the name when omitted', function () {
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/products/uoms', ['name' => 'Crate'])
+        ->assertStatus(201)
+        ->assertJsonPath('data.shortName', 'Crate');
 });
 
 it('isolates product lookups per entity', function () {

@@ -245,3 +245,13 @@
   0%, 100% { transform: translate(0, 0) rotate(0deg); }
   50% { transform: translate(-20px, 25px) rotate(20deg); }
 }
+
+/* Welcome loader progress bar */
+.welcome-progress {
+  animation: welcome-progress 1.4s ease-in-out infinite;
+}
+
+@keyframes welcome-progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
