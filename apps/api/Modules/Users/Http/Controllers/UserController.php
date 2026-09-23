@@ -39,7 +39,7 @@ class UserController extends Controller
 
         $attributes = $request->userData();
 
-        if ($actor->hasRole('admin') && $request->filled('entity_id')) {
+        if ($actor->can('users.manage', 'sanctum') && $request->filled('entity_id')) {
             $attributes['entity_id'] = $request->string('entity_id')->toString();
         } else {
             $attributes['entity_id'] = $actor->entity_id;
@@ -62,13 +62,16 @@ class UserController extends Controller
     {
         $this->authorize('update', $user);
 
+        /** @var User $actor */
+        $actor = $request->user();
+
         $data = collect($request->validated())->except(['roles'])->all();
 
         if ($data !== []) {
             $this->users->update($user, $data);
         }
 
-        if ($request->has('roles')) {
+        if ($request->has('roles') && $actor->can('users.manage', 'sanctum')) {
             $this->roles->syncRoles($user, $request->input('roles'));
         }
 

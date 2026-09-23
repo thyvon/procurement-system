@@ -11,6 +11,7 @@ import {
   Settings,
   Store,
   BarChart3,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,6 +35,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { key: "dashboard", href: "/", icon: LayoutDashboard, enabled: true },
   { key: "products", href: "/products", icon: Boxes, enabled: true },
+  { key: "users", href: "/users", icon: Users, enabled: true },
   { key: "suppliers", href: "#", icon: Store, enabled: false },
   { key: "requisitions", href: "#", icon: ClipboardList, enabled: false },
   { key: "approvals", href: "#", icon: FileCheck2, enabled: false },

@@ -9,26 +9,26 @@ class EntityPolicy
 {
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->can('entities.view', 'sanctum');
     }
 
     public function view(User $user, Entity $entity): bool
     {
-        return true;
+        return $user->can('entities.view', 'sanctum');
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole('admin');
+        return $user->can('entities.manage', 'sanctum');
     }
 
     public function update(User $user, Entity $entity): bool
     {
-        return $user->hasRole('admin');
+        return $user->can('entities.manage', 'sanctum');
     }
 
     public function delete(User $user, Entity $entity): bool
     {
-        return $user->hasRole('admin');
+        return $user->can('entities.manage', 'sanctum');
     }
 }

@@ -4,7 +4,14 @@
   },
   "common": {
     "loading": "កំពុងផ្ទុក…",
-    "soon": "នឹងមកដល់ឆាប់ៗ"
+    "soon": "នឹងមកដល់ឆាប់ៗ",
+    "rowsPerPage": "ជួរដេកក្នុងមួយទំព័រ",
+    "pageOf": "ទំព័រ {page} នៃ {total}",
+    "selectedRows": "បានជ្រើសរើស {selected} ក្នុងចំណោម {total} ជួរ",
+    "goToFirstPage": "ទៅទំព័រដំបូង",
+    "goToPreviousPage": "ទៅទំព័រមុន",
+    "goToNextPage": "ទៅទំព័របន្ទាប់",
+    "goToLastPage": "ទៅទំព័រចុងក្រោយ"
   },
   "auth": {
     "signInTitle": "ចូលគណនីរបស់អ្នក",
@@ -37,7 +44,8 @@
     "brands": "ម៉ាក",
     "groups": "ក្រុម",
     "uoms": "ឯកតា",
-    "catalog": "បញ្ជីទំនិញ",
+    "users": "អ្នកប្រើប្រាស់",
+    "roles": "តួនាទី",
     "suppliers": "អ្នកផ្គត់ផ្គង់",
     "requisitions": "សំណើទិញ",
     "approvals": "ការអនុម័ត",
@@ -195,6 +203,86 @@
       "updated": "បានធ្វើបច្ចុប្បន្នភាពឯកតា។",
       "deleteTitle": "លុបឯកតា",
       "deleted": "បានលុបឯកតា។"
+    }
+  },
+  "users": {
+    "columns": {
+      "name": "ឈ្មោះ",
+      "email": "អ៊ីមែល",
+      "roles": "តួនាទី",
+      "status": "ស្ថានភាព",
+      "guard": "Guard"
+    },
+    "table": {
+      "searchPlaceholder": "តម្រៀងតាមឈ្មោះ...",
+      "allStatuses": "ស្ថានភាពទាំងអស់",
+      "active": "សកម្ម",
+      "inactive": "អសកម្ម",
+      "openMenu": "បើកម៉ឺនុយ",
+      "edit": "កែប្រែ",
+      "delete": "លុប",
+      "deactivate": "លែងប្រើ",
+      "cancel": "បោះបង់",
+      "confirmDelete": "លុប",
+      "confirmDeactivate": "លែងប្រើ",
+      "deleting": "កំពុងលុប..."
+    },
+    "users": {
+      "newTitle": "អ្នកប្រើថ្មី",
+      "editTitle": "កែប្រែអ្នកប្រើ",
+      "newDescription": "បន្ថែមអ្នកប្រើទៅក្នុងស្ថាប័នរបស់អ្នក។",
+      "editDescription": "ធ្វើបច្ចុប្បន្នភាពព័ត៌មានអ្នកប្រើ និងតួនាទីដែលបានកំណត់។",
+      "name": "ឈ្មោះ",
+      "email": "អ៊ីមែល",
+      "password": "ពាក្យសម្ងាត់",
+      "roles": "តួនាទី",
+      "active": "សកម្ម",
+      "namePlaceholder": "ឈ្មោះពេញ",
+      "emailPlaceholder": "name@company.com",
+      "passwordCreatePlaceholder": "ពាក្យសម្ងាត់ (យ៉ាងតិច ១០ តួអក្ខរ)",
+      "passwordKeepPlaceholder": "ទុកឲ្យនៅទំនេរដើម្បីរក្សាពាក្យសម្ងាត់បច្ចុប្បន្ន",
+      "loadingRoles": "កំពុងផ្ទុកតួនាទី...",
+      "cancel": "បោះបង់",
+      "save": "រក្សាទុក",
+      "saving": "កំពុងរក្សាទុក...",
+      "created": "បានបង្កើតអ្នកប្រើ។",
+      "updated": "បានធ្វើបច្ចុប្បន្នភាពអ្នកប្រើ។",
+      "deactivateTitle": "លែងប្រើអ្នកប្រើ",
+      "deactivateDescription": "ទង្វើនេះនឹងចាកចេញពី <strong>{name}</strong> និងរារាំងការចូល។ អ្នកអាចបើកសកម្មភាពវិញបាននៅពេលក្រោយ។",
+      "deactivated": "បានលែងប្រើអ្នកប្រើ។"
+    },
+    "roles": {
+      "newTitle": "តួនាទីថ្មី",
+      "editTitle": "កែប្រែតួនាទី",
+      "newDescription": "បង្កើតតួនាទីដែលអ្នកប្រើអាចកំណត់បាន។",
+      "editDescription": "ធ្វើបច្ចុប្បន្នភាពឈ្មោះតួនាទី។",
+      "name": "ឈ្មោះតួនាទី",
+      "namePlaceholder": "ឧ. manager",
+      "cancel": "បោះបង់",
+      "save": "រក្សាទុក",
+      "saving": "កំពុងរក្សាទុក...",
+      "created": "បានបង្កើតតួនាទី។",
+      "updated": "បានធ្វើបច្ចុប្បន្នភាពតួនាទី។",
+      "deleteTitle": "លុបតួនាទី",
+      "deleteDescription": "តើអ្នកប្រាកដថាចង់លុបតួនាទី <strong>{name}</strong> ឬ?",
+      "deleted": "បានលុបតួនាទី។"
+    },
+    "permissions": {
+      "label": "សិទ្ធិ",
+      "view": "មើល",
+      "manage": "គ្រប់គ្រង",
+      "loadingPermissions": "កំពុងផ្ទុកសិទ្ធិ...",
+      "modules": {
+        "users": "អ្នកប្រើប្រាស់",
+        "roles": "តួនាទី",
+        "entities": "អង្គភាព",
+        "products": "ផលិតផល",
+        "categories": "ប្រភេទ",
+        "brands": "ម៉ាក",
+        "groups": "ក្រុម",
+        "uoms": "ឯកតា",
+        "variations": "ភាពប្រែប្រួល"
+      }
     }
   }
 }

@@ -42,6 +42,13 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Sanctum defaults provider to null; Spatie's Guard::getModelForGuard()
+        // needs it to resolve User::class for guard-scoped relations (Role::users()).
+        'sanctum' => [
+            'driver' => 'sanctum',
+            'provider' => 'users',
+        ],
     ],
 
     /*

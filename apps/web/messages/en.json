@@ -4,7 +4,14 @@
   },
   "common": {
     "loading": "Loading…",
-    "soon": "Coming soon"
+    "soon": "Coming soon",
+    "rowsPerPage": "Rows per page",
+    "pageOf": "Page {page} of {total}",
+    "selectedRows": "{selected} of {total} row(s) selected.",
+    "goToFirstPage": "Go to first page",
+    "goToPreviousPage": "Go to previous page",
+    "goToNextPage": "Go to next page",
+    "goToLastPage": "Go to last page"
   },
   "auth": {
     "signInTitle": "Sign in to your account",
@@ -37,6 +44,8 @@
     "brands": "Brands",
     "groups": "Groups",
     "uoms": "Units",
+    "users": "Users",
+    "roles": "Roles",
     "suppliers": "Suppliers",
     "requisitions": "Requisitions",
     "approvals": "Approvals",
@@ -194,6 +203,86 @@
       "updated": "Unit updated.",
       "deleteTitle": "Delete unit",
       "deleted": "Unit deleted."
+    }
+  },
+  "users": {
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "roles": "Roles",
+      "status": "Status",
+      "guard": "Guard"
+    },
+    "table": {
+      "searchPlaceholder": "Filter by name...",
+      "allStatuses": "All statuses",
+      "active": "Active",
+      "inactive": "Inactive",
+      "openMenu": "Open menu",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deactivate": "Deactivate",
+      "cancel": "Cancel",
+      "confirmDelete": "Delete",
+      "confirmDeactivate": "Deactivate",
+      "deleting": "Deleting..."
+    },
+    "users": {
+      "newTitle": "New user",
+      "editTitle": "Edit user",
+      "newDescription": "Add a user to your organization.",
+      "editDescription": "Update the user's details and assigned roles.",
+      "name": "Name",
+      "email": "Email",
+      "password": "Password",
+      "roles": "Roles",
+      "active": "Active",
+      "namePlaceholder": "Full name",
+      "emailPlaceholder": "name@company.com",
+      "passwordCreatePlaceholder": "Password (min 10 characters)",
+      "passwordKeepPlaceholder": "Leave blank to keep current password",
+      "loadingRoles": "Loading roles...",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "created": "User created.",
+      "updated": "User updated.",
+      "deactivateTitle": "Deactivate user",
+      "deactivateDescription": "This will sign out <strong>{name}</strong> and block access. You can reactivate them later from Edit.",
+      "deactivated": "User deactivated."
+    },
+    "roles": {
+      "newTitle": "New role",
+      "editTitle": "Edit role",
+      "newDescription": "Create a role that users can be assigned.",
+      "editDescription": "Update the role name.",
+      "name": "Role name",
+      "namePlaceholder": "e.g. manager",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "created": "Role created.",
+      "updated": "Role updated.",
+      "deleteTitle": "Delete role",
+      "deleteDescription": "Are you sure you want to delete the role <strong>{name}</strong>?",
+      "deleted": "Role deleted."
+    },
+    "permissions": {
+      "label": "Permissions",
+      "view": "View",
+      "manage": "Manage",
+      "loadingPermissions": "Loading permissions...",
+      "modules": {
+        "users": "Users",
+        "roles": "Roles",
+        "entities": "Entities",
+        "products": "Products",
+        "categories": "Categories",
+        "brands": "Brands",
+        "groups": "Groups",
+        "uoms": "Units of Measure",
+        "variations": "Variations"
+      }
     }
   }
 }

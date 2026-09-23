@@ -2,4 +2,10 @@
 
 namespace Modules\Products\Policies;
 
-class ProductCategoryPolicy extends LookupPolicy {}
+class ProductCategoryPolicy extends LookupPolicy
+{
+    protected function permissionModule(): string
+    {
+        return 'categories';
+    }
+}

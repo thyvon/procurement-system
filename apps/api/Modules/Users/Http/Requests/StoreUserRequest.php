@@ -24,7 +24,7 @@ class StoreUserRequest extends FormRequest
             'is_active' => ['sometimes', 'boolean'],
             'entity_id' => ['sometimes', 'nullable', 'string', Rule::exists('entities', 'id')],
             'roles' => ['sometimes', 'array'],
-            'roles.*' => ['string', Rule::in(['admin', 'staff'])],
+            'roles.*' => ['string', Rule::exists('roles', 'name')->where('guard_name', 'sanctum')],
         ];
     }
 

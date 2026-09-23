@@ -95,6 +95,49 @@ it('rejects weak passwords and duplicate emails with 422 envelope', function () 
         ->assertJsonStructure(['errors']);
 });
 
+it('rejects role names that do not exist in the roles table', function () {
+    $this->actingAs($this->adminA, 'sanctum')
+        ->postJson('/api/v1/users', [
+            'name' => 'Unknown Role',
+            'email' => 'unknown.role@test.local',
+            'password' => 'long-password-123',
+            'roles' => ['superuser'],
+        ])
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['errors']);
+
+    expect(User::query()->where('email', 'unknown.role@test.local')->exists())->toBeFalse();
+});
+
+it('accepts a role created after boot', function () {
+    Role::findOrCreate('manager', 'sanctum');
+
+    $created = $this->actingAs($this->adminA, 'sanctum')
+        ->postJson('/api/v1/users', [
+            'name' => 'Manager User',
+            'email' => 'manager@test.local',
+            'password' => 'long-password-123',
+            'roles' => ['manager'],
+        ])
+        ->assertStatus(201);
+
+    expect($created->json('data.roles'))->toContain('manager');
+});
+
+it('prevents a non-admin from self-promoting via roles', function () {
+    $this->actingAs($this->staffA, 'sanctum')
+        ->patchJson("/api/v1/users/{$this->staffA->getKey()}", [
+            'name' => 'Still Staff',
+            'roles' => ['admin'],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.roles.0', 'staff');
+
+    expect($this->staffA->refresh()->hasRole('admin'))->toBeFalse()
+        ->and($this->staffA->hasRole('staff'))->toBeTrue();
+});
+
 it('deactivates instead of hard-deleting and revokes all tokens', function () {
     $login = $this->postJson('/api/v1/auth/login', [
         'email' => 'staff.a@test.local',

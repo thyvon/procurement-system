@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Users\Database\Seeders\PermissionSeeder;
 use Tests\TestCase;
 
 /*
@@ -16,6 +17,11 @@ use Tests\TestCase;
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
+    // Every Laravel test starts from the permission baseline: the vocabulary
+    // exists, `admin` holds every ability, `staff` holds every read.
+    ->beforeEach(function () {
+        PermissionSeeder::seed();
+    })
     ->in('Feature', '../Modules/*/Tests/Feature');
 
 /*

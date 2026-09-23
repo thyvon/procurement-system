@@ -4,7 +4,6 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
-import type { StoreUserRequestRolesItem } from './storeUserRequestRolesItem';
 
 export interface StoreUserRequest {
   /** @maxLength 255 */
@@ -16,5 +15,5 @@ export interface StoreUserRequest {
   is_active?: boolean;
   /** @nullable */
   entity_id?: string | null;
-  roles?: StoreUserRequestRolesItem[];
+  roles?: string[];
 }

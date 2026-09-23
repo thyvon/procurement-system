@@ -8,19 +8,20 @@ class UserPolicy
 {
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->can('users.view', 'sanctum');
     }
 
     public function view(User $actor, User $target): bool
     {
-        return $actor->entity_id === null
-            || $target->entity_id === null
-            || $actor->entity_id === $target->entity_id;
+        return $actor->can('users.view', 'sanctum')
+            && ($actor->entity_id === null
+                || $target->entity_id === null
+                || $actor->entity_id === $target->entity_id);
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole('admin');
+        return $user->can('users.manage', 'sanctum');
     }
 
     public function update(User $actor, User $target): bool
@@ -29,13 +30,13 @@ class UserPolicy
             return true;
         }
 
-        return $actor->hasRole('admin')
+        return $actor->can('users.manage', 'sanctum')
             && ($actor->entity_id === null || $actor->entity_id === $target->entity_id);
     }
 
     public function delete(User $actor, User $target): bool
     {
-        return $actor->hasRole('admin')
+        return $actor->can('users.manage', 'sanctum')
             && $actor->getKey() !== $target->getKey()
             && ($actor->entity_id === null || $actor->entity_id === $target->entity_id);
     }

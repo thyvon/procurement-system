@@ -4,7 +4,6 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
-import type { UpdateUserRequestRolesItem } from './updateUserRequestRolesItem';
 
 export interface UpdateUserRequest {
   /** @maxLength 255 */
@@ -14,5 +13,5 @@ export interface UpdateUserRequest {
   /** @minLength 10 */
   password?: string;
   is_active?: boolean;
-  roles?: UpdateUserRequestRolesItem[];
+  roles?: string[];
 }
