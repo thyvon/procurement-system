@@ -12,15 +12,16 @@
     "tabEmail": "Email",
     "tabEPurchase": "Login with E-Purchase",
     "employeeId": "Employee ID",
-    "employeeIdPlaceholder": "firstname.lastname",
+    "employeeIdPlaceholder": "e.g. 00xxxx or firstname.lastname",
+    "employeePasswordPlaceholder": "Your PC Login password",
     "employeeIdRequired": "Employee ID is required",
     "updating": "Updating…",
     "cancel": "Cancel",
     "welcome": "Welcome",
     "email": "Email",
     "password": "Password",
-    "emailPlaceholder": "admin@procurement.local",
-    "passwordPlaceholder": "••••••••••",
+    "emailPlaceholder": "Your email address",
+    "passwordPlaceholder": "Your password",
     "emailRequired": "Email is required",
     "emailInvalid": "Enter a valid email address",
     "passwordRequired": "Password is required",
@@ -94,6 +95,22 @@
       "saving": "Saving...",
       "created": "Category created.",
       "updated": "Category updated."
+    },
+    "brands": {
+      "newTitle": "New brand",
+      "editTitle": "Edit brand",
+      "newDescription": "Add a new product brand.",
+      "editDescription": "Update the brand details.",
+      "name": "Name",
+      "description": "Description",
+      "active": "Active",
+      "namePlaceholder": "Brand name",
+      "descriptionPlaceholder": "Brand description (optional)",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "created": "Brand created.",
+      "updated": "Brand updated."
     }
   }
 }

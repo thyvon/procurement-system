@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LookupTab } from "./lookup-tab";
 import { ProductsTab } from "./products-tab";
 import { CategoriesTab } from "./categories-tab";
+import { BrandsTab } from "./brands-tab";
 
 export function ProductManagementPage() {
   const t = useTranslations("nav");
@@ -29,7 +30,7 @@ export function ProductManagementPage() {
           <CategoriesTab />
         </TabsContent>
         <TabsContent value="brands">
-          <LookupTab kind="brands" />
+          <BrandsTab />
         </TabsContent>
         <TabsContent value="groups">
           <LookupTab kind="groups" />

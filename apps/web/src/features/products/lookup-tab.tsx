@@ -3,23 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
-  productsBrandsDestroy,
-  productsBrandsIndex,
-  productsBrandsStore,
-  productsBrandsUpdate,
-} from "@/lib/api/brand/brand";
-import {
   productsGroupsDestroy,
   productsGroupsIndex,
   productsGroupsStore,
   productsGroupsUpdate,
 } from "@/lib/api/product-group/product-group";
-import {
-  productsCategoriesDestroy,
-  productsCategoriesIndex,
-  productsCategoriesStore,
-  productsCategoriesUpdate,
-} from "@/lib/api/product-category/product-category";
 import {
   productsUomsDestroy,
   productsUomsIndex,
@@ -45,30 +33,15 @@ type LookupItem = {
   description: string | null;
 };
 
-type Kind = "brands" | "groups" | "categories" | "uoms";
+type Kind = "groups" | "uoms";
 
 const api = {
-  brands: {
-    list: () => productsBrandsIndex(withAuth()),
-    create: (d: { name: string; description?: string }) => productsBrandsStore(d, withAuth()),
-    update: (id: string, d: { name?: string; description?: string }) =>
-      productsBrandsUpdate(id, d, withAuth()),
-    remove: (id: string) => productsBrandsDestroy(id, withAuth()),
-  },
   groups: {
     list: () => productsGroupsIndex(withAuth()),
     create: (d: { name: string; description?: string }) => productsGroupsStore(d, withAuth()),
     update: (id: string, d: { name?: string; description?: string }) =>
       productsGroupsUpdate(id, d, withAuth()),
     remove: (id: string) => productsGroupsDestroy(id, withAuth()),
-  },
-  categories: {
-    list: () => productsCategoriesIndex(withAuth()),
-    create: (d: { name: string; description?: string }) =>
-      productsCategoriesStore({ name: d.name }, withAuth()),
-    update: (id: string, d: { name?: string; description?: string }) =>
-      productsCategoriesUpdate(id, { name: d.name }, withAuth()),
-    remove: (id: string) => productsCategoriesDestroy(id, withAuth()),
   },
   uoms: {
     list: () => productsUomsIndex(withAuth()),
@@ -81,7 +54,7 @@ const api = {
 };
 
 /**
- * Shared name/description lookup manager used by the Brands, Groups, Categories, and UoMs tabs.
+ * Shared name/description lookup manager used by the Groups and UoMs tabs.
  */
 export function LookupTab({ kind }: { kind: Kind }) {
   const qc = useQueryClient();
