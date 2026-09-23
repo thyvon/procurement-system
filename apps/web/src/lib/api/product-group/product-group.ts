@@ -25,6 +25,7 @@ import type {
 import type {
   AuthenticationExceptionResponse,
   AuthorizationExceptionResponse,
+  ModelNotFoundExceptionResponse,
   ProductsGroupsDestroy200,
   ProductsGroupsIndex200,
   ProductsGroupsShow200,
@@ -371,10 +372,15 @@ export type productsGroupsShowResponse403 = {
   status: 403
 }
 
+export type productsGroupsShowResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
 export type productsGroupsShowResponseSuccess = (productsGroupsShowResponse200) & {
   headers: Headers;
 };
-export type productsGroupsShowResponseError = (productsGroupsShowResponse401 | productsGroupsShowResponse403) & {
+export type productsGroupsShowResponseError = (productsGroupsShowResponse401 | productsGroupsShowResponse403 | productsGroupsShowResponse404) & {
   headers: Headers;
 };
 
@@ -417,7 +423,7 @@ export const getProductsGroupsShowQueryKey = (group: string,) => {
     }
 
 
-export const getProductsGroupsShowQueryOptions = <TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse>(group: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsShow>>, TError, TData>>, fetch?: RequestInit}
+export const getProductsGroupsShowQueryOptions = <TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(group: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsShow>>, TError, TData>>, fetch?: RequestInit}
 ) => {
 
 const {query: queryOptions, fetch: fetchOptions} = options ?? {};
@@ -436,10 +442,10 @@ const {query: queryOptions, fetch: fetchOptions} = options ?? {};
 }
 
 export type ProductsGroupsShowQueryResult = NonNullable<Awaited<ReturnType<typeof productsGroupsShow>>>
-export type ProductsGroupsShowQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse
+export type ProductsGroupsShowQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
 
 
-export function useProductsGroupsShow<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse>(
+export function useProductsGroupsShow<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
  group: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsShow>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof productsGroupsShow>>,
@@ -449,7 +455,7 @@ export function useProductsGroupsShow<TData = Awaited<ReturnType<typeof products
       >, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useProductsGroupsShow<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse>(
+export function useProductsGroupsShow<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
  group: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsShow>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof productsGroupsShow>>,
@@ -459,12 +465,12 @@ export function useProductsGroupsShow<TData = Awaited<ReturnType<typeof products
       >, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useProductsGroupsShow<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse>(
+export function useProductsGroupsShow<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
  group: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsShow>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useProductsGroupsShow<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse>(
+export function useProductsGroupsShow<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
  group: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsShow>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -481,7 +487,7 @@ export function useProductsGroupsShow<TData = Awaited<ReturnType<typeof products
 
 
 
-export const getProductsGroupsShowSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse>(group: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof productsGroupsShow>>, TError, TData>>, fetch?: RequestInit}
+export const getProductsGroupsShowSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(group: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof productsGroupsShow>>, TError, TData>>, fetch?: RequestInit}
 ) => {
 
 const {query: queryOptions, fetch: fetchOptions} = options ?? {};
@@ -500,23 +506,23 @@ const {query: queryOptions, fetch: fetchOptions} = options ?? {};
 }
 
 export type ProductsGroupsShowSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof productsGroupsShow>>>
-export type ProductsGroupsShowSuspenseQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse
+export type ProductsGroupsShowSuspenseQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
 
 
-export function useProductsGroupsShowSuspense<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse>(
+export function useProductsGroupsShowSuspense<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
  group: string, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof productsGroupsShow>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useProductsGroupsShowSuspense<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse>(
+export function useProductsGroupsShowSuspense<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
  group: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof productsGroupsShow>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useProductsGroupsShowSuspense<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse>(
+export function useProductsGroupsShowSuspense<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
  group: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof productsGroupsShow>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useProductsGroupsShowSuspense<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse>(
+export function useProductsGroupsShowSuspense<TData = Awaited<ReturnType<typeof productsGroupsShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
  group: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof productsGroupsShow>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -543,6 +549,11 @@ export type productsGroupsUpdateResponse401 = {
   status: 401
 }
 
+export type productsGroupsUpdateResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
 export type productsGroupsUpdateResponse422 = {
   data: ValidationExceptionResponse
   status: 422
@@ -551,7 +562,7 @@ export type productsGroupsUpdateResponse422 = {
 export type productsGroupsUpdateResponseSuccess = (productsGroupsUpdateResponse200) & {
   headers: Headers;
 };
-export type productsGroupsUpdateResponseError = (productsGroupsUpdateResponse401 | productsGroupsUpdateResponse422) & {
+export type productsGroupsUpdateResponseError = (productsGroupsUpdateResponse401 | productsGroupsUpdateResponse404 | productsGroupsUpdateResponse422) & {
   headers: Headers;
 };
 
@@ -602,7 +613,7 @@ export const getProductsGroupsUpdateQueryKey = (group: string,
     }
 
 
-export const getProductsGroupsUpdateQueryOptions = <TData = Awaited<ReturnType<typeof productsGroupsUpdate>>, TError = AuthenticationExceptionResponse | ValidationExceptionResponse>(group: string,
+export const getProductsGroupsUpdateQueryOptions = <TData = Awaited<ReturnType<typeof productsGroupsUpdate>>, TError = AuthenticationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(group: string,
     updateProductGroupRequest?: UpdateProductGroupRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsUpdate>>, TError, TData>>, fetch?: RequestInit}
 ) => {
 
@@ -622,10 +633,10 @@ const {query: queryOptions, fetch: fetchOptions} = options ?? {};
 }
 
 export type ProductsGroupsUpdateQueryResult = NonNullable<Awaited<ReturnType<typeof productsGroupsUpdate>>>
-export type ProductsGroupsUpdateQueryError = AuthenticationExceptionResponse | ValidationExceptionResponse
+export type ProductsGroupsUpdateQueryError = AuthenticationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse
 
 
-export function useProductsGroupsUpdate<TData = Awaited<ReturnType<typeof productsGroupsUpdate>>, TError = AuthenticationExceptionResponse | ValidationExceptionResponse>(
+export function useProductsGroupsUpdate<TData = Awaited<ReturnType<typeof productsGroupsUpdate>>, TError = AuthenticationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
  group: string,
     updateProductGroupRequest: undefined |  UpdateProductGroupRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsUpdate>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -636,7 +647,7 @@ export function useProductsGroupsUpdate<TData = Awaited<ReturnType<typeof produc
       >, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useProductsGroupsUpdate<TData = Awaited<ReturnType<typeof productsGroupsUpdate>>, TError = AuthenticationExceptionResponse | ValidationExceptionResponse>(
+export function useProductsGroupsUpdate<TData = Awaited<ReturnType<typeof productsGroupsUpdate>>, TError = AuthenticationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
  group: string,
     updateProductGroupRequest?: UpdateProductGroupRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsUpdate>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -647,13 +658,13 @@ export function useProductsGroupsUpdate<TData = Awaited<ReturnType<typeof produc
       >, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useProductsGroupsUpdate<TData = Awaited<ReturnType<typeof productsGroupsUpdate>>, TError = AuthenticationExceptionResponse | ValidationExceptionResponse>(
+export function useProductsGroupsUpdate<TData = Awaited<ReturnType<typeof productsGroupsUpdate>>, TError = AuthenticationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
  group: string,
     updateProductGroupRequest?: UpdateProductGroupRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsUpdate>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useProductsGroupsUpdate<TData = Awaited<ReturnType<typeof productsGroupsUpdate>>, TError = AuthenticationExceptionResponse | ValidationExceptionResponse>(
+export function useProductsGroupsUpdate<TData = Awaited<ReturnType<typeof productsGroupsUpdate>>, TError = AuthenticationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
  group: string,
     updateProductGroupRequest?: UpdateProductGroupRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsUpdate>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -681,10 +692,15 @@ export type productsGroupsDestroyResponse401 = {
   status: 401
 }
 
+export type productsGroupsDestroyResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
 export type productsGroupsDestroyResponseSuccess = (productsGroupsDestroyResponse200) & {
   headers: Headers;
 };
-export type productsGroupsDestroyResponseError = (productsGroupsDestroyResponse401) & {
+export type productsGroupsDestroyResponseError = (productsGroupsDestroyResponse401 | productsGroupsDestroyResponse404) & {
   headers: Headers;
 };
 
@@ -727,7 +743,7 @@ export const getProductsGroupsDestroyQueryKey = (group: string,) => {
     }
 
 
-export const getProductsGroupsDestroyQueryOptions = <TData = Awaited<ReturnType<typeof productsGroupsDestroy>>, TError = AuthenticationExceptionResponse>(group: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsDestroy>>, TError, TData>>, fetch?: RequestInit}
+export const getProductsGroupsDestroyQueryOptions = <TData = Awaited<ReturnType<typeof productsGroupsDestroy>>, TError = AuthenticationExceptionResponse | ModelNotFoundExceptionResponse>(group: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsDestroy>>, TError, TData>>, fetch?: RequestInit}
 ) => {
 
 const {query: queryOptions, fetch: fetchOptions} = options ?? {};
@@ -746,10 +762,10 @@ const {query: queryOptions, fetch: fetchOptions} = options ?? {};
 }
 
 export type ProductsGroupsDestroyQueryResult = NonNullable<Awaited<ReturnType<typeof productsGroupsDestroy>>>
-export type ProductsGroupsDestroyQueryError = AuthenticationExceptionResponse
+export type ProductsGroupsDestroyQueryError = AuthenticationExceptionResponse | ModelNotFoundExceptionResponse
 
 
-export function useProductsGroupsDestroy<TData = Awaited<ReturnType<typeof productsGroupsDestroy>>, TError = AuthenticationExceptionResponse>(
+export function useProductsGroupsDestroy<TData = Awaited<ReturnType<typeof productsGroupsDestroy>>, TError = AuthenticationExceptionResponse | ModelNotFoundExceptionResponse>(
  group: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsDestroy>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof productsGroupsDestroy>>,
@@ -759,7 +775,7 @@ export function useProductsGroupsDestroy<TData = Awaited<ReturnType<typeof produ
       >, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useProductsGroupsDestroy<TData = Awaited<ReturnType<typeof productsGroupsDestroy>>, TError = AuthenticationExceptionResponse>(
+export function useProductsGroupsDestroy<TData = Awaited<ReturnType<typeof productsGroupsDestroy>>, TError = AuthenticationExceptionResponse | ModelNotFoundExceptionResponse>(
  group: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsDestroy>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof productsGroupsDestroy>>,
@@ -769,12 +785,12 @@ export function useProductsGroupsDestroy<TData = Awaited<ReturnType<typeof produ
       >, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useProductsGroupsDestroy<TData = Awaited<ReturnType<typeof productsGroupsDestroy>>, TError = AuthenticationExceptionResponse>(
+export function useProductsGroupsDestroy<TData = Awaited<ReturnType<typeof productsGroupsDestroy>>, TError = AuthenticationExceptionResponse | ModelNotFoundExceptionResponse>(
  group: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsDestroy>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useProductsGroupsDestroy<TData = Awaited<ReturnType<typeof productsGroupsDestroy>>, TError = AuthenticationExceptionResponse>(
+export function useProductsGroupsDestroy<TData = Awaited<ReturnType<typeof productsGroupsDestroy>>, TError = AuthenticationExceptionResponse | ModelNotFoundExceptionResponse>(
  group: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGroupsDestroy>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {

@@ -6,6 +6,8 @@ use App\Models\User;
 use Modules\Organization\Models\Entity;
 use Modules\Products\Models\Brand;
 use Modules\Products\Models\ProductCategory;
+use Modules\Products\Models\Uom;
+use Modules\Products\Models\UomSubUnit;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -115,6 +117,28 @@ it('defaults uom short_name from the name when omitted', function () {
         ->postJson('/api/v1/products/uoms', ['name' => 'Crate'])
         ->assertStatus(201)
         ->assertJsonPath('data.shortName', 'Crate');
+});
+
+it('soft-deletes sub units when the uom is deleted', function () {
+    $created = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/products/uoms', [
+            'name' => 'Box',
+            'short_name' => 'BOX',
+            'sub_units' => [
+                ['name' => 'Piece', 'short_name' => 'PCS', 'conversion_factor' => 24],
+            ],
+        ])
+        ->assertStatus(201);
+
+    $uomId = $created->json('data.id');
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->deleteJson("/api/v1/products/uoms/{$uomId}")
+        ->assertOk()
+        ->assertJsonPath('data.deleted', true);
+
+    expect(Uom::withTrashed()->find($uomId)->deleted_at)->not->toBeNull()
+        ->and(UomSubUnit::withTrashed()->where('uom_id', $uomId)->first()->deleted_at)->not->toBeNull();
 });
 
 it('isolates product lookups per entity', function () {

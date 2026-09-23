@@ -35,7 +35,7 @@ export default function Providers({
     <NextIntlClientProvider locale={locale} messages={messages}>
       <QueryClientProvider client={queryClient}>
         {children}
-        <Toaster position="top-right" richColors />
+        <Toaster position="top-right" />
       </QueryClientProvider>
     </NextIntlClientProvider>
   );

@@ -76,6 +76,38 @@
     "uploading": "កំពុងបញ្ចូល…"
   },
   "products": {
+    "columns": {
+      "refCode": "លេខយោង",
+      "name": "ឈ្មោះ",
+      "nameKm": "ឈ្មោះ (ខ្មែរ)",
+      "shortCode": "កូដខ្លី",
+      "description": "ការពិពណ៌នា",
+      "status": "ស្ថានភាព",
+      "order": "លំដាប់",
+      "price": "តម្លៃ",
+      "shortName": "ឈ្មោះកាត់",
+      "subUnits": "ឯកតារង"
+    },
+    "table": {
+      "searchPlaceholder": "តមូរតាមឈ្មោះ...",
+      "allStatuses": "ស្ថានភាពទាំងអស់",
+      "active": "សកម្ម",
+      "inactive": "អសកម្ម",
+      "openMenu": "បើកម៉ឺនុយ",
+      "edit": "កែសម្រួល",
+      "delete": "លុប",
+      "view": "មើល",
+      "cancel": "បោះបង់",
+      "confirmDelete": "លុប",
+      "deleting": "កំពុងលុប...",
+      "deleteDescription": "តើអ្នកប្រាកដថាចង់លុប <strong>{name}</strong> ឬទេ? សកម្មភាពនេះមិនអាចបោះបង់បានទេ។"
+    },
+    "products": {
+      "newTitle": "ផលិតផលថ្មី",
+      "import": "នាំចូល",
+      "deleteTitle": "លុបផលិតផល",
+      "deleted": "បានលុបផលិតផល។"
+    },
     "categories": {
       "newTitle": "ប្រភេទថ្មី",
       "editTitle": "កែប្រែប្រភេទ",
@@ -95,7 +127,9 @@
       "save": "រក្សាទុក",
       "saving": "កំពុងរក្សាទុក...",
       "created": "បានបង្កើតប្រភេទ។",
-      "updated": "បានធ្វើបច្ចុប្បន្នភាពប្រភេទ។"
+      "updated": "បានធ្វើបច្ចុប្បន្នភាពប្រភេទ។",
+      "deleteTitle": "លុបប្រភេទ",
+      "deleted": "បានលុបប្រភេទ។"
     },
     "brands": {
       "newTitle": "ម៉ាកថ្មី",
@@ -111,7 +145,56 @@
       "save": "រក្សាទុក",
       "saving": "កំពុងរក្សាទុក...",
       "created": "បានបង្កើតម៉ាក។",
-      "updated": "បានធ្វើបច្ចុប្បន្នភាពម៉ាក។"
+      "updated": "បានធ្វើបច្ចុប្បន្នភាពម៉ាក។",
+      "deleteTitle": "លុបម៉ាក",
+      "deleted": "បានលុបម៉ាក។"
+    },
+    "groups": {
+      "newTitle": "ក្រុមថ្មី",
+      "editTitle": "កែប្រែក្រុម",
+      "newDescription": "បន្ថែមក្រុមផលិតផលថ្មី។",
+      "editDescription": "ធ្វើបច្ចុប្បន្នភាពព័ត៌មានក្រុម។",
+      "name": "ឈ្មោះ",
+      "description": "ការពិពណ៌នា",
+      "active": "សកម្ម",
+      "namePlaceholder": "ឈ្មោះក្រុម",
+      "descriptionPlaceholder": "ការពិពណ៌នាក្រុម (ស្រេចចិត្ត)",
+      "cancel": "បោះបង់",
+      "save": "រក្សាទុក",
+      "saving": "កំពុងរក្សាទុក...",
+      "created": "បានបង្កើតក្រុម។",
+      "updated": "បានធ្វើបច្ចុប្បន្នភាពក្រុម។",
+      "deleteTitle": "លុបក្រុម",
+      "deleted": "បានលុបក្រុម។"
+    },
+    "uoms": {
+      "newTitle": "ឯកតាថ្មី",
+      "editTitle": "កែប្រែឯកតា",
+      "newDescription": "បន្ថែមឯកតារាប់ថ្មី។",
+      "editDescription": "ធ្វើបច្ចុប្បន្នភាពព័ត៌មានឯកតា។",
+      "name": "ឈ្មោះ",
+      "shortName": "ឈ្មោះកាត់",
+      "active": "សកម្ម",
+      "namePlaceholder": "ឈ្មោះឯកតា",
+      "shortNamePlaceholder": "ឧ. BOX (បញ្ជូនពីឈ្មោះ)",
+      "subUnits": "ឯកតារង",
+      "addSubUnit": "បន្ថែមឯកតារង",
+      "subUnitsEmpty": "មិនមានឯកតារង។ បន្ថែមមួយដើម្បីអនុញ្ញាតឱ្យផលិតផលជ្រើសរើស។",
+      "subUnitName": "ឈ្មោះ",
+      "subUnitShortName": "កាត់",
+      "conversionFactor": "កំណើន",
+      "subUnitNamePlaceholder": "ឧ. Piece",
+      "subUnitShortNamePlaceholder": "PCS",
+      "conversionFactorPlaceholder": "1",
+      "removeSubUnit": "លុបឯកតារង",
+      "subUnitIncomplete": "ត្រូវការឈ្មោះ ឈ្មោះកាត់ និងកំណើន (> 0)។",
+      "cancel": "បោះបង់",
+      "save": "រក្សាទុក",
+      "saving": "កំពុងរក្សាទុក...",
+      "created": "បានបង្កើតឯកតា។",
+      "updated": "បានធ្វើបច្ចុប្បន្នភាពឯកតា។",
+      "deleteTitle": "លុបឯកតា",
+      "deleted": "បានលុបឯកតា។"
     }
   }
 }

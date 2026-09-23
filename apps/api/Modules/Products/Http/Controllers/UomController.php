@@ -15,10 +15,14 @@ use Modules\Products\Http\Resources\UomResource;
 use Modules\Products\Models\Uom;
 use Modules\Products\Models\UomSubUnit;
 use Modules\Products\Repositories\UomRepositoryInterface;
+use Modules\Products\Services\CodeGenerationService;
 
 class UomController extends Controller
 {
-    public function __construct(private readonly UomRepositoryInterface $repo) {}
+    public function __construct(
+        private readonly UomRepositoryInterface $repo,
+        private readonly CodeGenerationService $codes,
+    ) {}
 
     public function index(): AnonymousResourceCollection
     {
@@ -39,6 +43,7 @@ class UomController extends Controller
             $subUnits = $data['sub_units'] ?? [];
             unset($data['sub_units']);
 
+            $data['code'] = $this->codes->next('UOM', Uom::class, $user->entity_id);
             $data['short_name'] ??= Str::substr($data['name'], 0, 10);
 
             $uom = $this->repo->create([...$data, 'created_by' => $user->getKey(), 'updated_by' => $user->getKey()]);
@@ -86,7 +91,10 @@ class UomController extends Controller
     {
         $this->authorize('delete', $uom);
 
-        $this->repo->delete($uom);
+        DB::transaction(function () use ($uom) {
+            $uom->subUnits()->delete();
+            $this->repo->delete($uom);
+        });
 
         return ApiResponse::success(['deleted' => true]);
     }

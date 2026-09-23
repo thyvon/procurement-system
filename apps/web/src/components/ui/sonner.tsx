@@ -19,20 +19,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "group toast group-[.toaster]:border-l-4 group-[.toaster]:shadow-xl group-[.toaster]:rounded-xl",
+            "group toast group-[.toaster]:border-l-4 group-[.toaster]:border-l-primary group-[.toaster]:bg-primary group-[.toaster]:text-primary-foreground group-[.toaster]:shadow-xl group-[.toaster]:rounded-xl",
           success:
-            "group-[.toaster]:border-l-emerald-500 group-[.toaster]:bg-emerald-50 group-[.toaster]:text-emerald-900 dark:group-[.toaster]:bg-emerald-950/30 dark:group-[.toaster]:text-emerald-100",
+            "group-[.toaster]:border-l-primary group-[.toaster]:bg-primary group-[.toaster]:text-primary-foreground",
           error:
-            "group-[.toaster]:border-l-red-500 group-[.toaster]:bg-red-50 group-[.toaster]:text-red-900 dark:group-[.toaster]:bg-red-950/30 dark:group-[.toaster]:text-red-100",
+            "group-[.toaster]:border-l-destructive group-[.toaster]:bg-destructive group-[.toaster]:text-white",
           warning:
-            "group-[.toaster]:border-l-amber-500 group-[.toaster]:bg-amber-50 group-[.toaster]:text-amber-900 dark:group-[.toaster]:bg-amber-950/30 dark:group-[.toaster]:text-amber-100",
+            "group-[.toaster]:border-l-primary group-[.toaster]:bg-secondary group-[.toaster]:text-secondary-foreground",
           info:
-            "group-[.toaster]:border-l-blue-500 group-[.toaster]:bg-blue-50 group-[.toaster]:text-blue-900 dark:group-[.toaster]:bg-blue-950/30 dark:group-[.toaster]:text-blue-100",
-          description: "group-[.toast]:text-muted-foreground",
+            "group-[.toaster]:border-l-primary group-[.toaster]:bg-primary group-[.toaster]:text-primary-foreground",
+          description: "group-[.toast]:opacity-80",
           actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+            "group-[.toast]:bg-primary-foreground group-[.toast]:text-primary",
           cancelButton:
-            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+            "group-[.toast]:bg-primary-foreground/20 group-[.toast]:text-primary-foreground",
         },
       }}
       {...props}

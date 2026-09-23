@@ -8,6 +8,8 @@
 export interface Uom {
   id: string;
   entity_id: string;
+  /** @nullable */
+  code: string | null;
   name: string;
   short_name: string;
   is_active: boolean;

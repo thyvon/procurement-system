@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
+import { toast } from "sonner"
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table"
 import { MoreHorizontal, Plus, Upload, Eye, Pencil, Trash2 } from "lucide-react"
 import {
@@ -50,11 +52,13 @@ function useProductColumns({
   onDeleteRequest: (product: Product) => void
 }): ColumnDef<DataTableFeatures, Product>[] {
   const router = useRouter()
+  const tc = useTranslations("products.columns")
+  const tt = useTranslations("products.table")
 
   return [
     columnHelper.accessor("code", {
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Code" />
+        <DataTableColumnHeader column={column} title={tc("refCode")} />
       ),
       cell: ({ row }) => (
         <span className="font-mono text-xs">{row.getValue("code")}</span>
@@ -62,18 +66,18 @@ function useProductColumns({
     }),
     columnHelper.accessor("name", {
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Name" />
+        <DataTableColumnHeader column={column} title={tc("name")} />
       ),
     }),
     columnHelper.accessor("nameKm", {
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Name (KH)" />
+        <DataTableColumnHeader column={column} title={tc("nameKm")} />
       ),
       cell: ({ row }) => row.getValue("nameKm") ?? "—",
     }),
     columnHelper.accessor("purchasePrice", {
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Price" />
+        <DataTableColumnHeader column={column} title={tc("price")} />
       ),
       cell: ({ row }) => {
         const price = row.getValue("purchasePrice")
@@ -84,11 +88,11 @@ function useProductColumns({
     }),
     columnHelper.accessor("isActive", {
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
+        <DataTableColumnHeader column={column} title={tc("status")} />
       ),
       cell: ({ row }) => (
         <span className={row.getValue("isActive") ? "text-green-600" : "text-muted-foreground"}>
-          {row.getValue("isActive") ? "Active" : "Inactive"}
+          {row.getValue("isActive") ? tt("active") : tt("inactive")}
         </span>
       ),
     }),
@@ -101,7 +105,7 @@ function useProductColumns({
         return (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="ghost" className="size-8 p-0" />}>
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">{tt("openMenu")}</span>
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -110,13 +114,13 @@ function useProductColumns({
                   onClick={() => router.push(`/products/${product.id}`)}
                 >
                   <Eye className="mr-2 size-4" />
-                  View
+                  {tt("view")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => router.push(`/products/${product.id}/edit`)}
                 >
                   <Pencil className="mr-2 size-4" />
-                  Edit
+                  {tt("edit")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -124,7 +128,7 @@ function useProductColumns({
                   onClick={() => onDeleteRequest(product)}
                 >
                   <Trash2 className="mr-2 size-4" />
-                  Delete
+                  {tt("delete")}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -137,6 +141,8 @@ function useProductColumns({
 
 export function ProductsTab() {
   const router = useRouter()
+  const t = useTranslations("products.products")
+  const tt = useTranslations("products.table")
   const qc = useQueryClient()
   const [importOpen, setImportOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState("all")
@@ -147,6 +153,7 @@ export function ProductsTab() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["products"] })
       setDeleteTarget(null)
+      toast.success(t("deleted"))
     },
   })
 
@@ -172,24 +179,24 @@ export function ProductsTab() {
         columns={columns}
         data={query.data ?? []}
         searchColumn="name"
-        searchPlaceholder="Filter by name..."
+        searchPlaceholder={tt("searchPlaceholder")}
         filterColumn="isActive"
         filterValue={statusFilter}
         onFilterChange={setStatusFilter}
         filterOptions={[
-          { label: "Active", value: "true" },
-          { label: "Inactive", value: "false" },
+          { label: tt("active"), value: "true" },
+          { label: tt("inactive"), value: "false" },
         ]}
-        filterPlaceholder="All statuses"
+        filterPlaceholder={tt("allStatuses")}
         toolbar={
           <>
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <Upload className="mr-2 size-4" />
-              Import
+              {t("import")}
             </Button>
             <Button onClick={() => router.push("/products/create")}>
               <Plus className="mr-2 size-4" />
-              New product
+              {t("newTitle")}
             </Button>
           </>
         }
@@ -200,9 +207,12 @@ export function ProductsTab() {
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete product</DialogTitle>
+            <DialogTitle>{t("deleteTitle")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
+              {tt.rich("deleteDescription", {
+                name: deleteTarget?.name ?? "",
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -211,14 +221,14 @@ export function ProductsTab() {
               onClick={() => setDeleteTarget(null)}
               disabled={deleteMutation.isPending}
             >
-              Cancel
+              {tt("cancel")}
             </Button>
             <Button
               variant="destructive"
               onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              {deleteMutation.isPending ? tt("deleting") : tt("confirmDelete")}
             </Button>
           </DialogFooter>
         </DialogContent>

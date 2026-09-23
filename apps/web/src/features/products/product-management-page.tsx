@@ -3,10 +3,11 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LookupTab } from "./lookup-tab";
 import { ProductsTab } from "./products-tab";
 import { CategoriesTab } from "./categories-tab";
 import { BrandsTab } from "./brands-tab";
+import { GroupsTab } from "./groups-tab";
+import { UomsTab } from "./uoms-tab";
 
 export function ProductManagementPage() {
   const t = useTranslations("nav");
@@ -33,10 +34,10 @@ export function ProductManagementPage() {
           <BrandsTab />
         </TabsContent>
         <TabsContent value="groups">
-          <LookupTab kind="groups" />
+          <GroupsTab />
         </TabsContent>
         <TabsContent value="uoms">
-          <LookupTab kind="uoms" />
+          <UomsTab />
         </TabsContent>
       </Tabs>
     </div>

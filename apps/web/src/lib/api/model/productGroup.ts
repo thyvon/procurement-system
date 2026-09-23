@@ -8,6 +8,8 @@
 export interface ProductGroup {
   id: string;
   entity_id: string;
+  /** @nullable */
+  code: string | null;
   name: string;
   /** @nullable */
   description: string | null;

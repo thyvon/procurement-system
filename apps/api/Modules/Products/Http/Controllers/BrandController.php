@@ -10,12 +10,16 @@ use Modules\Products\Http\Requests\UpdateBrandRequest;
 use Modules\Products\Http\Resources\BrandResource;
 use Modules\Products\Models\Brand;
 use Modules\Products\Repositories\BrandRepositoryInterface;
+use Modules\Products\Services\CodeGenerationService;
 
 class BrandController extends Controller
 {
     use Concerns\InteractsWithLookups;
 
-    public function __construct(private readonly BrandRepositoryInterface $repo) {}
+    public function __construct(
+        private readonly BrandRepositoryInterface $repo,
+        private readonly CodeGenerationService $codes,
+    ) {}
 
     public function index(): AnonymousResourceCollection
     {
@@ -24,7 +28,10 @@ class BrandController extends Controller
 
     public function store(StoreBrandRequest $request): JsonResponse
     {
-        return $this->doStore($request->validated());
+        $data = $request->validated();
+        $data['code'] = $this->codes->next('BRD', Brand::class, $request->user()?->entity_id);
+
+        return $this->doStore($data);
     }
 
     public function show(Brand $brand): BrandResource

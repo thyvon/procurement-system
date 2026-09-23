@@ -8,6 +8,8 @@ import type { UomSubUnitResource } from './uomSubUnitResource';
 
 export interface UomResource {
   id: string;
+  /** @nullable */
+  code: string | null;
   name: string;
   shortName: string;
   isActive: boolean;

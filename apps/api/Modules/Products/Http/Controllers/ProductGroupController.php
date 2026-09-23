@@ -10,12 +10,16 @@ use Modules\Products\Http\Requests\UpdateProductGroupRequest;
 use Modules\Products\Http\Resources\ProductGroupResource;
 use Modules\Products\Models\ProductGroup;
 use Modules\Products\Repositories\ProductGroupRepositoryInterface;
+use Modules\Products\Services\CodeGenerationService;
 
 class ProductGroupController extends Controller
 {
     use Concerns\InteractsWithLookups;
 
-    public function __construct(private readonly ProductGroupRepositoryInterface $repo) {}
+    public function __construct(
+        private readonly ProductGroupRepositoryInterface $repo,
+        private readonly CodeGenerationService $codes,
+    ) {}
 
     public function index(): AnonymousResourceCollection
     {
@@ -24,24 +28,27 @@ class ProductGroupController extends Controller
 
     public function store(StoreProductGroupRequest $request): JsonResponse
     {
-        return $this->doStore($request->validated());
+        $data = $request->validated();
+        $data['code'] = $this->codes->next('GRP', ProductGroup::class, $request->user()?->entity_id);
+
+        return $this->doStore($data);
     }
 
-    public function show(ProductGroup $brand): ProductGroupResource
+    public function show(ProductGroup $group): ProductGroupResource
     {
-        $this->authorize('view', $brand);
+        $this->authorize('view', $group);
 
-        return new ProductGroupResource($brand);
+        return new ProductGroupResource($group);
     }
 
-    public function update(UpdateProductGroupRequest $request, ProductGroup $brand): mixed
+    public function update(UpdateProductGroupRequest $request, ProductGroup $group): mixed
     {
-        return $this->doUpdate($brand, $request->validated());
+        return $this->doUpdate($group, $request->validated());
     }
 
-    public function destroy(ProductGroup $brand): JsonResponse
+    public function destroy(ProductGroup $group): JsonResponse
     {
-        return $this->doDestroy($brand);
+        return $this->doDestroy($group);
     }
 
     protected function repo(): ProductGroupRepositoryInterface

@@ -7,6 +7,8 @@
 
 export interface BrandResource {
   id: string;
+  /** @nullable */
+  code: string | null;
   name: string;
   /** @nullable */
   description: string | null;

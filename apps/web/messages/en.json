@@ -75,6 +75,38 @@
     "uploading": "Uploading…"
   },
   "products": {
+    "columns": {
+      "refCode": "Ref. Code",
+      "name": "Name",
+      "nameKm": "Name (KH)",
+      "shortCode": "Short Code",
+      "description": "Description",
+      "status": "Status",
+      "order": "Order",
+      "price": "Price",
+      "shortName": "Short Name",
+      "subUnits": "Sub-Units"
+    },
+    "table": {
+      "searchPlaceholder": "Filter by name...",
+      "allStatuses": "All statuses",
+      "active": "Active",
+      "inactive": "Inactive",
+      "openMenu": "Open menu",
+      "edit": "Edit",
+      "delete": "Delete",
+      "view": "View",
+      "cancel": "Cancel",
+      "confirmDelete": "Delete",
+      "deleting": "Deleting...",
+      "deleteDescription": "Are you sure you want to delete <strong>{name}</strong>? This action cannot be undone."
+    },
+    "products": {
+      "newTitle": "New product",
+      "import": "Import",
+      "deleteTitle": "Delete product",
+      "deleted": "Product deleted."
+    },
     "categories": {
       "newTitle": "New category",
       "editTitle": "Edit category",
@@ -94,7 +126,9 @@
       "save": "Save",
       "saving": "Saving...",
       "created": "Category created.",
-      "updated": "Category updated."
+      "updated": "Category updated.",
+      "deleteTitle": "Delete category",
+      "deleted": "Category deleted."
     },
     "brands": {
       "newTitle": "New brand",
@@ -110,7 +144,56 @@
       "save": "Save",
       "saving": "Saving...",
       "created": "Brand created.",
-      "updated": "Brand updated."
+      "updated": "Brand updated.",
+      "deleteTitle": "Delete brand",
+      "deleted": "Brand deleted."
+    },
+    "groups": {
+      "newTitle": "New group",
+      "editTitle": "Edit group",
+      "newDescription": "Add a new product group.",
+      "editDescription": "Update the group details.",
+      "name": "Name",
+      "description": "Description",
+      "active": "Active",
+      "namePlaceholder": "Group name",
+      "descriptionPlaceholder": "Group description (optional)",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "created": "Group created.",
+      "updated": "Group updated.",
+      "deleteTitle": "Delete group",
+      "deleted": "Group deleted."
+    },
+    "uoms": {
+      "newTitle": "New unit",
+      "editTitle": "Edit unit",
+      "newDescription": "Add a new unit of measure.",
+      "editDescription": "Update the unit details.",
+      "name": "Name",
+      "shortName": "Short Name",
+      "active": "Active",
+      "namePlaceholder": "Unit name",
+      "shortNamePlaceholder": "e.g. BOX (defaults from name)",
+      "subUnits": "Sub-Units",
+      "addSubUnit": "Add sub-unit",
+      "subUnitsEmpty": "No sub-units. Add one to let products pick e.g. Piece (×24).",
+      "subUnitName": "Name",
+      "subUnitShortName": "Short",
+      "conversionFactor": "Factor",
+      "subUnitNamePlaceholder": "e.g. Piece",
+      "subUnitShortNamePlaceholder": "PCS",
+      "conversionFactorPlaceholder": "1",
+      "removeSubUnit": "Remove sub-unit",
+      "subUnitIncomplete": "Name, short name and factor (> 0) are required.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "created": "Unit created.",
+      "updated": "Unit updated.",
+      "deleteTitle": "Delete unit",
+      "deleted": "Unit deleted."
     }
   }
 }

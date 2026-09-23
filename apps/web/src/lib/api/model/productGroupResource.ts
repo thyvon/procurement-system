@@ -7,6 +7,8 @@
 
 export interface ProductGroupResource {
   id: string;
+  /** @nullable */
+  code: string | null;
   name: string;
   /** @nullable */
   description: string | null;

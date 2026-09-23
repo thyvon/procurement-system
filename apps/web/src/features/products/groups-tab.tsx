@@ -7,11 +7,11 @@ import { toast } from "sonner"
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table"
 import { MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react"
 import {
-  productsCategoriesDestroy,
-  productsCategoriesIndex,
-  productsCategoriesStore,
-  productsCategoriesUpdate,
-} from "@/lib/api/product-category/product-category"
+  productsGroupsDestroy,
+  productsGroupsIndex,
+  productsGroupsStore,
+  productsGroupsUpdate,
+} from "@/lib/api/product-group/product-group"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton"
@@ -35,36 +35,26 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { unwrap, withAuth } from "@/lib/api-client"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
 
-type Category = {
+type Group = {
   id: string
-  parentId: string | null
   code: string
-  shortCode: string | null
   name: string
-  nameKm: string | null
-  sortOrder: number
+  description: string | null
   isActive: boolean
 }
 
-const columnHelper = createColumnHelper<DataTableFeatures, Category>()
+const columnHelper = createColumnHelper<DataTableFeatures, Group>()
 
-function useCategoryColumns({
+function useGroupColumns({
   onEditRequest,
   onDeleteRequest,
 }: {
-  onEditRequest: (category: Category) => void
-  onDeleteRequest: (category: Category) => void
-}): ColumnDef<DataTableFeatures, Category>[] {
+  onEditRequest: (group: Group) => void
+  onDeleteRequest: (group: Group) => void
+}): ColumnDef<DataTableFeatures, Group>[] {
   const tc = useTranslations("products.columns")
   const tt = useTranslations("products.table")
   return [
@@ -76,32 +66,16 @@ function useCategoryColumns({
         <span className="font-mono text-xs">{row.getValue("code")}</span>
       ),
     }),
-    columnHelper.accessor("shortCode", {
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc("shortCode")} />
-      ),
-      cell: ({ row }) => (
-        <span className="font-mono text-xs">{row.getValue("shortCode") ?? "—"}</span>
-      ),
-    }),
     columnHelper.accessor("name", {
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={tc("name")} />
       ),
     }),
-    columnHelper.accessor("nameKm", {
+    columnHelper.accessor("description", {
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc("nameKm")} />
+        <DataTableColumnHeader column={column} title={tc("description")} />
       ),
-      cell: ({ row }) => row.getValue("nameKm") ?? "—",
-    }),
-    columnHelper.accessor("sortOrder", {
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc("order")} />
-      ),
-      cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.getValue("sortOrder")}</span>
-      ),
+      cell: ({ row }) => row.getValue("description") ?? "—",
     }),
     columnHelper.accessor("isActive", {
       header: ({ column }) => (
@@ -118,7 +92,7 @@ function useCategoryColumns({
       enableSorting: false,
       enableHiding: false,
       cell: ({ row }) => {
-        const category = row.original
+        const group = row.original
         return (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="ghost" className="size-8 p-0" />}>
@@ -127,14 +101,14 @@ function useCategoryColumns({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => onEditRequest(category)}>
+                <DropdownMenuItem onClick={() => onEditRequest(group)}>
                   <Pencil className="mr-2 size-4" />
                   {tt("edit")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive"
-                  onClick={() => onDeleteRequest(category)}
+                  onClick={() => onDeleteRequest(group)}
                 >
                   <Trash2 className="mr-2 size-4" />
                   {tt("delete")}
@@ -145,83 +119,49 @@ function useCategoryColumns({
         )
       },
     }),
-  ] as ColumnDef<DataTableFeatures, Category>[]
+  ] as ColumnDef<DataTableFeatures, Group>[]
 }
 
 const EMPTY_FORM = {
   name: "",
-  shortCode: "",
-  nameKm: "",
-  sortOrder: 0,
+  description: "",
   isActive: true,
-  parentId: null as string | null,
 }
 
-export function CategoriesTab() {
-  const t = useTranslations("products.categories")
+export function GroupsTab() {
+  const t = useTranslations("products.groups")
   const tt = useTranslations("products.table")
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState("all")
-  const [editing, setEditing] = useState<Category | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null)
+  const [editing, setEditing] = useState<Group | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Group | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
 
   const query = useQuery({
-    queryKey: ["categories"],
+    queryKey: ["groups"],
     queryFn: async () =>
-      unwrap<Category[]>(await productsCategoriesIndex(withAuth())),
+      unwrap<Group[]>(await productsGroupsIndex(withAuth())),
   })
-
-  // While editing, hide the category itself and its descendants as parent
-  // options — re-parenting onto a child would form a cycle.
-  const excludedParents = (() => {
-    if (!editing) return new Set<string>()
-    const childrenOf = new Map<string | null, string[]>()
-    for (const cat of query.data ?? []) {
-      childrenOf.set(cat.parentId, [...(childrenOf.get(cat.parentId) ?? []), cat.id])
-    }
-    const excluded = new Set([editing.id])
-    const stack = [editing.id]
-    while (stack.length > 0) {
-      for (const childId of childrenOf.get(stack.pop()!) ?? []) {
-        if (!excluded.has(childId)) {
-          excluded.add(childId)
-          stack.push(childId)
-        }
-      }
-    }
-    return excluded
-  })()
-
-  const parentOptions = (query.data ?? []).filter((c) => !excludedParents.has(c.id))
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload: {
         name: string
-        parent_id?: string | null
-        short_code?: string
-        name_km?: string
-        sort_order?: number
+        description?: string | null
         is_active?: boolean
       } = {
         name: form.name,
-        parent_id: form.parentId,
-        name_km: form.nameKm || undefined,
-        sort_order: form.sortOrder,
+        description: form.description || null,
         is_active: form.isActive,
       }
-      if (form.shortCode.trim()) {
-        payload.short_code = form.shortCode.trim()
-      }
       if (editing) {
-        return unwrap(await productsCategoriesUpdate(editing.id, payload, withAuth()))
+        return unwrap(await productsGroupsUpdate(editing.id, payload, withAuth()))
       }
-      return unwrap(await productsCategoriesStore(payload, withAuth()))
+      return unwrap(await productsGroupsStore(payload, withAuth()))
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["categories"] })
+      qc.invalidateQueries({ queryKey: ["groups"] })
       setFormOpen(false)
       toast.success(editing ? t("updated") : t("created"))
       setEditing(null)
@@ -230,24 +170,21 @@ export function CategoriesTab() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => unwrap(await productsCategoriesDestroy(id, withAuth())),
+    mutationFn: async (id: string) => unwrap(await productsGroupsDestroy(id, withAuth())),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["categories"] })
+      qc.invalidateQueries({ queryKey: ["groups"] })
       setDeleteTarget(null)
       toast.success(t("deleted"))
     },
   })
 
-  const columns = useCategoryColumns({
-    onEditRequest: (cat) => {
-      setEditing(cat)
+  const columns = useGroupColumns({
+    onEditRequest: (group) => {
+      setEditing(group)
       setForm({
-        name: cat.name,
-        shortCode: cat.shortCode ?? "",
-        nameKm: cat.nameKm ?? "",
-        sortOrder: cat.sortOrder,
-        isActive: cat.isActive,
-        parentId: cat.parentId,
+        name: group.name,
+        description: group.description ?? "",
+        isActive: group.isActive,
       })
       setFormOpen(true)
     },
@@ -255,7 +192,7 @@ export function CategoriesTab() {
   })
 
   if (query.isPending) {
-    return <DataTableSkeleton columns={7} actions={1} />
+    return <DataTableSkeleton columns={5} actions={1} />
   }
 
   return (
@@ -298,9 +235,9 @@ export function CategoriesTab() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <Label htmlFor="cat-name" className="w-28 shrink-0 text-right after:content-[':']">{t("name")} *</Label>
+              <Label htmlFor="group-name" className="w-28 shrink-0 text-right after:content-[':']">{t("name")} *</Label>
               <Input
-                id="cat-name"
+                id="group-name"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder={t("namePlaceholder")}
@@ -308,63 +245,19 @@ export function CategoriesTab() {
               />
             </div>
             <div className="flex items-center gap-3">
-              <Label htmlFor="cat-name-km" className="w-28 shrink-0 text-right after:content-[':']">{t("nameKm")}</Label>
+              <Label htmlFor="group-description" className="w-28 shrink-0 text-right after:content-[':']">{t("description")}</Label>
               <Input
-                id="cat-name-km"
-                value={form.nameKm}
-                onChange={(e) => setForm((f) => ({ ...f, nameKm: e.target.value }))}
-                placeholder={t("nameKmPlaceholder")}
+                id="group-description"
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder={t("descriptionPlaceholder")}
                 className="flex-1"
               />
             </div>
             <div className="flex items-center gap-3">
-              <Label className="w-28 shrink-0 text-right after:content-[':']">{t("parent")}</Label>
-              <Select
-                value={form.parentId}
-                onValueChange={(v) => setForm((f) => ({ ...f, parentId: v ?? null }))}
-                items={[
-                  { value: null, label: t("rootOption") },
-                  ...parentOptions.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` })),
-                ]}
-              >
-                <SelectTrigger className="min-w-0 flex-1">
-                  <SelectValue className="min-w-0" placeholder={t("rootOption")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={null}>{t("rootOption")}</SelectItem>
-                  {parentOptions.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.code} — {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-3">
-              <Label htmlFor="cat-short-code" className="w-28 shrink-0 text-right after:content-[':']">{t("shortCode")}</Label>
-              <Input
-                id="cat-short-code"
-                value={form.shortCode}
-                onChange={(e) => setForm((f) => ({ ...f, shortCode: e.target.value.toUpperCase() }))}
-                placeholder={t("shortCodePlaceholder")}
-                className="flex-1 font-mono"
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <Label htmlFor="cat-sort" className="w-28 shrink-0 text-right after:content-[':']">{t("sortOrder")}</Label>
-              <Input
-                id="cat-sort"
-                type="number"
-                min={0}
-                value={form.sortOrder}
-                onChange={(e) => setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))}
-                className="flex-1"
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <Label htmlFor="cat-active" className="w-28 shrink-0 text-right after:content-[':']">{t("active")}</Label>
+              <Label htmlFor="group-active" className="w-28 shrink-0 text-right after:content-[':']">{t("active")}</Label>
               <Switch
-                id="cat-active"
+                id="group-active"
                 checked={form.isActive}
                 onCheckedChange={(checked) => setForm((f) => ({ ...f, isActive: checked }))}
               />

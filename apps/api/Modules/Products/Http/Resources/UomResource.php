@@ -18,6 +18,7 @@ class UomResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'code' => $this->code,
             'name' => $this->name,
             'shortName' => $this->short_name,
             'isActive' => $this->is_active,

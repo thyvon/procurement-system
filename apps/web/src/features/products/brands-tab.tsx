@@ -40,6 +40,7 @@ import { type DataTableFeatures } from "@/components/ui/data-table-features"
 
 type Brand = {
   id: string
+  code: string
   name: string
   description: string | null
   isActive: boolean
@@ -54,25 +55,35 @@ function useBrandColumns({
   onEditRequest: (brand: Brand) => void
   onDeleteRequest: (brand: Brand) => void
 }): ColumnDef<DataTableFeatures, Brand>[] {
+  const tc = useTranslations("products.columns")
+  const tt = useTranslations("products.table")
   return [
+    columnHelper.accessor("code", {
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={tc("refCode")} />
+      ),
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">{row.getValue("code")}</span>
+      ),
+    }),
     columnHelper.accessor("name", {
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Name" />
+        <DataTableColumnHeader column={column} title={tc("name")} />
       ),
     }),
     columnHelper.accessor("description", {
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Description" />
+        <DataTableColumnHeader column={column} title={tc("description")} />
       ),
       cell: ({ row }) => row.getValue("description") ?? "—",
     }),
     columnHelper.accessor("isActive", {
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
+        <DataTableColumnHeader column={column} title={tc("status")} />
       ),
       cell: ({ row }) => (
         <span className={row.getValue("isActive") ? "text-green-600" : "text-muted-foreground"}>
-          {row.getValue("isActive") ? "Active" : "Inactive"}
+          {row.getValue("isActive") ? tt("active") : tt("inactive")}
         </span>
       ),
     }),
@@ -85,14 +96,14 @@ function useBrandColumns({
         return (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="ghost" className="size-8 p-0" />}>
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">{tt("openMenu")}</span>
               <MoreHorizontal className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuGroup>
                 <DropdownMenuItem onClick={() => onEditRequest(brand)}>
                   <Pencil className="mr-2 size-4" />
-                  Edit
+                  {tt("edit")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -100,7 +111,7 @@ function useBrandColumns({
                   onClick={() => onDeleteRequest(brand)}
                 >
                   <Trash2 className="mr-2 size-4" />
-                  Delete
+                  {tt("delete")}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -119,6 +130,7 @@ const EMPTY_FORM = {
 
 export function BrandsTab() {
   const t = useTranslations("products.brands")
+  const tt = useTranslations("products.table")
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState("all")
   const [editing, setEditing] = useState<Brand | null>(null)
@@ -162,7 +174,7 @@ export function BrandsTab() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["brands"] })
       setDeleteTarget(null)
-      toast.success("Brand deleted.")
+      toast.success(t("deleted"))
     },
   })
 
@@ -180,7 +192,7 @@ export function BrandsTab() {
   })
 
   if (query.isPending) {
-    return <DataTableSkeleton columns={4} actions={1} />
+    return <DataTableSkeleton columns={5} actions={1} />
   }
 
   return (
@@ -189,15 +201,15 @@ export function BrandsTab() {
         columns={columns}
         data={query.data ?? []}
         searchColumn="name"
-        searchPlaceholder="Filter by name..."
+        searchPlaceholder={tt("searchPlaceholder")}
         filterColumn="isActive"
         filterValue={statusFilter}
         onFilterChange={setStatusFilter}
         filterOptions={[
-          { label: "Active", value: "true" },
-          { label: "Inactive", value: "false" },
+          { label: tt("active"), value: "true" },
+          { label: tt("inactive"), value: "false" },
         ]}
-        filterPlaceholder="All statuses"
+        filterPlaceholder={tt("allStatuses")}
         toolbar={
           <Button
             onClick={() => {
@@ -273,9 +285,12 @@ export function BrandsTab() {
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete brand</DialogTitle>
+            <DialogTitle>{t("deleteTitle")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
+              {tt.rich("deleteDescription", {
+                name: deleteTarget?.name ?? "",
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -284,14 +299,14 @@ export function BrandsTab() {
               onClick={() => setDeleteTarget(null)}
               disabled={deleteMutation.isPending}
             >
-              Cancel
+              {tt("cancel")}
             </Button>
             <Button
               variant="destructive"
               onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              {deleteMutation.isPending ? tt("deleting") : tt("confirmDelete")}
             </Button>
           </DialogFooter>
         </DialogContent>
