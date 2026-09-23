@@ -20,6 +20,7 @@ class ProductCategoryResource extends JsonResource
             'id' => $this->id,
             'parentId' => $this->parent_id,
             'code' => $this->code,
+            'shortCode' => $this->short_code,
             'name' => $this->name,
             'nameKm' => $this->name_km,
             'sortOrder' => $this->sort_order,

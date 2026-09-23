@@ -64,7 +64,7 @@ const api = {
   categories: {
     list: () => productsCategoriesIndex(withAuth()),
     create: (d: { name: string; description?: string }) =>
-      productsCategoriesStore({ name: d.name, code: d.name.slice(0, 10).toUpperCase() }, withAuth()),
+      productsCategoriesStore({ name: d.name, short_code: d.name.slice(0, 10).toUpperCase() }, withAuth()),
     update: (id: string, d: { name?: string; description?: string }) =>
       productsCategoriesUpdate(id, { name: d.name }, withAuth()),
     remove: (id: string) => productsCategoriesDestroy(id, withAuth()),

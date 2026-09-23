@@ -51,6 +51,10 @@
     "name": "Name",
     "email": "Email",
     "status": "Status"
+  },
+  "breadcrumb": {
+    "create": "Create",
+    "edit": "Edit"
   }
 }
 

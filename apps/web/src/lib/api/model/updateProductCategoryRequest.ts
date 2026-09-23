@@ -8,8 +8,8 @@
 export interface UpdateProductCategoryRequest {
   /** @nullable */
   parent_id?: string | null;
-  /** @maxLength 32 */
-  code?: string;
+  /** @maxLength 16 */
+  short_code?: string;
   /** @maxLength 255 */
   name?: string;
   /**

@@ -2,7 +2,10 @@
   "name": "procurement-system",
   "private": true,
   "scripts": {
-    "web": "pnpm --filter web dev",
+    "dev": "docker compose -f docker-compose.infra.yml up -d && pnpm --filter web dev",
+    "dev:infra": "docker compose -f docker-compose.infra.yml up -d",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "cd apps/api && php artisan serve",
     "build:web": "pnpm --filter web build",
     "generate-client": "pnpm --filter web generate-client",
     "prepare": "husky"

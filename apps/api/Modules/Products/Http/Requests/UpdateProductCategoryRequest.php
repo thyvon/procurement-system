@@ -24,15 +24,7 @@ class UpdateProductCategoryRequest extends FormRequest
                 'nullable',
                 Rule::exists('product_categories', 'id')->whereNot('id', $categoryId),
             ],
-            'code' => [
-                'sometimes',
-                'string',
-                'max:32',
-                'alpha_dash',
-                Rule::unique('product_categories', 'code')
-                    ->where('entity_id', $this->user()?->entity_id)
-                    ->ignore($categoryId),
-            ],
+            'short_code' => ['sometimes', 'string', 'max:16'],
             'name' => ['sometimes', 'string', 'max:255'],
             'name_km' => ['nullable', 'string', 'max:255'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],

@@ -9,9 +9,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldLabel } from "@/components/ui/field";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
+import { Combobox as ComboboxNS } from "@base-ui/react/combobox";
 import { unwrap, withAuth } from "./api";
 import {
   productsItemsStore,
@@ -291,31 +301,57 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
               <div className="mt-2 space-y-4">
                 <Field orientation="vertical">
                   <FieldLabel>Product Type</FieldLabel>
-                  <Select
+                  <Combobox
+                    items={ComboboxNS.createItems(PRODUCT_TYPES, {
+                      getValue: (t) => t.value,
+                      getLabel: (t) => t.label,
+                    })}
                     value={productType}
-                    onChange={(e) => {
-                      setProductType(e.target.value as ProductType);
-                      if (e.target.value !== "variation") setTemplateIds([]);
+                    onValueChange={(val) => {
+                      setProductType(val as ProductType);
+                      if (val !== "variation") setTemplateIds([]);
                     }}
-                    options={PRODUCT_TYPES}
-                  />
+                  >
+                    <ComboboxInput placeholder="Select type..." />
+                    <ComboboxContent>
+                      <ComboboxEmpty>No types found.</ComboboxEmpty>
+                      <ComboboxList>
+                        {(t) => (
+                          <ComboboxItem key={t.value} value={t.value}>
+                            {t.label}
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
                 </Field>
                 <Field orientation="vertical">
                   <FieldLabel>Category</FieldLabel>
                   <div className="flex gap-1.5">
                     <div className="flex-1">
-                      <Select
+                      <Combobox
+                        items={ComboboxNS.createItems(parentCategories, {
+                          getValue: (c) => c.id,
+                          getLabel: (c) => `${c.code} — ${c.name}`,
+                        })}
                         value={categoryId}
-                        onChange={(e) => {
-                          setCategoryId(e.target.value);
+                        onValueChange={(val) => {
+                          setCategoryId(val as string);
                           setGroupId("");
                         }}
-                        placeholder="Select category..."
-                        options={parentCategories.map((c) => ({
-                          value: c.id,
-                          label: `${c.code} — ${c.name}`,
-                        }))}
-                      />
+                      >
+                        <ComboboxInput placeholder="Select category..." />
+                        <ComboboxContent>
+                          <ComboboxEmpty>No categories found.</ComboboxEmpty>
+                          <ComboboxList>
+                            {(c) => (
+                              <ComboboxItem key={c.id} value={c.id}>
+                                {c.code} — {c.name}
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
                     </div>
                     <Button
                       variant="outline"
@@ -332,13 +368,20 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                     <FieldLabel>Sub-Category</FieldLabel>
                     <Select
                       value={groupId}
-                      onChange={(e) => setGroupId(e.target.value)}
-                      placeholder="Select sub-category..."
-                      options={subCategories.map((c) => ({
-                        value: c.id,
-                        label: c.name,
-                      }))}
-                    />
+                      onValueChange={(v) => setGroupId(v ?? "")}
+                      items={subCategories.map((c) => ({ value: c.id, label: c.name }))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select sub-category..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subCategories.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
                 )}
                 <Field orientation="vertical">
@@ -347,20 +390,27 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                     <div className="flex-1">
                       <Select
                         value={groupId}
-                        onChange={(e) => setGroupId(e.target.value)}
-                        placeholder={
-                          categoryId
-                            ? filteredGroups.length
-                              ? "Select group..."
-                              : "No groups in this category"
-                            : "Select category first"
-                        }
+                        onValueChange={(v) => setGroupId(v ?? "")}
                         disabled={!categoryId}
-                        options={filteredGroups.map((g) => ({
-                          value: g.id,
-                          label: g.name,
-                        }))}
-                      />
+                        items={filteredGroups.map((g) => ({ value: g.id, label: g.name }))}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={
+                            categoryId
+                              ? filteredGroups.length
+                                ? "Select group..."
+                                : "No groups in this category"
+                              : "Select category first"
+                          } />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredGroups.map((g) => (
+                            <SelectItem key={g.id} value={g.id}>
+                              {g.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <Button
                       variant="outline"
@@ -376,15 +426,26 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                   <FieldLabel>Brand</FieldLabel>
                   <div className="flex gap-1.5">
                     <div className="flex-1">
-                      <Select
+                      <Combobox
+                        items={ComboboxNS.createItems(brands, {
+                          getValue: (b) => b.id,
+                          getLabel: (b) => b.name,
+                        })}
                         value={brandId}
-                        onChange={(e) => setBrandId(e.target.value)}
-                        placeholder="None"
-                        options={brands.map((b) => ({
-                          value: b.id,
-                          label: b.name,
-                        }))}
-                      />
+                        onValueChange={(val) => setBrandId(val as string)}
+                      >
+                        <ComboboxInput placeholder="None" />
+                        <ComboboxContent>
+                          <ComboboxEmpty>No brands found.</ComboboxEmpty>
+                          <ComboboxList>
+                            {(b) => (
+                              <ComboboxItem key={b.id} value={b.id}>
+                                {b.name}
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
                     </div>
                     <Button
                       variant="outline"
@@ -400,18 +461,34 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                   <FieldLabel>Unit of Measure</FieldLabel>
                   <div className="flex gap-1.5">
                     <div className="flex-1">
-                      <Select
+                      <Combobox
+                        items={ComboboxNS.createItems(uoms, {
+                          getValue: (u) => u.id,
+                          getLabel: (u) => u.shortName ? `${u.name} (${u.shortName})` : u.name,
+                        })}
                         value={uomId}
-                        onChange={(e) => {
-                          setUomId(e.target.value);
+                        onValueChange={(val) => {
+                          setUomId(val as string);
                           setSubUnitId("");
                         }}
-                        placeholder="None"
-                        options={uoms.map((u) => ({
-                          value: u.id,
-                          label: u.name,
-                        }))}
-                      />
+                      >
+                        <ComboboxInput placeholder="None" />
+                        <ComboboxContent>
+                          <ComboboxEmpty>No UOMs found.</ComboboxEmpty>
+                          <ComboboxList>
+                            {(u) => (
+                              <ComboboxItem key={u.id} value={u.id}>
+                                {u.name}
+                                {u.shortName && (
+                                  <span className="ml-1 text-muted-foreground">
+                                    ({u.shortName})
+                                  </span>
+                                )}
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
                     </div>
                     <Button
                       variant="outline"
@@ -428,26 +505,32 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                     <FieldLabel>Sub-Unit</FieldLabel>
                     <Select
                       value={subUnitId}
-                      onChange={(e) => setSubUnitId(e.target.value)}
-                      placeholder="None"
-                      options={selectedUom.subUnits.map((s) => ({
+                      onValueChange={(v) => setSubUnitId(v ?? "")}
+                      items={selectedUom.subUnits.map((s) => ({
                         value: s.id,
                         label: `${s.shortName || s.name}${s.conversionFactor ? ` (×${s.conversionFactor})` : ""}`,
                       }))}
-                    />
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="None" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedUom.subUnits.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.shortName || s.name}{s.conversionFactor ? ` (×${s.conversionFactor})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
                 )}
-                <Field orientation="vertical">
+                <div className="flex items-center justify-between">
                   <FieldLabel>Status</FieldLabel>
-                  <Select
-                    value={isActive ? "active" : "inactive"}
-                    onChange={(e) => setIsActive(e.target.value === "active")}
-                    options={[
-                      { value: "active", label: "Active" },
-                      { value: "inactive", label: "Inactive" },
-                    ]}
+                  <Switch
+                    checked={isActive}
+                    onCheckedChange={setIsActive}
                   />
-                </Field>
+                </div>
               </div>
             </div>
           </div>

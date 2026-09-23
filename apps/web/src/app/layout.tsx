@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Noto_Sans_Khmer } from "next/font/google";
+import { Geist_Mono, Inter, Battambang, Caveat } from "next/font/google";
 import { getLocale, getMessages } from "next-intl/server";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import Providers from "./providers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -15,9 +15,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const notoSansKhmer = Noto_Sans_Khmer({
-  variable: "--font-noto-khmer",
+const battambang = Battambang({
+  variable: "--font-battambang",
   subsets: ["khmer"],
+  weight: ["300", "400", "700", "900"],
+});
+
+const caveat = Caveat({
+  variable: "--font-caveat",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -35,7 +41,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${notoSansKhmer.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} ${battambang.variable} ${caveat.variable} h-full antialiased`}
     >
       <body className="font-sans min-h-full flex flex-col">
         <ThemeProvider>

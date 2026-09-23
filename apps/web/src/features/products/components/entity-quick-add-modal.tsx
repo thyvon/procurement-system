@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { unwrap, withAuth } from "../api";
 import {
   productsBrandsStore,
@@ -74,7 +74,7 @@ export function EntityQuickAddModal({
 
       if (entity === "category") {
         const res = await productsCategoriesStore(
-          { code: code.trim(), name: name.trim() },
+          { short_code: code.trim(), name: name.trim() },
           withAuth()
         );
         const data = unwrap<{ id: string }>(res);
@@ -147,13 +147,20 @@ export function EntityQuickAddModal({
               <Label>Category</Label>
               <Select
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                placeholder="Select category..."
-                options={categories.map((c) => ({
-                  value: c.id,
-                  label: `${c.code} — ${c.name}`,
-                }))}
-              />
+                onValueChange={(v) => setCategoryId(v ?? "")}
+                items={categories.map((c) => ({ value: c.id, label: `${c.code} — ${c.name}` }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select category..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.code} — {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
           {entity === "uom" && (
@@ -161,12 +168,20 @@ export function EntityQuickAddModal({
               <Label>Type</Label>
               <Select
                 value={uomType}
-                onChange={(e) => setUomType(e.target.value)}
-                options={UOM_TYPES.map((t) => ({
-                  value: t,
-                  label: t.charAt(0).toUpperCase() + t.slice(1),
-                }))}
-              />
+                onValueChange={(v) => setUomType(v ?? "countable")}
+                items={UOM_TYPES.map((t) => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {UOM_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
           {(entity === "category" || entity === "brand" || entity === "group") && (

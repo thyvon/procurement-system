@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, ImagePlus, Plus } from "lucide-react";
 
 export interface VariantRow {
@@ -154,18 +154,24 @@ export function VariantMatrix({
                         <td key={tid} className="px-3 py-2">
                           <Select
                             value={row.values[tid] ?? ""}
-                            onChange={(e) =>
+                            onValueChange={(v) =>
                               updateRow(row.uid, {
-                                values: { ...row.values, [tid]: e.target.value },
+                                values: { ...row.values, [tid]: v ?? "" },
                               })
                             }
-                            placeholder={`Pick ${template.name.toLowerCase()}...`}
-                            options={template.options.map((o) => ({
-                              value: o.id,
-                              label: o.value,
-                            }))}
-                            className="h-8 text-xs"
-                          />
+                            items={template.options.map((o) => ({ value: o.id, label: o.value }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder={`Pick ${template.name.toLowerCase()}...`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {template.options.map((o) => (
+                                <SelectItem key={o.id} value={o.id}>
+                                  {o.value}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </td>
                       );
                     })}
@@ -182,26 +188,44 @@ export function VariantMatrix({
                   <td className="px-3 py-2">
                     <Select
                       value={row.uomId}
-                      onChange={(e) =>
-                        updateRow(row.uid, { uomId: e.target.value, subUnitId: "" })
+                      onValueChange={(v) =>
+                        updateRow(row.uid, { uomId: v ?? "", subUnitId: "" })
                       }
-                      placeholder="—"
-                      options={uoms.map((u) => ({ value: u.id, label: u.name }))}
-                      className="h-8 text-xs"
-                    />
+                      items={uoms.map((u) => ({ value: u.id, label: u.name }))}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="—" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {uoms.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td className="px-3 py-2">
                     <Select
                       value={row.subUnitId}
-                      onChange={(e) => updateRow(row.uid, { subUnitId: e.target.value })}
-                      placeholder="—"
-                      options={getSubUnits(row.uomId).map((s) => ({
+                      onValueChange={(v) => updateRow(row.uid, { subUnitId: v ?? "" })}
+                      disabled={!row.uomId}
+                      items={getSubUnits(row.uomId).map((s) => ({
                         value: s.id,
                         label: `${s.shortName || s.name}${s.conversionFactor ? ` (×${s.conversionFactor})` : ""}`,
                       }))}
-                      className="h-8 text-xs"
-                      disabled={!row.uomId}
-                    />
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="—" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getSubUnits(row.uomId).map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.shortName || s.name}{s.conversionFactor ? ` (×${s.conversionFactor})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td className="px-3 py-2">
                     <Input
@@ -300,15 +324,22 @@ export function VariantMatrix({
                       </label>
                       <Select
                         value={rowDraft[tid] ?? ""}
-                        onChange={(e) =>
-                          setRowDraft((prev) => ({ ...prev, [tid]: e.target.value }))
+                        onValueChange={(v) =>
+                          setRowDraft((prev) => ({ ...prev, [tid]: v ?? "" }))
                         }
-                        placeholder={`Pick ${template.name.toLowerCase()}...`}
-                        options={template.options.map((o) => ({
-                          value: o.id,
-                          label: o.value,
-                        }))}
-                      />
+                        items={template.options.map((o) => ({ value: o.id, label: o.value }))}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={`Pick ${template.name.toLowerCase()}...`} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {template.options.map((o) => (
+                            <SelectItem key={o.id} value={o.id}>
+                              {o.value}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   );
                 })}

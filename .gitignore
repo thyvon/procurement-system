@@ -2,6 +2,7 @@
 apps/api/vendor/
 apps/api/.env
 apps/api/.env.local
+apps/api/.env.docker
 apps/api/storage/*.key
 apps/api/bootstrap/cache/*.php
 apps/api/.phpunit.cache/
@@ -14,6 +15,9 @@ apps/web/.env*.local
 
 # Local tooling (standalone PHP runtime — machine-specific)
 /tools/
+
+# Root docker-compose env (secrets)
+/.env
 
 # General
 .DS_Store

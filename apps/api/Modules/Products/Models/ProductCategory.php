@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'parent_id',
     'code',
+    'short_code',
     'name',
     'name_km',
     'sort_order',

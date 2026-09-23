@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function DashboardPage() {
+export default function HomePage() {
   const t = useTranslations("dashboard");
 
   const meQuery = useQuery({
@@ -29,9 +29,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold">{t("title")}</h1>
-
-      <Card className="mt-4 max-w-md">
+      <Card className="max-w-md">
         <CardHeader>
           <CardTitle>{user?.name}</CardTitle>
           <CardDescription>{t("greeting")}</CardDescription>

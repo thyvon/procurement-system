@@ -1,56 +1,16 @@
-"use client";
+"use client"
 
-import { useTranslations } from "next-intl";
-import { usePathname } from "next/navigation";
-import { Bell } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { LocaleSwitch } from "@/components/layout/locale-switch";
-import { UserMenu } from "@/components/layout/user-menu";
-import type { UserResource } from "@/lib/api/model";
+import { Bell } from "lucide-react"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { ThemeToggle } from "@/components/layout/theme-toggle"
+import { LocaleSwitch } from "@/components/layout/locale-switch"
+import { UserMenu } from "@/components/layout/user-menu"
+import type { UserResource } from "@/lib/api/model"
 
 type Props = {
-  user: UserResource | null;
-};
-
-const NAV_KEYS = [
-  "dashboard",
-  "catalog",
-  "suppliers",
-  "requisitions",
-  "approvals",
-  "reports",
-  "settings",
-] as const;
-
-function useBreadcrumbLabel(segment: string): string | null {
-  const tNav = useTranslations("nav");
-  const key = NAV_KEYS.find((k) => k === segment);
-  return key ? tNav(key) : null;
-}
-
-function CurrentBreadcrumb() {
-  const pathname = usePathname();
-  const segment = pathname.split("/").filter(Boolean).at(-1) ?? "";
-  const label = useBreadcrumbLabel(segment);
-
-  return (
-    <Breadcrumb>
-      <BreadcrumbList>
-        <BreadcrumbItem>
-          <BreadcrumbPage>{label ?? segment}</BreadcrumbPage>
-        </BreadcrumbItem>
-      </BreadcrumbList>
-    </Breadcrumb>
-  );
+  user: UserResource | null
 }
 
 export function Topbar({ user }: Props) {
@@ -59,9 +19,7 @@ export function Topbar({ user }: Props) {
       <SidebarTrigger />
       <Separator orientation="vertical" className="h-5" />
 
-      <div className="flex flex-1 items-center">
-        <CurrentBreadcrumb />
-      </div>
+      <div className="flex flex-1 items-center" />
 
       <div className="flex items-center gap-1.5">
         <LocaleSwitch />
@@ -72,5 +30,5 @@ export function Topbar({ user }: Props) {
         <UserMenu user={user} />
       </div>
     </header>
-  );
+  )
 }

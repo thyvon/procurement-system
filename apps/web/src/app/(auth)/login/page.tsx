@@ -5,7 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Mail, Lock, Eye, EyeOff, Package, ShoppingCart, FileText, Truck, ClipboardCheck, Warehouse } from "lucide-react";
 import { authLogin } from "@/lib/api/auth/auth";
 import type { LoginRequest } from "@/lib/api/model";
 import { saveTokens } from "@/lib/auth/token-store";
@@ -25,6 +25,7 @@ function LoginForm() {
   const t = useTranslations("auth");
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -37,7 +38,6 @@ function LoginForm() {
   const loginMutation = useMutation({
     mutationFn: (data: LoginFormValues) => authLogin(data),
     onSuccess: (response) => {
-      // API envelope: { data: { user, access_token, refresh_token, ... } }
       const payload = (
         response.data as {
           data?: { access_token?: string; refresh_token?: string };
@@ -49,7 +49,7 @@ function LoginForm() {
         return;
       }
       saveTokens(payload.access_token, payload.refresh_token);
-      router.push("/dashboard");
+      router.push("/");
     },
     onError: () => {
       setServerError(t("invalidCredentials"));
@@ -62,29 +62,36 @@ function LoginForm() {
         setServerError(null);
         loginMutation.mutate(data);
       })}
-      className="flex flex-col gap-6"
+      className="flex flex-col gap-5"
     >
-      <FieldGroup>
-        <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">{t("signInTitle")}</h1>
-        </div>
+      <div className="flex flex-col items-center gap-2 text-center">
+        <h1 className="text-2xl font-bold tracking-tight">{t("signInTitle")}</h1>
+        <p className="text-sm text-muted-foreground">
+          Enter your credentials to access your account
+        </p>
+      </div>
 
+      <FieldGroup>
         <Field data-invalid={errors.email ? true : undefined}>
           <FieldLabel htmlFor="email">{t("email")}</FieldLabel>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            placeholder={t("emailPlaceholder")}
-            aria-invalid={!!errors.email}
-            {...register("email", {
-              required: t("emailRequired"),
-              pattern: {
-                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                message: t("emailInvalid"),
-              },
-            })}
-          />
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder={t("emailPlaceholder")}
+              aria-invalid={!!errors.email}
+              className="pl-9"
+              {...register("email", {
+                required: t("emailRequired"),
+                pattern: {
+                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  message: t("emailInvalid"),
+                },
+              })}
+            />
+          </div>
           {errors.email && (
             <p className="text-xs text-destructive">{errors.email.message}</p>
           )}
@@ -92,14 +99,26 @@ function LoginForm() {
 
         <Field data-invalid={errors.password ? true : undefined}>
           <FieldLabel htmlFor="password">{t("password")}</FieldLabel>
-          <Input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            placeholder={t("passwordPlaceholder")}
-            aria-invalid={!!errors.password}
-            {...register("password", { required: t("passwordRequired") })}
-          />
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder={t("passwordPlaceholder")}
+              aria-invalid={!!errors.password}
+              className="pl-9 pr-9"
+              {...register("password", { required: t("passwordRequired") })}
+            />
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          </div>
           {errors.password && (
             <p className="text-xs text-destructive">
               {errors.password.message}
@@ -117,7 +136,12 @@ function LoginForm() {
         )}
 
         <Field>
-          <Button type="submit" disabled={loginMutation.isPending}>
+          <Button
+            type="submit"
+            disabled={loginMutation.isPending}
+            className="w-full"
+            size="lg"
+          >
             {loginMutation.isPending ? t("submitting") : t("submit")}
           </Button>
         </Field>
@@ -128,14 +152,15 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 font-medium">
-            <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+    <div className="grid min-h-svh lg:grid-cols-[1fr_1.2fr]">
+      {/* Left — Form panel */}
+      <div className="flex flex-col p-6 md:p-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5 font-semibold">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md shadow-primary/25">
               <ClipboardList className="size-4" />
             </div>
-            Procurement
+            <span className="text-lg">Procurement</span>
           </div>
           <div className="flex items-center gap-1">
             <LocaleSwitch />
@@ -144,19 +169,61 @@ export default function LoginPage() {
         </div>
 
         <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
+          <div className="w-full max-w-sm">
             <LoginForm />
           </div>
         </div>
       </div>
 
-      <div className="relative hidden bg-muted lg:block">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-muted to-primary/10" />
-        <div className="absolute inset-0 flex items-center justify-center p-12">
-          <p className="max-w-sm text-balance text-lg font-medium text-muted-foreground">
-            Procurement Management System
+      {/* Right — Animated gradient panel */}
+      <div className="relative hidden overflow-hidden lg:block" style={{ background: "linear-gradient(135deg, oklch(0.20 0.08 260) 0%, oklch(0.25 0.10 270) 50%, oklch(0.18 0.06 280) 100%)" }}>
+        {/* Gradient layers */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(120,140,255,0.20)_0%,transparent_55%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_90%_100%,rgba(180,120,255,0.12)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,rgba(255,255,255,0.04)_0%,transparent_40%)]" />
+
+        {/* Floating icons */}
+        <div className="login-icon login-icon-1">
+          <Package className="size-8" />
+        </div>
+        <div className="login-icon login-icon-2">
+          <ShoppingCart className="size-7" />
+        </div>
+        <div className="login-icon login-icon-3">
+          <FileText className="size-6" />
+        </div>
+        <div className="login-icon login-icon-4">
+          <Truck className="size-5" />
+        </div>
+        <div className="login-icon login-icon-5">
+          <ClipboardCheck className="size-7" />
+        </div>
+        <div className="login-icon login-icon-6">
+          <Warehouse className="size-6" />
+        </div>
+
+        {/* Center content */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center">
+          <div className="mb-6 flex size-16 items-center justify-center rounded-2xl bg-white/10 shadow-lg backdrop-blur-sm">
+            <ClipboardList className="size-8 text-white" />
+          </div>
+          <h2 className="mb-3 text-2xl font-bold text-white">
+            Procurement Management
+          </h2>
+          <p className="max-w-xs text-sm leading-relaxed text-white/70">
+            Streamline your procurement workflow — from requisitions to purchase orders and beyond.
           </p>
         </div>
+
+        {/* Signature */}
+        <div className="absolute bottom-8 left-0 right-0 text-center">
+          <span className="font-signature text-3xl tracking-wide text-white/30">
+            Procurement System
+          </span>
+        </div>
+
+        {/* Bottom accent line */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-white/20 via-white/40 to-white/20" />
       </div>
     </div>
   );

@@ -31,7 +31,11 @@ class ProductCategoryController extends Controller
 
     public function store(StoreProductCategoryRequest $request): JsonResponse
     {
-        return $this->doStore($request->validated());
+        $data = $request->validated();
+
+        $data['code'] = $this->generateCode();
+
+        return $this->doStore($data);
     }
 
     public function show(ProductCategory $category): ProductCategoryResource
@@ -64,5 +68,23 @@ class ProductCategoryController extends Controller
     protected function resourceClass(): string
     {
         return ProductCategoryResource::class;
+    }
+
+    private function generateCode(): string
+    {
+        $year = date('y');
+        $entityId = request()->user()?->entity_id;
+        $prefix = "CAT-{$year}-";
+        $sequence = 1;
+
+        do {
+            $code = $prefix.str_pad((string) $sequence, 3, '0', STR_PAD_LEFT);
+            $sequence++;
+        } while (ProductCategory::withTrashed()
+            ->where('entity_id', $entityId)
+            ->where('code', $code)
+            ->exists());
+
+        return $code;
     }
 }

@@ -32,7 +32,7 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard, enabled: true },
+  { key: "dashboard", href: "/", icon: LayoutDashboard, enabled: true },
   { key: "products", href: "/products", icon: Boxes, enabled: true },
   { key: "suppliers", href: "#", icon: Store, enabled: false },
   { key: "requisitions", href: "#", icon: ClipboardList, enabled: false },
@@ -51,11 +51,16 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link href="/dashboard" />}>
-              <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <SidebarMenuButton
+              size="lg"
+              tooltip="Procurement"
+              render={<Link href="/" />}
+              className="group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2!"
+            >
+              <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground group-data-[collapsible=icon]:rounded-none group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:text-sidebar-foreground">
                 <ClipboardList className="size-4" />
               </div>
-              <span className="font-semibold">Procurement</span>
+              <span className="group-data-[collapsible=icon]:hidden">Procurement</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -70,7 +75,7 @@ export function AppSidebar() {
                   {item.enabled ? (
                     <SidebarMenuButton
                       render={<Link href={item.href} />}
-                      isActive={pathname.startsWith(item.href)}
+                      isActive={item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)}
                       tooltip={t(item.key)}
                     >
                       <item.icon />

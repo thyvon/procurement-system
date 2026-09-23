@@ -70,6 +70,19 @@ it('rejects duplicate category codes within the entity', function () {
         ->assertStatus(422);
 });
 
+it('does not reuse codes from soft-deleted categories within the same entity', function () {
+    ProductCategory::create([
+        'code' => 'CAT-26-001',
+        'name' => 'Deleted Category',
+        'entity_id' => $this->entity->getKey(),
+    ])->delete();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/products/categories', ['name' => 'Replacement'])
+        ->assertStatus(201)
+        ->assertJsonPath('data.code', 'CAT-26-002');
+});
+
 it('manages brands through the generic lookup flow', function () {
     $created = $this->actingAs($this->admin, 'sanctum')
         ->postJson('/api/v1/products/brands', ['name' => 'Acme'])
