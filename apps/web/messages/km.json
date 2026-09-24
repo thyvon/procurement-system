@@ -39,6 +39,11 @@
     "groups": "ក្រុម",
     "uoms": "ឯកតា",
     "variationTemplates": "ទម្រង់ភាពប្រែប្រួល",
+    "purchaseOrders": "ការបញ្ជាទិញ",
+    "evaluations": "ការវាយតម្លៃ",
+    "epurchase": "E-Purchase",
+    "epurchaseItems": "ផលិតផល",
+    "epurchaseSuppliers": "អ្នកផ្គត់ផ្គង់",
     "users": "អ្នកប្រើប្រាស់",
     "roles": "តួនាទី",
     "suppliers": "អ្នកផ្គត់ផ្គង់",
@@ -67,6 +72,114 @@
   "breadcrumb": {
     "create": "បង្កើត",
     "edit": "កែសម្រួល"
+  },
+  "epurchase": {
+    "title": "ផលិតផល E-Purchase",
+    "description": "ផលិតផលពីបញ្ជីទិញអេឡិចត្រូនិករបស់ក្រុមហ៊ុន។",
+    "searchPlaceholder": "តម្រង់តាមកូដ ឬការពិពណ៌នា...",
+    "loadFailed": "មិនអាចផ្ទុកទំនិញក្រុមហ៊ុនបានទេ។",
+    "table": {
+      "active": "សកម្ម",
+      "inactive": "អសកម្ម"
+    },
+    "columns": {
+      "code": "កូដ",
+      "description": "ការពិពណ៌នា",
+      "category": "ប្រភេទ",
+      "subCategory": "ប្រភេទរង",
+      "uom": "ឯកតា",
+      "estimatePrice": "តម្លៃប៉ាន់ស្មាន",
+      "avgPrice": "តម្លៃមធ្យម",
+      "status": "ស្ថានភាព"
+    }
+  },
+  "epurchaseSuppliers": {
+    "title": "អ្នកផ្គត់ផ្គង់ E-Purchase",
+    "description": "អ្នកផ្គត់ផ្គង់ពីបញ្ជីទិញអេឡិចត្រូនិករបស់ក្រុមហ៊ុន។",
+    "searchPlaceholder": "តម្រង់តាមកូដ ឬឈ្មោះក្រុមហ៊ុន...",
+    "loadFailed": "មិនអាចផ្ទុកអ្នកផ្គត់ផ្គង់ក្រុមហ៊ុនបានទេ។",
+    "table": {
+      "active": "សកម្ម",
+      "inactive": "អសកម្ម",
+      "onboarded": "បានចុះឈ្មោះ",
+      "notOnboarded": "មិនទាន់ចុះឈ្មោះ"
+    },
+    "columns": {
+      "code": "កូដ",
+      "nameEn": "ឈ្មោះអ្នកផ្គត់ផ្គង់",
+      "nameKhmer": "ឈ្មោះ (ខ្មែរ)",
+      "phone": "ទូរស័ព្ទ",
+      "paymentTerm": "រយៈពេលបង់ប្រាក់",
+      "isOnboard": "ស្ថានភាពចុះឈ្មោះ",
+      "status": "ស្ថានភាព"
+    }
+  },
+  "purchaseOrders": {
+    "listTitle": "ការបញ្ជាទិញ",
+    "listDescription": "ការបញ្ជាទិញ និងការវាយតម្លៃតម្លៃ។",
+    "columns": {
+      "code": "កូដ",
+      "supplier": "អ្នកផ្គត់ផ្គង់",
+      "total": "សរុប",
+      "status": "ស្ថានភាព",
+      "date": "កែប្រែ"
+    },
+    "table": {
+      "searchPlaceholder": "តម្រង់តាមកូដ...",
+      "allStatuses": "ស្ថានភាពទាំងអស់",
+      "draft": "ព្រាង",
+      "approved": "យល់ព្រម",
+      "openMenu": "បើកម៉ឺនុយ",
+      "view": "មើល",
+      "edit": "កែសម្រួល",
+      "delete": "លុប"
+    },
+    "evaluations": {
+      "newTitle": "ការវាយតម្លៃថ្មី"
+    },
+    "form": {
+      "title": "ទម្រង់វាយតម្លៃតម្លៃ",
+      "createTitle": "ការវាយតម្លៃថ្មី",
+      "createDescription": "បង្កើតការវាយតម្លៃតម្លៃពីសំណើតម្លៃអ្នកផ្គត់ផ្គង់។",
+      "back": "ត្រឡប់ទៅបញ្ជី",
+      "no": "លេខ",
+      "itemCode": "កូដទំនិញ",
+      "description": "ការពិពណ៌នាទំនិញ",
+      "qty": "ចំនួន",
+      "uom": "ឯកតា",
+      "quotation": "សំណើតម្លៃ {n}",
+      "supplierName": "ឈ្មោះ",
+      "address": "អាសយដ្ឋាន",
+      "phone": "ទូរស័ព្ទ",
+      "brand": "ម៉ាក",
+      "unitCost": "តម្លៃឯកតា",
+      "totalCost": "តម្លៃសរុប",
+      "subTotal": "សរុបរង៖",
+      "discount": "បញ្ចុះតម្លៃ",
+      "vat": "អត្រាបន្ថែម 10%",
+      "grandTotal": "សរុបធំ",
+      "price": "តម្លៃ",
+      "quality": "គុណភាព",
+      "leadTime": "ពេលវេលាដឹកជញ្ជូន/ផលិតកម្ម/ផលិតផល",
+      "warranty": "ការធានា (សេវា/គ្រឿងបន្លាស់/ផលិតផល)",
+      "paymentTerms": "លក្ខខណ្ឌបង់ប្រាក់/កក់",
+      "addItem": "បន្ថែមទំនិញ",
+      "addQuotation": "បន្ថែមសំណើតម្លៃ",
+      "removeQuotation": "លុបសំណើតម្លៃ",
+      "basis": "មូលហេតុណែនាំអ្នកផ្គត់ផ្គង់",
+      "supplierPlaceholder": "ឈ្មោះអ្នកផ្គត់ផ្គង់",
+      "addressPlaceholder": "អាសយដ្ឋាន",
+      "phonePlaceholder": "ទូរស័ព្ទ",
+      "brandPlaceholder": "ម៉ាក",
+      "unitCostPlaceholder": "0.00",
+      "itemCodePlaceholder": "កូដទំនិញ",
+      "descriptionPlaceholder": "ការពិពណ៌នាទំនិញ",
+      "qtyPlaceholder": "1",
+      "uomPlaceholder": "UNIT",
+      "discountPlaceholder": "0.00",
+      "vatPlaceholder": "0.00",
+      "criteriaPlaceholder": "—"
+    }
   },
   "profile": {
     "title": "ប្រវត្តិរូប",

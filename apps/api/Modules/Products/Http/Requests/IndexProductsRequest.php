@@ -25,6 +25,7 @@ class IndexProductsRequest extends FormRequest
             'status' => ['sometimes', 'nullable', Rule::in(['active', 'inactive'])],
             'type' => ['sometimes', 'nullable', Rule::in(['single', 'variable'])],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'page' => ['sometimes', 'integer', 'min:1'],
         ];
     }
 }

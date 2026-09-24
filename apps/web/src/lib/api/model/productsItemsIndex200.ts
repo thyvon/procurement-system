@@ -4,8 +4,9 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
-import type { ProductResource } from './productResource';
+import type { ProductsItemsIndex200Meta } from './productsItemsIndex200Meta';
 
 export type ProductsItemsIndex200 = {
-  data: ProductResource[];
+  data: unknown[];
+  meta: ProductsItemsIndex200Meta;
 };

@@ -16,6 +16,10 @@ import {
 
 const SEGMENT_LABELS: Record<string, string> = {
   products: "nav.products",
+  epurchase: "nav.epurchase",
+  items: "nav.epurchaseItems",
+  suppliers: "nav.epurchaseSuppliers",
+  "purchase-orders": "nav.purchaseOrders",
   users: "nav.users",
   create: "breadcrumb.create",
   edit: "breadcrumb.edit",

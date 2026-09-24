@@ -3,18 +3,18 @@
 namespace Modules\Products\Repositories;
 
 use App\Support\Repository\RepositoryInterface;
-use Illuminate\Contracts\Pagination\CursorPaginator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Modules\Products\Models\Product;
 
 interface ProductRepositoryInterface extends RepositoryInterface
 {
     /**
-     * Filtered, cursor-paginated listing. Search falls back to SQL LIKE
+     * Filtered, offset-paginated listing. Search falls back to SQL LIKE
      * when Meilisearch is unreachable (local/dev resilience).
      *
      * @param  array{search?: string, category_id?: string, group_id?: string, brand_id?: string, status?: string, type?: string}  $filters
      */
-    public function filtered(array $filters, int $perPage = 20): CursorPaginator;
+    public function filtered(array $filters, int $perPage = 20, int $page = 1): LengthAwarePaginator;
 
     /**
      * Full-text search via Meilisearch, scoped to the caller's entity.

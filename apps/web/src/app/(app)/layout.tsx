@@ -51,7 +51,7 @@ export default function AppLayout({
         <SidebarInset>
           <Topbar user={user} />
           <BreadcrumbBar />
-          <div className="flex-1 p-6">{children}</div>
+          <div className="min-w-0 flex-1 p-6">{children}</div>
           <footer className="border-t px-6 py-3 text-center text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} Procurement System. All rights reserved.
           </footer>

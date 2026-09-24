@@ -29,7 +29,8 @@ export function DataTablePagination<TData extends RowData>({
 }: DataTablePaginationProps<TData>) {
   const t = useTranslations("common")
   const selectedCount = table.getFilteredSelectedRowModel().rows.length
-  const totalCount = table.getFilteredRowModel().rows.length
+  // Server mode supplies rowCount (total); client mode falls back to filtered rows.
+  const totalCount = table.getRowCount()
 
   return (
     <div className="flex items-center justify-between px-2">

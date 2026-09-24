@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\EPurchase\Services\EPurchaseClient;
 use Modules\EPurchase\Services\EPurchaseLoginResult;
+use Modules\EPurchase\Services\EPurchaseSession;
+use Modules\EPurchase\Services\EPurchaseSessionService;
 use Modules\EPurchase\Services\EPurchaseUnavailableException;
 use Modules\EPurchase\Services\InvalidCompanyCredentialsException;
 use Modules\Organization\Models\Entity;
@@ -19,6 +21,7 @@ class CompanyLoginService
         private readonly EPurchaseClient $company,
         private readonly AuthService $auth,
         private readonly AvatarService $avatars,
+        private readonly EPurchaseSessionService $sessions,
     ) {}
 
     /**
@@ -40,6 +43,13 @@ class CompanyLoginService
         if ($result->userPhoto !== null) {
             $this->avatars->applyCompanyPhoto($user, $result->userPhoto);
         }
+
+        $this->sessions->put($user->getAuthIdentifier(), new EPurchaseSession(
+            jwt: $result->jwt,
+            formToken: $result->formToken,
+            cookieHeader: implode('; ', $result->cookies),
+            expiresAt: time() + max(60, (int) config('epurchase.session_ttl', 1800)),
+        ));
 
         return [
             'user' => $user,

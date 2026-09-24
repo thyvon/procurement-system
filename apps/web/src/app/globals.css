@@ -255,3 +255,24 @@
   0% { transform: translateX(-100%); }
   100% { transform: translateX(250%); }
 }
+
+/* Sonner toast lifetime progress bar (duration defaults to 4000ms) */
+[data-sonner-toast][data-styled="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.35;
+  transform-origin: left center;
+  animation: sonner-toast-progress linear forwards;
+  animation-duration: var(--toast-duration, 4000ms);
+  pointer-events: none;
+}
+
+@keyframes sonner-toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}

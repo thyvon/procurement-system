@@ -9,4 +9,8 @@ class EPurchaseServiceProvider extends ModuleServiceProvider
     protected string $name = 'EPurchase';
 
     protected string $nameLower = 'epurchase';
+
+    protected array $providers = [
+        RouteServiceProvider::class,
+    ];
 }

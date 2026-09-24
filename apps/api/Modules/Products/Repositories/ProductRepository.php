@@ -5,6 +5,7 @@ namespace Modules\Products\Repositories;
 use App\Support\Context\EntityContext;
 use App\Support\Repository\BaseRepository;
 use Illuminate\Contracts\Pagination\CursorPaginator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
 use Laravel\Scout\Builder as ScoutBuilder;
 use Modules\Products\Models\Product;
@@ -18,22 +19,26 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
 
     public function paginate(int $perPage = 20): CursorPaginator
     {
-        return $this->filtered([], $perPage);
+        return $this->query()
+            ->with(['category', 'group', 'brand', 'uom'])
+            ->orderBy('name')
+            ->orderBy('id')
+            ->cursorPaginate($perPage);
     }
 
-    public function filtered(array $filters, int $perPage = 20): CursorPaginator
+    public function filtered(array $filters, int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
         $query = $this->query()->with(['category', 'group', 'brand', 'uom']);
 
         $search = trim((string) ($filters['search'] ?? ''));
 
         if ($search !== '') {
-            $ids = $this->searchIds($search);
+            $ids = $this->searchIds($search, 1000);
             if ($ids !== []) {
                 $query->whereIn('id', $ids);
             } else {
                 // Meilisearch reachable but no hits — nothing can match.
-                return Product::query()->whereRaw('1 = 0')->cursorPaginate($perPage);
+                return Product::query()->whereRaw('1 = 0')->paginate($perPage, ['*'], 'page', $page);
             }
         }
 
@@ -60,7 +65,7 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
         return $query
             ->orderBy('name')
             ->orderBy('id')
-            ->cursorPaginate($perPage);
+            ->paginate($perPage, ['*'], 'page', $page);
     }
 
     public function searchIds(string $query, int $limit = 50): array

@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Modules\Products\Http\Requests\IndexProductsRequest;
 use Modules\Products\Http\Requests\StoreProductRequest;
@@ -25,7 +24,7 @@ class ProductController extends Controller
         private readonly VariationService $variation,
     ) {}
 
-    public function index(IndexProductsRequest $request): AnonymousResourceCollection
+    public function index(IndexProductsRequest $request): JsonResponse
     {
         $this->authorize('viewAny', Product::class);
 
@@ -36,9 +35,17 @@ class ProductController extends Controller
             'brand_id' => $request->string('brand_id')->toString(),
             'status' => $request->string('status')->toString(),
             'type' => $request->string('type')->toString(),
-        ], (int) $request->query('per_page', '20'));
+        ], (int) $request->integer('per_page', 20), (int) $request->integer('page', 1));
 
-        return ProductResource::collection($paginator);
+        return ApiResponse::success(
+            ProductResource::collection($paginator->getCollection())->resolve($request),
+            200,
+            [
+                'page' => $paginator->currentPage(),
+                'perPage' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ]
+        );
     }
 
     public function store(StoreProductRequest $request): JsonResponse

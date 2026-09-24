@@ -39,6 +39,11 @@
     "groups": "Groups",
     "uoms": "Units",
     "variationTemplates": "Variation Templates",
+    "purchaseOrders": "Purchase Orders",
+    "evaluations": "Evaluations",
+    "epurchase": "E-Purchase",
+    "epurchaseItems": "Items",
+    "epurchaseSuppliers": "Suppliers",
     "users": "Users",
     "roles": "Roles",
     "suppliers": "Suppliers",
@@ -67,6 +72,114 @@
   "breadcrumb": {
     "create": "Create",
     "edit": "Edit"
+  },
+  "epurchase": {
+    "title": "E-Purchase Items",
+    "description": "Products from the company e-purchase catalog.",
+    "searchPlaceholder": "Filter by code or description...",
+    "loadFailed": "Could not load company items.",
+    "table": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "columns": {
+      "code": "Code",
+      "description": "Description",
+      "category": "Category",
+      "subCategory": "Sub Category",
+      "uom": "UoM",
+      "estimatePrice": "Est. Price",
+      "avgPrice": "Avg Price",
+      "status": "Status"
+    }
+  },
+  "epurchaseSuppliers": {
+    "title": "E-Purchase Suppliers",
+    "description": "Suppliers from the company e-purchase catalog.",
+    "searchPlaceholder": "Filter by code or company name...",
+    "loadFailed": "Could not load company suppliers.",
+    "table": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "onboarded": "Onboarded",
+      "notOnboarded": "Not Onboarded"
+    },
+    "columns": {
+      "code": "Code",
+      "nameEn": "Supplier Name",
+      "nameKhmer": "Name (KH)",
+      "phone": "Phone",
+      "paymentTerm": "Payment Term",
+      "isOnboard": "Onboard Status",
+      "status": "Status"
+    }
+  },
+  "purchaseOrders": {
+    "listTitle": "Purchase Orders",
+    "listDescription": "Purchase orders and price evaluations.",
+    "columns": {
+      "code": "Code",
+      "supplier": "Supplier",
+      "total": "Total",
+      "status": "Status",
+      "date": "Updated"
+    },
+    "table": {
+      "searchPlaceholder": "Filter by code...",
+      "allStatuses": "All statuses",
+      "draft": "Draft",
+      "approved": "Approved",
+      "openMenu": "Open menu",
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "evaluations": {
+      "newTitle": "New evaluation"
+    },
+    "form": {
+      "title": "Price Evaluation Form",
+      "createTitle": "New Evaluation",
+      "createDescription": "Create a price evaluation from supplier quotations.",
+      "back": "Back to list",
+      "no": "No.",
+      "itemCode": "Item Code",
+      "description": "Item Description",
+      "qty": "QTY",
+      "uom": "UoM",
+      "quotation": "Quotation {n}",
+      "supplierName": "Name",
+      "address": "Add",
+      "phone": "Tel",
+      "brand": "Brand",
+      "unitCost": "Unit cost",
+      "totalCost": "Total Cost",
+      "subTotal": "SubTotal:",
+      "discount": "Discount",
+      "vat": "VAT 10%",
+      "grandTotal": "Grand Total",
+      "price": "Price",
+      "quality": "Quality",
+      "leadTime": "Lead time on service/production/goods",
+      "warranty": "Warranty, (Services/Spare Parts/Goods)",
+      "paymentTerms": "Term Payment/Deposit",
+      "addItem": "Add item",
+      "addQuotation": "Add quotation",
+      "removeQuotation": "Remove quotation",
+      "basis": "Basis of supplier recommend",
+      "supplierPlaceholder": "Supplier name",
+      "addressPlaceholder": "Address",
+      "phonePlaceholder": "Phone",
+      "brandPlaceholder": "Brand",
+      "unitCostPlaceholder": "0.00",
+      "itemCodePlaceholder": "Item code",
+      "descriptionPlaceholder": "Item description",
+      "qtyPlaceholder": "1",
+      "uomPlaceholder": "UNIT",
+      "discountPlaceholder": "0.00",
+      "vatPlaceholder": "0.00",
+      "criteriaPlaceholder": "—"
+    }
   },
   "profile": {
     "title": "Profile",

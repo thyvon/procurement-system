@@ -1,13 +1,16 @@
 "use client";
 
+import { useTheme } from "next-themes";
 import { Toaster as Sonner } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 const Toaster = ({ ...props }: ToasterProps) => {
+  const { resolvedTheme } = useTheme();
+
   return (
     <Sonner
-      theme="light"
+      theme={resolvedTheme === "dark" ? "dark" : "light"}
       className="toaster group"
       // Sonner injects its own [data-sonner-toaster] font-family (Latin-only)
       // at runtime after our CSS; an inline style on each toast wins over it
@@ -17,22 +20,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "var(--font-inter), var(--font-battambang), ui-sans-serif, system-ui, sans-serif",
       }}
       toastOptions={{
+        // Match sonner default lifetime so the progress bar CSS duration lines up
+        duration: 4000,
         classNames: {
           toast:
-            "group toast group-[.toaster]:border-l-4 group-[.toaster]:border-l-primary group-[.toaster]:bg-primary group-[.toaster]:text-primary-foreground group-[.toaster]:shadow-xl group-[.toaster]:rounded-xl",
-          success:
-            "group-[.toaster]:border-l-primary group-[.toaster]:bg-primary group-[.toaster]:text-primary-foreground",
-          error:
-            "group-[.toaster]:border-l-destructive group-[.toaster]:bg-destructive group-[.toaster]:text-white",
-          warning:
-            "group-[.toaster]:border-l-primary group-[.toaster]:bg-secondary group-[.toaster]:text-secondary-foreground",
-          info:
-            "group-[.toaster]:border-l-primary group-[.toaster]:bg-primary group-[.toaster]:text-primary-foreground",
-          description: "group-[.toast]:opacity-80",
+            "group toast group-[.toaster]:relative group-[.toaster]:overflow-hidden group-[.toaster]:border group-[.toaster]:border-border group-[.toaster]:border-l-4 group-[.toaster]:bg-card group-[.toaster]:text-card-foreground group-[.toaster]:shadow-xl group-[.toaster]:rounded-xl",
+          success: "group-[.toaster]:border-l-primary",
+          error: "group-[.toaster]:border-l-destructive",
+          warning: "group-[.toaster]:border-l-muted-foreground",
+          info: "group-[.toaster]:border-l-primary",
+          description: "group-[.toast]:text-muted-foreground",
           actionButton:
-            "group-[.toast]:bg-primary-foreground group-[.toast]:text-primary",
+            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
           cancelButton:
-            "group-[.toast]:bg-primary-foreground/20 group-[.toast]:text-primary-foreground",
+            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
         },
       }}
       {...props}

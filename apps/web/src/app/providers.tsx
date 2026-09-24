@@ -5,6 +5,7 @@ import { useState } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
+import { RouteProgressBar } from "@/components/layout/route-progress-bar";
 
 export default function Providers({
   children,
@@ -34,6 +35,7 @@ export default function Providers({
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <QueryClientProvider client={queryClient}>
+        <RouteProgressBar />
         {children}
         <Toaster position="top-right" />
       </QueryClientProvider>

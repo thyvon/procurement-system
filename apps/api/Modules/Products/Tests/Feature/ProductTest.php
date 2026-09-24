@@ -100,6 +100,66 @@ it('never returns other entities products even when searching their names', func
     expect($codes)->not->toContain('FOR-1');
 });
 
+it('returns pagination meta on the list index', function () {
+    createProduct($this->entity, ['code' => 'META-1', 'name' => 'Meta One']);
+
+    $response = $this->actingAs($this->staff, 'sanctum')
+        ->getJson('/api/v1/products/items')
+        ->assertOk()
+        ->assertJsonPath('meta.page', 1)
+        ->assertJsonPath('meta.perPage', 20)
+        ->assertJsonPath('meta.total', 1);
+
+    expect($response->json('data.0.code'))->toBe('META-1');
+});
+
+it('pages the list with page and per_page', function () {
+    foreach (range(1, 5) as $i) {
+        createProduct($this->entity, [
+            'code' => 'PAGE-'.$i,
+            'name' => 'Paged Product '.$i,
+        ]);
+    }
+
+    $page1 = $this->actingAs($this->staff, 'sanctum')
+        ->getJson('/api/v1/products/items?per_page=2&page=1')
+        ->assertOk()
+        ->assertJsonPath('meta.page', 1)
+        ->assertJsonPath('meta.perPage', 2)
+        ->assertJsonPath('meta.total', 5)
+        ->json('data.*.code');
+
+    $page2 = $this->actingAs($this->staff, 'sanctum')
+        ->getJson('/api/v1/products/items?per_page=2&page=2')
+        ->assertOk()
+        ->assertJsonPath('meta.page', 2)
+        ->json('data.*.code');
+
+    expect($page1)->toHaveCount(2)
+        ->and($page2)->toHaveCount(2)
+        ->and(array_intersect($page1, $page2))->toBe([]);
+});
+
+it('filters the list by status', function () {
+    createProduct($this->entity, ['code' => 'ST-ACT', 'name' => 'Active Product', 'is_active' => true]);
+    createProduct($this->entity, ['code' => 'ST-INA', 'name' => 'Inactive Product', 'is_active' => false]);
+
+    $active = $this->actingAs($this->staff, 'sanctum')
+        ->getJson('/api/v1/products/items?status=active')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->json('data.*.code');
+
+    $inactive = $this->actingAs($this->staff, 'sanctum')
+        ->getJson('/api/v1/products/items?status=inactive')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->json('data.*.code');
+
+    expect($active)->toContain('ST-ACT')->not->toContain('ST-INA')
+        ->and($inactive)->toContain('ST-INA')->not->toContain('ST-ACT');
+});
+
 it('updates price and fields', function () {
     $product = createProduct($this->entity);
 

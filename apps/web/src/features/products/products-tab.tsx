@@ -1,7 +1,7 @@
 "use client"
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
@@ -31,7 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { unwrap, withAuth } from "@/lib/api-client"
+import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client"
 import { ImportDialog } from "./import-dialog"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
 
@@ -44,7 +44,23 @@ type Product = {
   isActive: boolean
 }
 
+type ProductsPage = {
+  data: Product[]
+  meta?: { page: number; perPage: number; total: number }
+}
+
 const columnHelper = createColumnHelper<DataTableFeatures, Product>()
+
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs)
+    return () => clearTimeout(timer)
+  }, [value, delayMs])
+
+  return debounced
+}
 
 function useProductColumns({
   onDeleteRequest,
@@ -145,8 +161,14 @@ export function ProductsTab() {
   const tt = useTranslations("products.table")
   const qc = useQueryClient()
   const [importOpen, setImportOpen] = useState(false)
+  const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [page, setPage] = useState(0)
+  const [perPage, setPerPage] = useState(20)
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
+
+  const debouncedSearch = useDebouncedValue(search, 300)
+  const status = statusFilter === "all" ? undefined : statusFilter
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => unwrap(await productsItemsDestroy(id, withAuth())),
@@ -162,32 +184,62 @@ export function ProductsTab() {
   })
 
   const query = useQuery({
-    queryKey: ["products"],
-    queryFn: async () =>
-      unwrap<Product[]>(
-        await productsItemsIndex({}, withAuth())
-      ),
+    queryKey: ["products", debouncedSearch, status, page, perPage],
+    queryFn: async (): Promise<ProductsPage> => {
+      const response = await productsItemsIndex(
+        {
+          search: debouncedSearch || undefined,
+          status: status as "active" | "inactive" | undefined,
+          page: page + 1,
+          per_page: perPage,
+        },
+        withAuth()
+      )
+      return unwrapWithMeta<Product[]>(response) as ProductsPage
+    },
+    placeholderData: keepPreviousData,
   })
 
   if (query.isPending) {
     return <DataTableSkeleton columns={6} actions={2} />
   }
 
+  const meta = query.data?.meta ?? { page: page + 1, perPage, total: 0 }
+
   return (
     <div>
       <DataTable
         columns={columns}
-        data={query.data ?? []}
-        searchColumn="name"
-        searchPlaceholder={tt("searchPlaceholder")}
-        filterColumn="isActive"
+        data={query.data?.data ?? []}
+        loading={query.isFetching}
+        serverSearch={{
+          value: search,
+          onChange: (value) => {
+            setSearch(value)
+            setPage(0)
+          },
+        }}
+        serverPagination={{
+          page,
+          perPage,
+          total: meta.total,
+          onPaginationChange: (next) => {
+            setPage(next.page)
+            setPerPage(next.perPage)
+          },
+        }}
+        filterColumn="status"
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={(value) => {
+          setStatusFilter(value)
+          setPage(0)
+        }}
         filterOptions={[
-          { label: tt("active"), value: "true" },
-          { label: tt("inactive"), value: "false" },
+          { label: tt("active"), value: "active" },
+          { label: tt("inactive"), value: "inactive" },
         ]}
         filterPlaceholder={tt("allStatuses")}
+        searchPlaceholder={tt("searchPlaceholder")}
         toolbar={
           <>
             <Button variant="outline" onClick={() => setImportOpen(true)}>

@@ -14,6 +14,7 @@ use Modules\Auth\Http\Requests\RefreshRequest;
 use Modules\Auth\Services\AuthService;
 use Modules\Auth\Services\CompanyLoginService;
 use Modules\Auth\Services\InvalidRefreshTokenException;
+use Modules\EPurchase\Services\EPurchaseSessionService;
 use Modules\EPurchase\Services\EPurchaseUnavailableException;
 use Modules\EPurchase\Services\InvalidCompanyCredentialsException;
 
@@ -22,6 +23,7 @@ class AuthController extends Controller
     public function __construct(
         private readonly AuthService $auth,
         private readonly CompanyLoginService $companyLogin,
+        private readonly EPurchaseSessionService $epurchaseSessions,
     ) {}
 
     public function login(LoginRequest $request): JsonResponse
@@ -81,6 +83,7 @@ class AuthController extends Controller
         $user = request()->user();
 
         $this->auth->revokeFamily($user);
+        $this->epurchaseSessions->forget($user->getAuthIdentifier());
 
         return ApiResponse::success(['loggedOut' => true]);
     }

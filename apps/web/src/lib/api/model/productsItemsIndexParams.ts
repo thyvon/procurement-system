@@ -37,4 +37,8 @@ type?: ProductsItemsIndexType;
  * @maximum 100
  */
 per_page?: number;
+/**
+ * @minimum 1
+ */
+page?: number;
 };
