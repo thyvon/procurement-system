@@ -26,9 +26,9 @@ import type {
   AuthenticationExceptionResponse,
   AuthorizationExceptionResponse,
   ProductsMergeVariation200,
-  ProductsMergeVariation422,
   ProductsVariationTemplatesIndex200,
   ProductsVariationTemplatesStore201,
+  StoreMergeVariationRequest,
   StoreVariationTemplateRequest,
   ValidationExceptionResponse
 } from '../model';
@@ -381,7 +381,7 @@ export type productsMergeVariationResponse403 = {
 }
 
 export type productsMergeVariationResponse422 = {
-  data: ProductsMergeVariation422
+  data: ValidationExceptionResponse
   status: 422
 }
 
@@ -402,14 +402,20 @@ export const getProductsMergeVariationUrl = () => {
   return `http://localhost:8000/api/v1/products/merge-variation`
 }
 
-export const productsMergeVariation = async ( options?: RequestInit): Promise<productsMergeVariationResponse> => {
+export const productsMergeVariation = async (storeMergeVariationRequest: StoreMergeVariationRequest, options?: RequestInit): Promise<productsMergeVariationResponse> => {
 
-  const res = await fetch(getProductsMergeVariationUrl(),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+const res = await fetch(getProductsMergeVariationUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(storeMergeVariationRequest)
   }
 )
 
@@ -424,23 +430,23 @@ export const productsMergeVariation = async ( options?: RequestInit): Promise<pr
 
 
 
-export const getProductsMergeVariationQueryKey = () => {
+export const getProductsMergeVariationQueryKey = (storeMergeVariationRequest?: StoreMergeVariationRequest,) => {
     return [
-    'POST', `http://localhost:8000/api/v1/products/merge-variation`
+    'POST', `http://localhost:8000/api/v1/products/merge-variation`, storeMergeVariationRequest
     ] as const;
     }
 
 
-export const getProductsMergeVariationQueryOptions = <TData = Awaited<ReturnType<typeof productsMergeVariation>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ProductsMergeVariation422>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsMergeVariation>>, TError, TData>>, fetch?: RequestInit}
+export const getProductsMergeVariationQueryOptions = <TData = Awaited<ReturnType<typeof productsMergeVariation>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ValidationExceptionResponse>(storeMergeVariationRequest: StoreMergeVariationRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsMergeVariation>>, TError, TData>>, fetch?: RequestInit}
 ) => {
 
 const {query: queryOptions, fetch: fetchOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getProductsMergeVariationQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getProductsMergeVariationQueryKey(storeMergeVariationRequest);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsMergeVariation>>> = ({ signal }) => productsMergeVariation({ signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsMergeVariation>>> = ({ signal }) => productsMergeVariation(storeMergeVariationRequest, { signal, ...fetchOptions });
 
 
 
@@ -450,11 +456,11 @@ const {query: queryOptions, fetch: fetchOptions} = options ?? {};
 }
 
 export type ProductsMergeVariationQueryResult = NonNullable<Awaited<ReturnType<typeof productsMergeVariation>>>
-export type ProductsMergeVariationQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ProductsMergeVariation422
+export type ProductsMergeVariationQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ValidationExceptionResponse
 
 
-export function useProductsMergeVariation<TData = Awaited<ReturnType<typeof productsMergeVariation>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ProductsMergeVariation422>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsMergeVariation>>, TError, TData>> & Pick<
+export function useProductsMergeVariation<TData = Awaited<ReturnType<typeof productsMergeVariation>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ValidationExceptionResponse>(
+ storeMergeVariationRequest: StoreMergeVariationRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsMergeVariation>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof productsMergeVariation>>,
           TError,
@@ -463,8 +469,8 @@ export function useProductsMergeVariation<TData = Awaited<ReturnType<typeof prod
       >, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useProductsMergeVariation<TData = Awaited<ReturnType<typeof productsMergeVariation>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ProductsMergeVariation422>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsMergeVariation>>, TError, TData>> & Pick<
+export function useProductsMergeVariation<TData = Awaited<ReturnType<typeof productsMergeVariation>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ValidationExceptionResponse>(
+ storeMergeVariationRequest: StoreMergeVariationRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsMergeVariation>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof productsMergeVariation>>,
           TError,
@@ -473,17 +479,17 @@ export function useProductsMergeVariation<TData = Awaited<ReturnType<typeof prod
       >, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useProductsMergeVariation<TData = Awaited<ReturnType<typeof productsMergeVariation>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ProductsMergeVariation422>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsMergeVariation>>, TError, TData>>, fetch?: RequestInit}
+export function useProductsMergeVariation<TData = Awaited<ReturnType<typeof productsMergeVariation>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ValidationExceptionResponse>(
+ storeMergeVariationRequest: StoreMergeVariationRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsMergeVariation>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useProductsMergeVariation<TData = Awaited<ReturnType<typeof productsMergeVariation>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ProductsMergeVariation422>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsMergeVariation>>, TError, TData>>, fetch?: RequestInit}
+export function useProductsMergeVariation<TData = Awaited<ReturnType<typeof productsMergeVariation>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ValidationExceptionResponse>(
+ storeMergeVariationRequest: StoreMergeVariationRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsMergeVariation>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getProductsMergeVariationQueryOptions(options)
+  const queryOptions = getProductsMergeVariationQueryOptions(storeMergeVariationRequest,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

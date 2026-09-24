@@ -5,6 +5,7 @@
  * OpenAPI spec version: 0.0.1
  */
 import type { StoreProductRequestProductType } from './storeProductRequestProductType';
+import type { StoreProductRequestVariantsItem } from './storeProductRequestVariantsItem';
 
 export interface StoreProductRequest {
   /**
@@ -43,4 +44,6 @@ export interface StoreProductRequest {
      */
   sub_unit_purchase_price?: number | null;
   is_active?: boolean;
+  template_ids?: string[];
+  variants?: StoreProductRequestVariantsItem[];
 }

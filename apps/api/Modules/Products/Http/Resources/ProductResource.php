@@ -4,6 +4,7 @@ namespace Modules\Products\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\MissingValue;
 use Modules\Products\Models\Product;
 
 /**
@@ -37,6 +38,12 @@ class ProductResource extends JsonResource
             'imageUrl' => $this->image_url,
             'isActive' => $this->is_active,
             'variantCount' => $this->whenCounted('variants'),
+            'variants' => $this->relationLoaded('variants')
+                ? ProductVariantResource::collection($this->variants)
+                : new MissingValue,
+            'templateIds' => $this->relationLoaded('variationTemplates')
+                ? $this->variationTemplates->pluck('id')->values()->all()
+                : new MissingValue,
         ];
     }
 }

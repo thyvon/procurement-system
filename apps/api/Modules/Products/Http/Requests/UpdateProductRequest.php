@@ -4,9 +4,12 @@ namespace Modules\Products\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Modules\Products\Http\Requests\Concerns\ValidatesProductVariation;
 
 class UpdateProductRequest extends FormRequest
 {
+    use ValidatesProductVariation;
+
     public function authorize(): bool
     {
         return true;
@@ -41,21 +44,29 @@ class UpdateProductRequest extends FormRequest
             'purchase_price' => ['nullable', 'numeric', 'min:0'],
             'sub_unit_purchase_price' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
+            ...$this->variationRules(),
         ];
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $this->validateProductPricePair($validator);
+            $this->validateVariationPayload($validator);
+        });
+    }
+
     /**
-     * Map API field names to model columns.
+     * Map API field names to model columns (no variation arrays).
      *
      * @return array<string, mixed>
      */
     public function productData(): array
     {
-        $data = collect($this->validated())->mapWithKeys(function ($value, $key) {
-            return [$this->columnFor($key) => $value];
-        })->all();
-
-        return $data;
+        return collect($this->validated())
+            ->except(['template_ids', 'variants'])
+            ->mapWithKeys(fn ($value, $key) => [$this->columnFor($key) => $value])
+            ->all();
     }
 
     private function columnFor(string $field): string

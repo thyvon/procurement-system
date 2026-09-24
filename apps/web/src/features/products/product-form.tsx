@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { ArrowLeft, Save, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,9 +25,12 @@ import {
 import { Combobox as ComboboxNS } from "@base-ui/react/combobox";
 import { unwrap, withAuth } from "@/lib/api-client";
 import {
+  productsItemsShow,
   productsItemsStore,
   productsItemsUpdate,
 } from "@/lib/api/product/product";
+import type { ProductsItemsShow200Data } from "@/lib/api/model/productsItemsShow200Data";
+import type { StoreProductRequest } from "@/lib/api/model/storeProductRequest";
 import {
   productsCategoriesIndex,
 } from "@/lib/api/product-category/product-category";
@@ -43,60 +47,202 @@ import { EntityQuickAddModal } from "./components/entity-quick-add-modal";
 
 type ProductType = "single" | "variable";
 
-const PRODUCT_TYPES: { value: ProductType; label: string }[] = [
-  { value: "single", label: "Single Product" },
-  { value: "variable", label: "Variation" },
-];
+type CategoryOption = { id: string; name: string; code: string; parentId: string | null };
 
 interface ProductFormProps {
   mode: "create" | "edit";
-  initialData?: {
-    id: string;
-    code: string;
-    name: string;
-    name_km: string | null;
-    description: string | null;
-    product_type: string;
-    product_category_id: string | null;
-    product_group_id: string | null;
-    brand_id: string | null;
-    uom_id: string | null;
-    sub_unit_id: string | null;
-    purchase_price: string | null;
-    is_active: boolean;
-  };
+  productId?: string;
 }
 
-export function ProductForm({ mode, initialData }: ProductFormProps) {
-  const router = useRouter();
-  const qc = useQueryClient();
-  const isEdit = mode === "edit";
+function splitCategory(
+  categoryId: string | null,
+  categories: CategoryOption[]
+): { parent: string; sub: string } {
+  if (!categoryId) return { parent: "", sub: "" };
+  const leaf = categories.find((c) => c.id === categoryId);
+  if (leaf?.parentId) return { parent: leaf.parentId, sub: leaf.id };
+  return { parent: categoryId, sub: "" };
+}
 
-  const [code, setCode] = useState(initialData?.code ?? "");
-  const [name, setName] = useState(initialData?.name ?? "");
-  const [nameKm, setNameKm] = useState(initialData?.name_km ?? "");
-  const [description, setDescription] = useState(initialData?.description ?? "");
-  const [productType, setProductType] = useState<ProductType>(
-    (initialData?.product_type as ProductType) ?? "single"
-  );
-  const [categoryId, setCategoryId] = useState(initialData?.product_category_id ?? "");
-  const [subCategoryId, setSubCategoryId] = useState("");
-  const [groupId, setGroupId] = useState(initialData?.product_group_id ?? "");
-  const [brandId, setBrandId] = useState(initialData?.brand_id ?? "");
-  const [uomId, setUomId] = useState(initialData?.uom_id ?? "");
-  const [subUnitId, setSubUnitId] = useState(initialData?.sub_unit_id ?? "");
-  const [isActive, setIsActive] = useState(initialData?.is_active ?? true);
-  const [templateIds, setTemplateIds] = useState<string[]>([]);
-  const [variantRows, setVariantRows] = useState<VariantRow[]>([]);
+function toVariantRows(
+  product: ProductsItemsShow200Data
+): VariantRow[] {
+  return (product.variants ?? []).map((v) => ({
+    id: v.id,
+    uid: v.id,
+    values: (v.optionValues ?? {}) as unknown as Record<string, string>,
+    sku: v.code ?? "",
+    description: v.description ?? "",
+    uomId: product.uomId ?? "",
+    subUnitId: v.subUnitId ?? "",
+    purchasePrice:
+      v.purchasePrice !== null && v.purchasePrice !== undefined
+        ? String(v.purchasePrice)
+        : "",
+    subUnitPurchasePrice:
+      v.subUnitPurchasePrice !== null && v.subUnitPurchasePrice !== undefined
+        ? String(v.subUnitPurchasePrice)
+        : "",
+    imageUrl: v.imageUrl ?? "",
+  }));
+}
 
-  const [quickAddEntity, setQuickAddEntity] = useState<"category" | "brand" | "group" | "uom" | null>(null);
+export function ProductForm({ mode, productId }: ProductFormProps) {
+  const t = useTranslations("products.form");
+  const isEdit = mode === "edit" && !!productId;
 
-  const { data: categoriesData } = useQuery({
+  const productQuery = useQuery({
+    queryKey: ["products", productId],
+    queryFn: async () =>
+      unwrap<ProductsItemsShow200Data>(
+        await productsItemsShow(productId!, withAuth())
+      ),
+    enabled: isEdit,
+  });
+
+  const categoriesQuery = useQuery({
     queryKey: ["categories"],
-    queryFn: async () => unwrap<Array<{ id: string; name: string; code: string; parentId: string | null }>>(
+    queryFn: async () => unwrap<CategoryOption[]>(
       await productsCategoriesIndex(withAuth())
     ),
   });
+
+  const isHydrating = isEdit && (productQuery.isPending || categoriesQuery.isPending);
+
+  if (isHydrating) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="size-9 animate-pulse rounded-md bg-muted" />
+          <div className="space-y-1.5">
+            <div className="h-5 w-32 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-48 animate-pulse rounded bg-muted" />
+          </div>
+        </div>
+        <div className="h-96 w-full animate-pulse rounded-lg bg-muted" />
+      </div>
+    );
+  }
+
+  if (isEdit && (!productQuery.data || productQuery.isError)) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">{t("nameRequired")}</p>
+        <BackButton label={t("back")} />
+      </div>
+    );
+  }
+
+  const categories = categoriesQuery.data ?? [];
+  const initial = productQuery.data;
+  const catSplit = initial
+    ? splitCategory(initial.categoryId, categories)
+    : { parent: "", sub: "" };
+
+  return (
+    <ProductFormInner
+      key={productId ?? "create"}
+      mode={mode}
+      productId={productId}
+      categories={categories}
+      initial={
+        initial
+          ? {
+              code: initial.code ?? "",
+              name: initial.name ?? "",
+              nameKm: initial.nameKm ?? "",
+              description: initial.description ?? "",
+              productType:
+                initial.productType === "variable" ? "variable" : "single",
+              categoryId: catSplit.parent,
+              subCategoryId: catSplit.sub,
+              groupId: initial.groupId ?? "",
+              brandId: initial.brandId ?? "",
+              uomId: initial.uomId ?? "",
+              subUnitId: initial.subUnitId ?? "",
+              purchasePrice:
+                initial.purchasePrice !== null && initial.purchasePrice !== undefined
+                  ? String(initial.purchasePrice)
+                  : "",
+              subUnitPurchasePrice:
+                initial.subUnitPurchasePrice !== null &&
+                initial.subUnitPurchasePrice !== undefined
+                  ? String(initial.subUnitPurchasePrice)
+                  : "",
+              isActive: initial.isActive ?? true,
+              templateIds: Array.isArray(initial.templateIds)
+                ? initial.templateIds.map((id) => String(id))
+                : [],
+              variantRows: toVariantRows(initial),
+            }
+          : undefined
+      }
+    />
+  );
+}
+
+function BackButton({ label }: { label: string }) {
+  const router = useRouter();
+  return (
+    <Button variant="outline" onClick={() => router.push("/products")}>
+      <ArrowLeft />
+      {label}
+    </Button>
+  );
+}
+
+interface ProductFormInnerProps {
+  mode: "create" | "edit";
+  productId?: string;
+  categories: CategoryOption[];
+  initial?: {
+    code: string;
+    name: string;
+    nameKm: string;
+    description: string;
+    productType: ProductType;
+    categoryId: string;
+    subCategoryId: string;
+    groupId: string;
+    brandId: string;
+    uomId: string;
+    subUnitId: string;
+    purchasePrice: string;
+    subUnitPurchasePrice: string;
+    isActive: boolean;
+    templateIds: string[];
+    variantRows: VariantRow[];
+  };
+}
+
+function ProductFormInner({ mode, productId, categories, initial }: ProductFormInnerProps) {
+  const router = useRouter();
+  const qc = useQueryClient();
+  const t = useTranslations("products.form");
+  const isEdit = mode === "edit" && !!productId;
+
+  const [code, setCode] = useState(initial?.code ?? "");
+  const [name, setName] = useState(initial?.name ?? "");
+  const [nameKm, setNameKm] = useState(initial?.nameKm ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [productType, setProductType] = useState<ProductType>(
+    initial?.productType ?? "single"
+  );
+  const [categoryId, setCategoryId] = useState(initial?.categoryId ?? "");
+  const [subCategoryId, setSubCategoryId] = useState(initial?.subCategoryId ?? "");
+  const [groupId, setGroupId] = useState(initial?.groupId ?? "");
+  const [brandId, setBrandId] = useState(initial?.brandId ?? "");
+  const [uomId, setUomId] = useState(initial?.uomId ?? "");
+  const [subUnitId, setSubUnitId] = useState(initial?.subUnitId ?? "");
+  const [purchasePrice, setPurchasePrice] = useState(initial?.purchasePrice ?? "");
+  const [subUnitPurchasePrice, setSubUnitPurchasePrice] = useState(
+    initial?.subUnitPurchasePrice ?? ""
+  );
+  const [isActive, setIsActive] = useState(initial?.isActive ?? true);
+  const [templateIds, setTemplateIds] = useState<string[]>(initial?.templateIds ?? []);
+  const [variantRows, setVariantRows] = useState<VariantRow[]>(initial?.variantRows ?? []);
+
+  const [quickAddEntity, setQuickAddEntity] = useState<"category" | "brand" | "group" | "uom" | null>(null);
 
   const { data: groupsData } = useQuery({
     queryKey: ["groups"],
@@ -127,7 +273,6 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
     enabled: productType === "variable",
   });
 
-  const categories = useMemo(() => categoriesData ?? [], [categoriesData]);
   const groups = useMemo(() => groupsData ?? [], [groupsData]);
   const brands = useMemo(() => brandsData ?? [], [brandsData]);
   const uoms = useMemo(() => uomsData ?? [], [uomsData]);
@@ -145,41 +290,66 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
 
   const selectedUom = useMemo(() => uoms.find((u) => u.id === uomId), [uoms, uomId]);
 
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["products"] });
+  const buildPayload = () => {
+    const payload = {
+      code: code.trim() || null,
+      name: name.trim(),
+      name_km: nameKm.trim() || null,
+      description: description.trim() || null,
+      product_type: productType,
+      category_id: subCategoryId || categoryId || null,
+      group_id: groupId || null,
+      brand_id: brandId || null,
+      uom_id: uomId || null,
+      sub_unit_id: subUnitId || null,
+      purchase_price: purchasePrice === "" ? null : Number(purchasePrice),
+      sub_unit_purchase_price:
+        subUnitPurchasePrice === "" ? null : Number(subUnitPurchasePrice),
+      is_active: isActive,
+      ...(productType === "variable"
+        ? {
+            template_ids: templateIds,
+            variants: variantRows.map((row) => ({
+              id: row.id ?? null,
+              code: row.sku.trim() || null,
+              description: row.description.trim() || null,
+              option_values: row.values as unknown as string[],
+              sub_unit_id: row.subUnitId || null,
+              purchase_price:
+                row.purchasePrice === "" ? null : Number(row.purchasePrice),
+              sub_unit_purchase_price:
+                row.subUnitPurchasePrice === ""
+                  ? null
+                  : Number(row.subUnitPurchasePrice),
+            })),
+          }
+        : {}),
+    };
+    return payload;
   };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
-        code: code.trim() || undefined,
-        name: name.trim(),
-        name_km: nameKm.trim() || undefined,
-        description: description.trim() || undefined,
-        product_type: productType,
-        category_id: subCategoryId || categoryId || undefined,
-        group_id: groupId || undefined,
-        brand_id: brandId || undefined,
-        uom_id: uomId || undefined,
-        sub_unit_id: subUnitId || undefined,
-        is_active: isActive,
-      };
-
-      if (isEdit && initialData?.id) {
-        return unwrap(await productsItemsUpdate(initialData.id, payload as never, withAuth()));
+      const payload = buildPayload();
+      if (isEdit && productId) {
+        const updatePayload = {
+          ...payload,
+          code: payload.code ?? undefined,
+        };
+        return unwrap(await productsItemsUpdate(productId, updatePayload, withAuth()));
       }
-      return unwrap(await productsItemsStore(payload as never, withAuth()));
+      return unwrap(await productsItemsStore(payload as StoreProductRequest, withAuth()));
     },
     onSuccess: () => {
-      toast.success(isEdit ? "Product updated." : "Product created.");
-      invalidate();
+      toast.success(isEdit ? t("updated") : t("created"));
+      qc.invalidateQueries({ queryKey: ["products"] });
       router.push("/products");
     },
   });
 
   const handleSave = () => {
     if (!name.trim()) {
-      toast.error("Product name is required.");
+      toast.error(t("nameRequired"));
       return;
     }
     saveMutation.mutate();
@@ -212,16 +382,16 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
             variant="outline"
             size="icon"
             onClick={() => router.push("/products")}
-            aria-label="Back to products"
+            aria-label={t("back")}
           >
             <ArrowLeft />
           </Button>
           <div>
             <h1 className="text-xl font-semibold tracking-tight">
-              {isEdit ? "Edit Product" : "Add Product"}
+              {isEdit ? t("editTitle") : t("createTitle")}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {isEdit ? "Update the product details." : "Register a new product."}
+              {isEdit ? t("editDescription") : t("createDescription")}
             </p>
           </div>
         </div>
@@ -229,75 +399,111 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Product Form</CardTitle>
+          <CardTitle>{t("productForm")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.3fr_1fr]">
             <div>
-              <Label className="text-sm font-medium">Product Description</Label>
+              <Label className="text-sm font-medium">{t("descriptionSection")}</Label>
               <div className="mt-2 space-y-4">
                 <Field orientation="vertical">
-                  <FieldLabel>Product Code</FieldLabel>
+                  <FieldLabel>{t("code")}</FieldLabel>
                   <Input
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    placeholder="Auto-generated if blank"
+                    placeholder={t("codePlaceholder")}
                     className="font-mono"
                   />
                 </Field>
                 <Field orientation="vertical">
-                  <FieldLabel>Name (KH)</FieldLabel>
+                  <FieldLabel>{t("nameKm")}</FieldLabel>
                   <Textarea
                     value={nameKm}
                     onChange={(e) => setNameKm(e.target.value)}
-                    placeholder="Khmer name..."
+                    placeholder={t("nameKmPlaceholder")}
                     rows={3}
                   />
                 </Field>
                 <Field orientation="vertical">
-                  <FieldLabel>Name (EN)</FieldLabel>
+                  <FieldLabel>{t("nameEn")}</FieldLabel>
                   <Textarea
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="English name..."
+                    placeholder={t("nameEnPlaceholder")}
                     rows={3}
                   />
                 </Field>
                 <Field orientation="vertical">
-                  <FieldLabel>Description</FieldLabel>
+                  <FieldLabel>{t("description")}</FieldLabel>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
-                    placeholder="Additional description..."
+                    placeholder={t("descriptionPlaceholder")}
                   />
                 </Field>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field orientation="vertical">
+                    <FieldLabel>{t("purchasePrice")}</FieldLabel>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={purchasePrice}
+                      onChange={(e) => setPurchasePrice(e.target.value)}
+                      placeholder="0.00"
+                      className="font-mono"
+                    />
+                  </Field>
+                  <Field orientation="vertical">
+                    <FieldLabel>{t("subUnitPurchasePrice")}</FieldLabel>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={subUnitPurchasePrice}
+                      onChange={(e) => setSubUnitPurchasePrice(e.target.value)}
+                      placeholder="0.00"
+                      className="font-mono"
+                      disabled={!subUnitId}
+                    />
+                  </Field>
+                </div>
               </div>
             </div>
 
             <div>
-              <Label className="text-sm font-medium">Catalog Setup</Label>
+              <Label className="text-sm font-medium">{t("catalogSection")}</Label>
               <div className="mt-2 space-y-4">
                 <Field orientation="vertical">
-                  <FieldLabel>Product Type</FieldLabel>
+                  <FieldLabel>{t("productType")}</FieldLabel>
                   <Combobox
-                    items={ComboboxNS.createItems(PRODUCT_TYPES, {
-                      getValue: (t) => t.value,
-                      getLabel: (t) => t.label,
-                    })}
-                        value={productType}
-                        onValueChange={(val) => {
-                          setProductType(val as ProductType);
-                          if (val !== "variable") setTemplateIds([]);
-                        }}
+                    items={ComboboxNS.createItems(
+                      [
+                        { value: "single" as const, label: t("typeSingle") },
+                        { value: "variable" as const, label: t("typeVariable") },
+                      ],
+                      {
+                        getValue: (x) => x.value,
+                        getLabel: (x) => x.label,
+                      }
+                    )}
+                    value={productType}
+                    onValueChange={(val) => {
+                      setProductType(val as ProductType);
+                      if (val !== "variable") {
+                        setTemplateIds([]);
+                        setVariantRows([]);
+                      }
+                    }}
                   >
-                    <ComboboxInput placeholder="Select type..." />
+                    <ComboboxInput placeholder={t("selectType")} />
                     <ComboboxContent>
-                      <ComboboxEmpty>No types found.</ComboboxEmpty>
+                      <ComboboxEmpty>{t("selectType")}</ComboboxEmpty>
                       <ComboboxList>
-                        {(t) => (
-                          <ComboboxItem key={t.value} value={t.value}>
-                            {t.label}
+                        {(x) => (
+                          <ComboboxItem key={x.value} value={x.value}>
+                            {x.label}
                           </ComboboxItem>
                         )}
                       </ComboboxList>
@@ -305,7 +511,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                   </Combobox>
                 </Field>
                 <Field orientation="vertical">
-                  <FieldLabel>Category</FieldLabel>
+                  <FieldLabel>{t("category")}</FieldLabel>
                   <div className="flex gap-1.5">
                     <div className="flex-1">
                       <Combobox
@@ -320,9 +526,9 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                           setGroupId("");
                         }}
                       >
-                        <ComboboxInput placeholder="Select category..." />
+                        <ComboboxInput placeholder={t("selectCategory")} />
                         <ComboboxContent>
-                          <ComboboxEmpty>No categories found.</ComboboxEmpty>
+                          <ComboboxEmpty>{t("selectCategory")}</ComboboxEmpty>
                           <ComboboxList>
                             {(c) => (
                               <ComboboxItem key={c.id} value={c.id}>
@@ -345,14 +551,14 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                 </Field>
                 {categoryId && subCategories.length > 0 && (
                   <Field orientation="vertical">
-                    <FieldLabel>Sub-Category</FieldLabel>
+                    <FieldLabel>{t("subCategory")}</FieldLabel>
                     <Select
                       value={subCategoryId}
                       onValueChange={(v) => setSubCategoryId(v ?? "")}
                       items={subCategories.map((c) => ({ value: c.id, label: c.name }))}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select sub-category..." />
+                        <SelectValue placeholder={t("selectSubCategory")} />
                       </SelectTrigger>
                       <SelectContent>
                         {subCategories.map((c) => (
@@ -365,7 +571,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                   </Field>
                 )}
                 <Field orientation="vertical">
-                  <FieldLabel>Product Group</FieldLabel>
+                  <FieldLabel>{t("group")}</FieldLabel>
                   <div className="flex gap-1.5">
                     <div className="flex-1">
                       <Select
@@ -375,7 +581,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder={
-                            groups.length ? "Select group..." : "No groups yet"
+                            groups.length ? t("selectGroup") : t("noGroups")
                           } />
                         </SelectTrigger>
                         <SelectContent>
@@ -398,7 +604,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                   </div>
                 </Field>
                 <Field orientation="vertical">
-                  <FieldLabel>Brand</FieldLabel>
+                  <FieldLabel>{t("brand")}</FieldLabel>
                   <div className="flex gap-1.5">
                     <div className="flex-1">
                       <Combobox
@@ -411,7 +617,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                       >
                         <ComboboxInput placeholder="None" />
                         <ComboboxContent>
-                          <ComboboxEmpty>No brands found.</ComboboxEmpty>
+                          <ComboboxEmpty>{t("brand")}</ComboboxEmpty>
                           <ComboboxList>
                             {(b) => (
                               <ComboboxItem key={b.id} value={b.id}>
@@ -433,7 +639,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                   </div>
                 </Field>
                 <Field orientation="vertical">
-                  <FieldLabel>Unit of Measure</FieldLabel>
+                  <FieldLabel>{t("uom")}</FieldLabel>
                   <div className="flex gap-1.5">
                     <div className="flex-1">
                       <Combobox
@@ -449,7 +655,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                       >
                         <ComboboxInput placeholder="None" />
                         <ComboboxContent>
-                          <ComboboxEmpty>No UOMs found.</ComboboxEmpty>
+                          <ComboboxEmpty>{t("uom")}</ComboboxEmpty>
                           <ComboboxList>
                             {(u) => (
                               <ComboboxItem key={u.id} value={u.id}>
@@ -477,7 +683,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                 </Field>
                 {selectedUom?.subUnits && selectedUom.subUnits.length > 0 && (
                   <Field orientation="vertical">
-                    <FieldLabel>Sub-Unit</FieldLabel>
+                    <FieldLabel>{t("subUnit")}</FieldLabel>
                     <Select
                       value={subUnitId}
                       onValueChange={(v) => setSubUnitId(v ?? "")}
@@ -500,7 +706,7 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
                   </Field>
                 )}
                 <div className="flex items-center justify-between">
-                  <FieldLabel>Status</FieldLabel>
+                  <FieldLabel>{t("status")}</FieldLabel>
                   <Switch
                     checked={isActive}
                     onCheckedChange={setIsActive}
@@ -515,39 +721,39 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
       {productType === "variable" && (
         <Card>
           <CardHeader>
-            <CardTitle>Variation Product</CardTitle>
+            <CardTitle>{t("variationTemplates")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <Label className="text-sm font-medium">Variation Templates</Label>
+            <Label className="text-sm font-medium">{t("variationTemplates")}</Label>
             <div className="mt-2 space-y-2">
               <p className="text-xs text-muted-foreground">
-                Select templates to define variation dimensions (e.g., Size, Color).
+                {t("variationTemplatesHint")}
               </p>
               <div className="flex flex-wrap gap-2">
-                {templates.map((t) => (
+                {templates.map((x) => (
                   <Button
-                    key={t.id}
+                    key={x.id}
                     type="button"
-                    variant={templateIds.includes(t.id) ? "default" : "outline"}
+                    variant={templateIds.includes(x.id) ? "default" : "outline"}
                     size="sm"
                     onClick={() => {
                       setTemplateIds((prev) =>
-                        prev.includes(t.id)
-                          ? prev.filter((id) => id !== t.id)
-                          : [...prev, t.id]
+                        prev.includes(x.id)
+                          ? prev.filter((id) => id !== x.id)
+                          : [...prev, x.id]
                       );
                     }}
                   >
-                    {t.name}
-                    {t.options && (
+                    {x.name}
+                    {x.options && (
                       <span className="ml-1 text-xs opacity-60">
-                        ({t.options.length})
+                        ({x.options.length})
                       </span>
                     )}
                   </Button>
                 ))}
                 {templates.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No templates available.</p>
+                  <p className="text-sm text-muted-foreground">{t("noTemplates")}</p>
                 )}
               </div>
             </div>
@@ -555,26 +761,28 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
         </Card>
       )}
 
-      <Card>
-        <CardHeader className="flex-row items-center justify-between gap-3">
-          <CardTitle>Variation Matrix</CardTitle>
-          <div className="text-sm text-muted-foreground">
-            <strong className="font-mono">{variantRows.length}</strong> variants
-          </div>
-        </CardHeader>
-        <CardContent>
-          <VariantMatrix
-            rows={variantRows}
-            onRowsChange={setVariantRows}
-            templateIds={templateIds}
-            templates={templates.map((t) => ({ ...t, options: t.options ?? [] }))}
-            uoms={uoms}
-            productCode={code}
-            productName={name}
-            isVariation={productType === "variable"}
-          />
-        </CardContent>
-      </Card>
+      {productType === "variable" && (
+        <Card>
+          <CardHeader className="flex-row items-center justify-between gap-3">
+            <CardTitle>{t("variationMatrix")}</CardTitle>
+            <div className="text-sm text-muted-foreground">
+              {t("matrix.count", { count: variantRows.length })}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <VariantMatrix
+              rows={variantRows}
+              onRowsChange={setVariantRows}
+              templateIds={templateIds}
+              templates={templates.map((x) => ({ ...x, options: x.options ?? [] }))}
+              uoms={uoms}
+              productCode={code}
+              productName={name}
+              isVariation={productType === "variable"}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex items-center justify-end gap-2">
         <Button
@@ -582,11 +790,11 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
           onClick={() => router.push("/products")}
           disabled={saveMutation.isPending}
         >
-          Cancel
+          {t("cancel")}
         </Button>
         <Button onClick={handleSave} disabled={saveMutation.isPending}>
           <Save />
-          <span>{saveMutation.isPending ? "Saving..." : "Save Product"}</span>
+          <span>{saveMutation.isPending ? t("saving") : t("save")}</span>
         </Button>
       </div>
 
@@ -598,7 +806,6 @@ export function ProductForm({ mode, initialData }: ProductFormProps) {
             if (!open) setQuickAddEntity(null);
           }}
           onSaved={(newId) => handleQuickAddSaved(quickAddEntity, newId)}
-          categories={categories}
         />
       )}
     </div>

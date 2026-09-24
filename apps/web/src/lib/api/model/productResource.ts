@@ -4,6 +4,7 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
+import type { ProductVariantResource } from './productVariantResource';
 
 export interface ProductResource {
   id: string;
@@ -40,4 +41,6 @@ export interface ProductResource {
   imageUrl: string | null;
   isActive: boolean;
   variantCount?: number;
+  variants?: ProductVariantResource[];
+  templateIds?: unknown[];
 }

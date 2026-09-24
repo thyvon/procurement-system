@@ -5,6 +5,7 @@
  * OpenAPI spec version: 0.0.1
  */
 import type { UpdateProductRequestProductType } from './updateProductRequestProductType';
+import type { UpdateProductRequestVariantsItem } from './updateProductRequestVariantsItem';
 
 export interface UpdateProductRequest {
   /** @maxLength 64 */
@@ -40,4 +41,6 @@ export interface UpdateProductRequest {
      */
   sub_unit_purchase_price?: number | null;
   is_active?: boolean;
+  template_ids?: string[];
+  variants?: UpdateProductRequestVariantsItem[];
 }

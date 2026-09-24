@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 use Modules\Products\Http\Requests\IndexProductsRequest;
 use Modules\Products\Http\Requests\StoreProductRequest;
 use Modules\Products\Http\Requests\UpdateProductRequest;
@@ -14,12 +15,14 @@ use Modules\Products\Http\Resources\ProductResource;
 use Modules\Products\Models\Product;
 use Modules\Products\Repositories\ProductRepositoryInterface;
 use Modules\Products\Services\CodeGenerationService;
+use Modules\Products\Services\VariationService;
 
 class ProductController extends Controller
 {
     public function __construct(
         private readonly ProductRepositoryInterface $repo,
         private readonly CodeGenerationService $codes,
+        private readonly VariationService $variation,
     ) {}
 
     public function index(IndexProductsRequest $request): AnonymousResourceCollection
@@ -45,7 +48,7 @@ class ProductController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $data = $request->validated();
+        $data = $request->productData();
         $data['entity_id'] = $user->entity_id;
         $data['created_by'] = $user->getKey();
         $data['updated_by'] = $user->getKey();
@@ -54,21 +57,38 @@ class ProductController extends Controller
             ? $data['code']
             : $this->codes->next('PRD', Product::class, $user->entity_id);
 
-        // Field names map 1:1 to columns except the two relation aliases.
-        $data['product_category_id'] = $data['category_id'] ?? null;
-        $data['product_group_id'] = $data['group_id'] ?? null;
-        unset($data['category_id'], $data['group_id']);
+        $templateIds = $request->templateIds();
+        $variants = $request->variantRows();
 
-        $product = $this->repo->create($data);
+        $product = DB::transaction(function () use ($data, $templateIds, $variants) {
+            /** @var Product $product */
+            $product = $this->repo->create($data);
 
-        return ApiResponse::success(new ProductResource($product), 201);
+            return $this->variation->applyToProduct($product, $templateIds, $variants);
+        });
+
+        return ApiResponse::success(new ProductResource($product->load([
+            'category',
+            'group',
+            'brand',
+            'uom',
+            'variants',
+            'variationTemplates',
+        ])), 201);
     }
 
     public function show(Product $product): ProductResource
     {
         $this->authorize('view', $product);
 
-        return new ProductResource($product->load(['category', 'group', 'brand', 'uom']));
+        return new ProductResource($product->load([
+            'category',
+            'group',
+            'brand',
+            'uom',
+            'variants',
+            'variationTemplates',
+        ]));
     }
 
     public function update(UpdateProductRequest $request, Product $product): ProductResource
@@ -83,7 +103,28 @@ class ProductController extends Controller
             $data['updated_by'] = $user->getKey();
         }
 
-        return new ProductResource($this->repo->update($product, $data));
+        $templateIds = $request->templateIds();
+        $variants = $request->variantRows();
+        $shouldSync = $request->shouldSyncVariation();
+
+        $product = DB::transaction(function () use ($product, $data, $templateIds, $variants, $shouldSync) {
+            $this->repo->update($product, $data);
+
+            if ($shouldSync) {
+                return $this->variation->applyToProduct($product, $templateIds, $variants);
+            }
+
+            return $product->load([
+                'category',
+                'group',
+                'brand',
+                'uom',
+                'variants',
+                'variationTemplates',
+            ]);
+        });
+
+        return new ProductResource($product);
     }
 
     public function destroy(Product $product): JsonResponse

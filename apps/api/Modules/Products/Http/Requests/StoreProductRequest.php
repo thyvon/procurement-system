@@ -4,9 +4,12 @@ namespace Modules\Products\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Modules\Products\Http\Requests\Concerns\ValidatesProductVariation;
 
 class StoreProductRequest extends FormRequest
 {
+    use ValidatesProductVariation;
+
     public function authorize(): bool
     {
         return true;
@@ -38,6 +41,37 @@ class StoreProductRequest extends FormRequest
             'purchase_price' => ['nullable', 'numeric', 'min:0'],
             'sub_unit_purchase_price' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
+            ...$this->variationRules(),
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $this->validateProductPricePair($validator);
+            $this->validateVariationPayload($validator);
+        });
+    }
+
+    /**
+     * Column-bound payload (relation aliases mapped; variation arrays stripped).
+     *
+     * @return array<string, mixed>
+     */
+    public function productData(): array
+    {
+        return collect($this->validated())
+            ->except(['template_ids', 'variants'])
+            ->mapWithKeys(fn ($value, $key) => [$this->columnFor($key) => $value])
+            ->all();
+    }
+
+    private function columnFor(string $field): string
+    {
+        return match ($field) {
+            'category_id' => 'product_category_id',
+            'group_id' => 'product_group_id',
+            default => $field,
+        };
     }
 }

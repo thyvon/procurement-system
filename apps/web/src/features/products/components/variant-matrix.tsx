@@ -1,13 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, ImagePlus, Plus } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 
 export interface VariantRow {
+  id?: string;
   uid: string;
   values: Record<string, string>;
   sku: string;
@@ -48,9 +50,9 @@ export function VariantMatrix({
   productName,
   isVariation,
 }: VariantMatrixProps) {
+  const t = useTranslations("products.form.matrix");
   const [addingRow, setAddingRow] = useState(false);
   const [rowDraft, setRowDraft] = useState<Record<string, string>>({});
-  const imageInputRef = useRef<Record<string, HTMLInputElement | null>>({});
 
   const genSku = (prevCount: number): string =>
     `${(productCode.trim() || "PRD").toUpperCase()}-${String(prevCount + 1).padStart(3, "0")}`;
@@ -65,7 +67,7 @@ export function VariantMatrix({
 
   const addRow = () => {
     if (isVariation && templateIds.length === 0) {
-      toast.error("Select at least one variation template first.");
+      toast.error(t("selectTemplateFirst"));
       return;
     }
 
@@ -86,23 +88,10 @@ export function VariantMatrix({
     setRowDraft({});
   };
 
-  const handleImageFile = (uid: string, file?: File | null) => {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file (PNG, JPG, WEBP).");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      updateRow(uid, { imageUrl: reader.result as string });
-    };
-    reader.readAsDataURL(file);
-  };
-
   const getRowLabel = (row: VariantRow): string => {
     return templateIds
       .map((tid) => {
-        const template = templates.find((t) => t.id === tid);
+        const template = templates.find((x) => x.id === tid);
         const option = template?.options.find((o) => o.id === row.values[tid]);
         return option?.value;
       })
@@ -121,23 +110,23 @@ export function VariantMatrix({
         <table className="w-full text-sm">
           <thead className="bg-muted/60">
             <tr>
-              <th className="w-12 px-3 py-2 text-left text-xs font-medium text-muted-foreground">No.</th>
+              <th className="w-12 px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t("no")}</th>
               {isVariation &&
                 templateIds.map((tid) => {
-                  const template = templates.find((t) => t.id === tid);
+                  const template = templates.find((x) => x.id === tid);
                   return (
                     <th key={tid} className="min-w-[130px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                      {template?.name ?? "Value"}
+                      {template?.name ?? t("description")}
                     </th>
                   );
                 })}
-              <th className="min-w-[130px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">SKU</th>
-              <th className="min-w-[200px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">Description</th>
-              <th className="min-w-[110px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">UoM</th>
-              <th className="min-w-[110px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">Sub Unit</th>
-              <th className="min-w-[110px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">Purchase Price</th>
-              <th className="min-w-[80px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">Image</th>
-              <th className="min-w-[70px] px-3 py-2 text-right text-xs font-medium text-muted-foreground">Actions</th>
+              <th className="min-w-[130px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t("sku")}</th>
+              <th className="min-w-[200px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t("description")}</th>
+              <th className="min-w-[110px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t("uom")}</th>
+              <th className="min-w-[110px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t("subUnit")}</th>
+              <th className="min-w-[110px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t("purchasePrice")}</th>
+              <th className="min-w-[110px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t("subUnitPurchasePrice")}</th>
+              <th className="min-w-[70px] px-3 py-2 text-right text-xs font-medium text-muted-foreground">{t("actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -148,7 +137,7 @@ export function VariantMatrix({
                   <td className="px-3 py-2 text-xs text-muted-foreground">{index + 1}</td>
                   {isVariation &&
                     templateIds.map((tid) => {
-                      const template = templates.find((t) => t.id === tid);
+                      const template = templates.find((x) => x.id === tid);
                       if (!template) return null;
                       return (
                         <td key={tid} className="px-3 py-2">
@@ -162,7 +151,7 @@ export function VariantMatrix({
                             items={template.options.map((o) => ({ value: o.id, label: o.value }))}
                           >
                             <SelectTrigger className="h-8 text-xs">
-                              <SelectValue placeholder={`Pick ${template.name.toLowerCase()}...`} />
+                              <SelectValue placeholder={t("pickTemplate", { name: template.name })} />
                             </SelectTrigger>
                             <SelectContent>
                               {template.options.map((o) => (
@@ -194,7 +183,7 @@ export function VariantMatrix({
                       items={uoms.map((u) => ({ value: u.id, label: u.name }))}
                     >
                       <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="—" />
+                        <SelectValue placeholder={t("none")} />
                       </SelectTrigger>
                       <SelectContent>
                         {uoms.map((u) => (
@@ -216,7 +205,7 @@ export function VariantMatrix({
                       }))}
                     >
                       <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="—" />
+                        <SelectValue placeholder={t("none")} />
                       </SelectTrigger>
                       <SelectContent>
                         {getSubUnits(row.uomId).map((s) => (
@@ -237,53 +226,13 @@ export function VariantMatrix({
                     />
                   </td>
                   <td className="px-3 py-2">
-                    {row.imageUrl ? (
-                      <div className="group relative flex size-9 items-center justify-center overflow-hidden rounded-md border border-border">
-                        <img src={row.imageUrl} alt="Preview" className="size-full object-cover" />
-                        <div className="absolute inset-0 flex items-center justify-center gap-1 bg-background/70 opacity-0 transition-opacity group-hover:opacity-100">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-6"
-                            onClick={() => imageInputRef.current?.[row.uid]?.click()}
-                          >
-                            <ImagePlus className="size-3" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-6 text-destructive"
-                            onClick={() => updateRow(row.uid, { imageUrl: "" })}
-                          >
-                            <Trash2 className="size-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="size-9 border-dashed"
-                        onClick={() => imageInputRef.current?.[row.uid]?.click()}
-                      >
-                        <ImagePlus className="size-4" />
-                      </Button>
-                    )}
-                    <input
-                      ref={(el) => {
-                        if (!imageInputRef.current) imageInputRef.current = {};
-                        imageInputRef.current[row.uid] = el;
-                      }}
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      className="hidden"
-                      onChange={(e) => {
-                        handleImageFile(row.uid, e.target.files?.[0]);
-                        e.target.value = "";
-                      }}
+                    <Input
+                      type="number"
+                      value={row.subUnitPurchasePrice}
+                      onChange={(e) => updateRow(row.uid, { subUnitPurchasePrice: e.target.value })}
+                      placeholder="0.00"
+                      className="h-8 w-28 font-mono text-xs"
+                      disabled={!row.subUnitId}
                     />
                   </td>
                   <td className="px-3 py-2 text-right">
@@ -298,7 +247,7 @@ export function VariantMatrix({
                         <Trash2 className="size-3.5" />
                       </Button>
                     ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="text-xs text-muted-foreground">{t("none")}</span>
                     )}
                   </td>
                 </tr>
@@ -312,10 +261,10 @@ export function VariantMatrix({
         <>
           {addingRow ? (
             <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
-              <p className="text-sm font-semibold">Add Variant Row</p>
+              <p className="text-sm font-semibold">{t("addRowTitle")}</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {templateIds.map((tid) => {
-                  const template = templates.find((t) => t.id === tid);
+                  const template = templates.find((x) => x.id === tid);
                   if (!template) return null;
                   return (
                     <div key={tid} className="space-y-1">
@@ -330,7 +279,7 @@ export function VariantMatrix({
                         items={template.options.map((o) => ({ value: o.id, label: o.value }))}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder={`Pick ${template.name.toLowerCase()}...`} />
+                          <SelectValue placeholder={t("pickTemplate", { name: template.name })} />
                         </SelectTrigger>
                         <SelectContent>
                           {template.options.map((o) => (
@@ -346,7 +295,7 @@ export function VariantMatrix({
               </div>
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs text-muted-foreground">
-                  Select values for each template column.
+                  {t("selectValuesHint")}
                 </p>
                 <div className="flex shrink-0 gap-2">
                   <Button
@@ -357,11 +306,11 @@ export function VariantMatrix({
                       setRowDraft({});
                     }}
                   >
-                    Cancel
+                    {t("cancel")}
                   </Button>
                   <Button size="sm" onClick={addRow}>
                     <Plus />
-                    Add Row
+                    {t("add")}
                   </Button>
                 </div>
               </div>
@@ -369,7 +318,7 @@ export function VariantMatrix({
           ) : (
             <Button variant="outline" size="sm" onClick={() => setAddingRow(true)}>
               <Plus />
-              Add Variant Row
+              {t("addRow")}
             </Button>
           )}
         </>

@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Modules\Products\Http\Requests\StoreMergeVariationRequest;
 use Modules\Products\Http\Requests\StoreVariationTemplateRequest;
 use Modules\Products\Http\Resources\ProductResource;
 use Modules\Products\Http\Resources\VariationTemplateResource;
@@ -56,23 +56,19 @@ class VariationController extends Controller
         return ApiResponse::success(new VariationTemplateResource($template->load('options')), 201);
     }
 
-    public function merge(Request $request): JsonResponse
+    public function merge(StoreMergeVariationRequest $request): JsonResponse
     {
         $this->authorize('update', Product::class);
 
         /** @var User $user */
         $user = $request->user();
 
-        try {
-            $parent = $this->variation->merge(
-                $user,
-                (string) $request->input('parentId'),
-                (array) $request->input('templateIds', []),
-                (array) $request->input('assignments', []),
-            );
-        } catch (\InvalidArgumentException $e) {
-            return ApiResponse::error(422, $e->getMessage(), 'InvalidMergeRequest');
-        }
+        $parent = $this->variation->merge(
+            $user,
+            (string) $request->validated('parentId'),
+            (array) $request->validated('templateIds'),
+            (array) $request->validated('assignments'),
+        );
 
         return ApiResponse::success(new ProductResource($parent));
     }
