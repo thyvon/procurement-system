@@ -59,6 +59,7 @@ const PERMISSION_MODULES = [
   "groups",
   "uoms",
   "variations",
+  "evaluations",
 ] as const
 
 const columnHelper = createColumnHelper<DataTableFeatures, RoleRow>()

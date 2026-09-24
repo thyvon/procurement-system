@@ -38,6 +38,8 @@ class PermissionSeeder extends Seeder
         'uoms.manage',
         'variations.view',
         'variations.manage',
+        'evaluations.view',
+        'evaluations.manage',
     ];
 
     public function run(): void

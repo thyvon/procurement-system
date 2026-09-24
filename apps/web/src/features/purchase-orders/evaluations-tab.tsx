@@ -1,12 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  purchaseOrdersEvaluationsDestroy,
+  purchaseOrdersEvaluationsIndex,
+} from "@/lib/api/evaluation/evaluation";
+import type { EvaluationResource } from "@/lib/api/model/evaluationResource";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
+import { DataTableSkeleton } from "@/components/ui/data-table-skeleton";
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,21 +31,64 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
 import { EvaluationForm } from "./evaluation-form";
 
 type EvaluationRow = {
   id: string;
   code: string;
-  supplier: string;
-  total: string;
-  status: string;
-  updatedAt: string;
+  suppliers: string;
+  total: number;
+  status: string | null;
+  updatedAt: string | null;
 };
+
+type EvaluationsPage = {
+  data: EvaluationRow[];
+  meta?: { page: number; perPage: number; total: number };
+};
+
+const money = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+});
+
+function toRow(resource: EvaluationResource): EvaluationRow {
+  return {
+    id: resource.id,
+    code: resource.code,
+    suppliers: (resource.suppliers ?? [])
+      .map((supplier) => supplier.name)
+      .filter(Boolean)
+      .join(", "),
+    total: resource.awardedTotal,
+    status: resource.status,
+    updatedAt: resource.updatedAt,
+  };
+}
+
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+
+  return debounced;
+}
 
 const columnHelper = createColumnHelper<DataTableFeatures, EvaluationRow>();
 
-function useEvaluationColumns(): ColumnDef<DataTableFeatures, EvaluationRow>[] {
+function useEvaluationColumns({
+  onEditRequest,
+  onDeleteRequest,
+}: {
+  onEditRequest: (evaluation: EvaluationRow) => void;
+  onDeleteRequest: (evaluation: EvaluationRow) => void;
+}): ColumnDef<DataTableFeatures, EvaluationRow>[] {
   const tc = useTranslations("purchaseOrders.columns");
   const tt = useTranslations("purchaseOrders.table");
 
@@ -42,17 +101,23 @@ function useEvaluationColumns(): ColumnDef<DataTableFeatures, EvaluationRow>[] {
         <span className="font-mono text-xs">{row.getValue("code")}</span>
       ),
     }),
-    columnHelper.accessor("supplier", {
+    columnHelper.accessor("suppliers", {
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={tc("supplier")} />
       ),
+      cell: ({ row }) => {
+        const suppliers: string = row.getValue("suppliers");
+        return suppliers || "—";
+      },
     }),
     columnHelper.accessor("total", {
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={tc("total")} />
       ),
       cell: ({ row }) => (
-        <span className="tabular-nums">{row.getValue("total")}</span>
+        <span className="tabular-nums">
+          {money.format(Number(row.getValue("total")))}
+        </span>
       ),
     }),
     columnHelper.accessor("status", {
@@ -60,7 +125,7 @@ function useEvaluationColumns(): ColumnDef<DataTableFeatures, EvaluationRow>[] {
         <DataTableColumnHeader column={column} title={tc("status")} />
       ),
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.getValue("status")}</span>
+        <span className="text-muted-foreground">{row.getValue("status") ?? "—"}</span>
       ),
     }),
     columnHelper.accessor("updatedAt", {
@@ -68,14 +133,15 @@ function useEvaluationColumns(): ColumnDef<DataTableFeatures, EvaluationRow>[] {
         <DataTableColumnHeader column={column} title={tc("date")} />
       ),
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.getValue("updatedAt")}</span>
+        <span className="text-muted-foreground">{row.getValue("updatedAt") ?? "—"}</span>
       ),
     }),
     columnHelper.display({
       id: "actions",
       enableSorting: false,
       enableHiding: false,
-      cell: () => {
+      cell: ({ row }) => {
+        const evaluation = row.original;
         return (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="ghost" className="size-8 p-0" />}>
@@ -84,12 +150,15 @@ function useEvaluationColumns(): ColumnDef<DataTableFeatures, EvaluationRow>[] {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuGroup>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onEditRequest(evaluation)}>
                   <Pencil className="mr-2 size-4" />
                   {tt("edit")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => onDeleteRequest(evaluation)}
+                >
                   <Trash2 className="mr-2 size-4" />
                   {tt("delete")}
                 </DropdownMenuItem>
@@ -105,25 +174,99 @@ function useEvaluationColumns(): ColumnDef<DataTableFeatures, EvaluationRow>[] {
 export function EvaluationsTab() {
   const t = useTranslations("purchaseOrders.evaluations");
   const tt = useTranslations("purchaseOrders.table");
+  const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<EvaluationRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<EvaluationRow | null>(null);
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const columns = useEvaluationColumns();
+  const [page, setPage] = useState(0);
+  const [perPage, setPerPage] = useState(20);
 
-  if (creating) {
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) =>
+      unwrap(await purchaseOrdersEvaluationsDestroy(id, withAuth())),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["evaluations"] });
+      setDeleteTarget(null);
+      toast.success(t("deleted"));
+    },
+  });
+
+  const columns = useEvaluationColumns({
+    onEditRequest: setEditing,
+    onDeleteRequest: setDeleteTarget,
+  });
+
+  const query = useQuery({
+    queryKey: ["evaluations", debouncedSearch, page, perPage],
+    queryFn: async (): Promise<EvaluationsPage> => {
+      const response = await purchaseOrdersEvaluationsIndex(
+        {
+          search: debouncedSearch || undefined,
+          page: page + 1,
+          per_page: perPage,
+        },
+        withAuth()
+      );
+      const envelope = unwrapWithMeta<
+        unknown,
+        { page: number; perPage: number; total: number }
+      >(response);
+      const resources = (envelope.data ?? []) as EvaluationResource[];
+      return {
+        data: resources.map(toRow),
+        meta: envelope.meta,
+      };
+    },
+    placeholderData: keepPreviousData,
+  });
+
+  if (creating || editing) {
     return (
       <div className="min-w-0">
-        <EvaluationForm onBack={() => setCreating(false)} />
+        <EvaluationForm
+          evaluationId={editing?.id}
+          onBack={() => {
+            setCreating(false);
+            setEditing(null);
+          }}
+        />
       </div>
     );
   }
+
+  if (query.isPending) {
+    return <DataTableSkeleton columns={6} actions={2} />;
+  }
+
+  const meta = query.data?.meta ?? { page: page + 1, perPage, total: 0 };
+  const rows = query.data?.data ?? [];
 
   return (
     <div className="mt-1 min-w-0">
       <DataTable
         columns={columns}
-        data={[]}
-        searchColumn="code"
-        searchPlaceholder={tt("searchPlaceholder")}
+        data={rows}
+        loading={query.isFetching}
+        serverSearch={{
+          value: search,
+          onChange: (value) => {
+            setSearch(value);
+            setPage(0);
+          },
+        }}
+        serverPagination={{
+          page,
+          perPage,
+          total: meta.total,
+          onPaginationChange: (next) => {
+            setPage(next.page);
+            setPerPage(next.perPage);
+          },
+        }}
         filterColumn="status"
         filterValue={statusFilter}
         onFilterChange={setStatusFilter}
@@ -132,6 +275,7 @@ export function EvaluationsTab() {
           { label: tt("approved"), value: "approved" },
         ]}
         filterPlaceholder={tt("allStatuses")}
+        searchPlaceholder={tt("searchPlaceholder")}
         toolbar={
           <Button type="button" onClick={() => setCreating(true)}>
             <Plus className="mr-2 size-4" />
@@ -139,6 +283,39 @@ export function EvaluationsTab() {
           </Button>
         }
       />
+
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("deleteTitle")}</DialogTitle>
+            <DialogDescription>
+              {tt.rich("deleteDescription", {
+                name: deleteTarget?.code ?? "",
+                strong: (chunks) => <strong>{chunks}</strong>,
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleteMutation.isPending}
+            >
+              {tt("cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? tt("deleting") : tt("confirmDelete")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

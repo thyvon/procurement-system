@@ -94,8 +94,7 @@ export const getEpurchaseItemsIndexUrl = (params?: EpurchaseItemsIndexParams,) =
 }
 
 /**
- * @summary Read-only proxy of the upstream items list (server-side paging/search).
-No policy/permission for v1 — auth:sanctum only (mirrors ProductRefController)
+ * @summary Read-only proxy of the upstream items list (server-side paging/search)
  */
 export const epurchaseItemsIndex = async (params?: EpurchaseItemsIndexParams, options?: RequestInit): Promise<epurchaseItemsIndexResponse> => {
 
@@ -173,8 +172,7 @@ export function useEpurchaseItemsIndex<TData = Awaited<ReturnType<typeof epurcha
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Read-only proxy of the upstream items list (server-side paging/search).
-No policy/permission for v1 — auth:sanctum only (mirrors ProductRefController)
+ * @summary Read-only proxy of the upstream items list (server-side paging/search)
  */
 
 export function useEpurchaseItemsIndex<TData = Awaited<ReturnType<typeof epurchaseItemsIndex>>, TError = AuthenticationExceptionResponse | ValidationExceptionResponse | EpurchaseItemsIndex502>(
@@ -229,8 +227,7 @@ export function useEpurchaseItemsIndexSuspense<TData = Awaited<ReturnType<typeof
  , queryClient?: QueryClient
   ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Read-only proxy of the upstream items list (server-side paging/search).
-No policy/permission for v1 — auth:sanctum only (mirrors ProductRefController)
+ * @summary Read-only proxy of the upstream items list (server-side paging/search)
  */
 
 export function useEpurchaseItemsIndexSuspense<TData = Awaited<ReturnType<typeof epurchaseItemsIndex>>, TError = AuthenticationExceptionResponse | ValidationExceptionResponse | EpurchaseItemsIndex502>(

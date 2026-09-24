@@ -1,11 +1,26 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { Plus, X } from "lucide-react";
+import { Combobox as ComboboxNS } from "@base-ui/react/combobox";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
+import { epurchaseItemsIndex } from "@/lib/api/epurchase-item/epurchase-item";
+import { epurchaseVendorsInfo } from "@/lib/api/epurchase-vendor/epurchase-vendor";
+import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
+import { SupplierPicker, type VendorSearchRow } from "./supplier-picker";
 
 type ItemRow = {
   uid: string;
@@ -18,6 +33,7 @@ type ItemRow = {
 type QuotationPricing = {
   brand: string;
   unitCost: string;
+  selected: boolean;
 };
 
 type QuotationTotals = {
@@ -34,9 +50,11 @@ type QuotationCriteria = {
 };
 
 type QuotationPanel = {
+  supplierCode: string;
   supplierName: string;
   address: string;
   phone: string;
+  vatPercentage: string;
   pricing: Record<string, QuotationPricing>;
   totals: QuotationTotals;
   criteria: QuotationCriteria;
@@ -45,6 +63,31 @@ type QuotationPanel = {
 export type EvaluationMatrixValue = {
   items: ItemRow[];
   quotations: QuotationPanel[];
+};
+
+export type { ItemRow, QuotationPricing, QuotationPanel };
+
+type EPurchaseVendorInfo = {
+  id: number;
+  code: string;
+  nameEn: string;
+  nameKhmer: string;
+  phone: string;
+  address: string;
+  email: string;
+  paymentTerm: string;
+  vatPercentage: string;
+};
+
+type EPurchaseItem = {
+  code: string;
+  description: string;
+  category: string;
+  subCategory: string;
+  uom: string;
+  estimatePrice: number | null;
+  avgPrice: number | null;
+  status: string;
 };
 
 export const SEED_QUOTATION_COUNT = 2;
@@ -85,11 +128,30 @@ function grandTotal(items: ItemRow[], panel: QuotationPanel): number {
   );
 }
 
+function recalcVat(
+  panel: QuotationPanel,
+  items: ItemRow[]
+): Pick<QuotationPanel, "totals"> {
+  const rate = Number.parseFloat(panel.vatPercentage);
+  if (!Number.isFinite(rate)) {
+    return { totals: panel.totals };
+  }
+
+  return {
+    totals: {
+      ...panel.totals,
+      vat: ((subTotal(items, panel) * rate) / 100).toFixed(2),
+    },
+  };
+}
+
 export function createEmptyQuotation(): QuotationPanel {
   return {
+    supplierCode: "",
     supplierName: "",
     address: "",
     phone: "",
+    vatPercentage: "",
     pricing: {},
     totals: { discount: "", vat: "" },
     criteria: {
@@ -102,40 +164,119 @@ export function createEmptyQuotation(): QuotationPanel {
   };
 }
 
+export function emptyPricing(): QuotationPricing {
+  return { brand: "", unitCost: "", selected: false };
+}
+
 function quoteLabel(index: number): string {
   return ["I", "II", "III"][index] ?? String(index + 1);
 }
 
+function useCatalogItems() {
+  return useQuery({
+    queryKey: ["epurchaseItems", "picker"],
+    queryFn: async (): Promise<EPurchaseItem[]> => {
+      const response = await epurchaseItemsIndex({ per_page: 100 }, withAuth());
+      const page = unwrapWithMeta<EPurchaseItem[]>(response) as {
+        data: EPurchaseItem[];
+      };
+      return page.data;
+    },
+    retry: false,
+  });
+}
+
 const headCell =
-  "border border-border bg-muted/60 px-2 py-1.5 text-left text-xs font-medium";
-const bodyCell = "border border-border p-1.5 align-top";
+  "border border-border bg-muted/60 px-2 py-1 text-left text-xs font-medium";
+const bodyCell = "border border-border p-1 align-top text-xs";
 const criteriaLabelCell =
-  "border-y border-border bg-muted/40 px-2 py-2 text-left text-sm font-medium";
+  "border-y border-border bg-muted/40 px-2 py-1 text-left text-xs font-medium";
 
 interface EvaluationMatrixProps {
   value: EvaluationMatrixValue;
-  onChange: (next: EvaluationMatrixValue) => void;
+  onChange: (
+    next:
+      | EvaluationMatrixValue
+      | ((prev: EvaluationMatrixValue) => EvaluationMatrixValue)
+  ) => void;
 }
 
 export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
   const t = useTranslations("purchaseOrders.form");
   const { items, quotations } = value;
+  const itemsQuery = useCatalogItems();
+
+  const catalogItems = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
+
+  const catalogComboItems = useMemo(
+    () =>
+      ComboboxNS.createItems(catalogItems, {
+        getValue: (c) => c.code,
+        getLabel: (c) => `${c.code} — ${c.description}`,
+      }),
+    [catalogItems]
+  );
 
   const patchItem = (uid: string, patch: Partial<ItemRow>) => {
+    const nextItems = items.map((item) =>
+      item.uid === uid ? { ...item, ...patch } : item
+    );
     onChange({
-      ...value,
-      items: items.map((item) => (item.uid === uid ? { ...item, ...patch } : item)),
+      items: nextItems,
+      quotations: quotations.map((panel) => ({
+        ...panel,
+        ...recalcVat(panel, nextItems),
+      })),
     });
   };
 
   const patchQuotation = (index: number, patch: Partial<QuotationPanel>) => {
+    const editingVat =
+      "totals" in patch && patch.totals !== undefined && "vat" in patch.totals;
+
     onChange({
       ...value,
-      quotations: quotations.map((panel, i) =>
-        i === index ? { ...panel, ...patch } : panel
-      ),
+      quotations: quotations.map((panel, i) => {
+        if (i !== index) return panel;
+        const next = { ...panel, ...patch };
+        return editingVat ? next : { ...next, ...recalcVat(next, items) };
+      }),
     });
   };
+
+  const vendorInfoMutation = useMutation({
+    mutationFn: async (variables: {
+      vendorId: number;
+      panelIndex: number;
+      supplierCode: string;
+    }): Promise<EPurchaseVendorInfo> => {
+      const response = await epurchaseVendorsInfo(
+        { supplier_code: String(variables.vendorId) },
+        withAuth()
+      );
+      return unwrap<EPurchaseVendorInfo>(response);
+    },
+    onSuccess: (info, variables) => {
+      onChange((current) => {
+        const panel = current.quotations[variables.panelIndex];
+        if (panel?.supplierCode !== variables.supplierCode) return current;
+
+        return {
+          ...current,
+          quotations: current.quotations.map((existing, i) => {
+            if (i !== variables.panelIndex) return existing;
+            const next: QuotationPanel = {
+              ...existing,
+              address: info.address,
+              phone: info.phone,
+              vatPercentage: info.vatPercentage ?? "",
+            };
+            return { ...next, ...recalcVat(next, current.items) };
+          }),
+        };
+      });
+    },
+  });
 
   const patchPricing = (
     index: number,
@@ -147,8 +288,47 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
     patchQuotation(index, {
       pricing: {
         ...panel.pricing,
-        [itemUid]: { ...panel.pricing[itemUid], ...patch },
+        [itemUid]: { ...emptyPricing(), ...panel.pricing[itemUid], ...patch },
       },
+    });
+  };
+
+  const selectSupplier = (index: number, row: VendorSearchRow | null) => {
+    if (!row) {
+      patchQuotation(index, {
+        supplierCode: "",
+        supplierName: "",
+        address: "",
+        phone: "",
+        vatPercentage: "",
+        totals: { ...quotations[index].totals, vat: "" },
+      });
+      return;
+    }
+    patchQuotation(index, {
+      supplierCode: row.code,
+      supplierName: row.nameEn,
+      address: "",
+      phone: "",
+      vatPercentage: "",
+    });
+    vendorInfoMutation.mutate({
+      vendorId: row.id,
+      panelIndex: index,
+      supplierCode: row.code,
+    });
+  };
+
+  const selectItem = (uid: string, code: string) => {
+    const item = catalogItems.find((c) => c.code === code);
+    if (!item) {
+      patchItem(uid, { itemCode: "" });
+      return;
+    }
+    patchItem(uid, {
+      itemCode: item.code,
+      description: item.description,
+      uom: item.uom,
     });
   };
 
@@ -168,9 +348,12 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
     const uid = `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     onChange({
       items: [...items, { uid, itemCode: "", description: "", qty: "1", uom: "" }],
-      quotations: quotations.map((panel) => ({
+      quotations: quotations.map((panel, panelIndex) => ({
         ...panel,
-        pricing: { ...panel.pricing, [uid]: { brand: "", unitCost: "" } },
+        pricing: {
+          ...panel.pricing,
+          [uid]: { ...emptyPricing(), selected: panelIndex === 0 },
+        },
       })),
     });
   };
@@ -193,28 +376,28 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
   return (
     <div className="min-w-0 space-y-3">
       <div className="w-full max-w-full overflow-x-auto rounded-lg border border-border">
-        <table className="w-full min-w-[1400px] border-collapse text-sm">
+        <table className="w-full min-w-[1400px] border-collapse text-xs">
           <thead>
             <tr>
               <th className={`${headCell} w-10`} rowSpan={3}>
                 {t("no")}
               </th>
-              <th className={`${headCell} min-w-[120px]`} rowSpan={3}>
+              <th className={`${headCell} w-[100px]`} rowSpan={3}>
                 {t("itemCode")}
               </th>
-              <th className={`${headCell} min-w-[260px]`} rowSpan={3}>
+              <th className={`${headCell} w-[200px]`} rowSpan={3}>
                 {t("description")}
               </th>
-              <th className={`${headCell} w-24`} rowSpan={3}>
+              <th className={`${headCell} w-15`} rowSpan={3}>
                 {t("qty")}
               </th>
-              <th className={`${headCell} w-28`} rowSpan={3}>
+              <th className={`${headCell} w-15`} rowSpan={3}>
                 {t("uom")}
               </th>
               {quotations.map((_, index) => (
                 <th
                   key={`q-head-${index}`}
-                  className={`${headCell} min-w-[200px] text-center`}
+                  className={`${headCell} min-w-[15px] text-center`}
                   colSpan={3}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -243,25 +426,27 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                   colSpan={3}
                 >
                   <div className="space-y-1">
-                    <Input
-                      value={panel.supplierName}
-                      onChange={(e) => patchQuotation(index, { supplierName: e.target.value })}
+                    <SupplierPicker
+                      value={panel.supplierCode}
+                      supplierName={panel.supplierName}
+                      onSelect={(row) => selectSupplier(index, row)}
                       placeholder={t("supplierPlaceholder")}
-                      className="h-7 border-0 bg-background px-1.5 text-xs font-semibold shadow-none"
-                      aria-label={`${t("quotation", { n: quoteLabel(index) })} ${t("supplierName")}`}
+                      emptyMessage={t("selectSupplier")}
+                      ariaLabel={`${t("quotation", { n: quoteLabel(index) })} ${t("supplierName")}`}
                     />
-                    <Input
+                    <Textarea
                       value={panel.address}
-                      onChange={(e) => patchQuotation(index, { address: e.target.value })}
+                      readOnly
                       placeholder={t("addressPlaceholder")}
-                      className="h-7 border-0 bg-background px-1.5 text-xs shadow-none"
+                      rows={2}
+                      className="min-h-10 resize-none border-0 bg-background px-1.5 font-normal text-xs shadow-none placeholder:text-xs md:text-xs"
                       aria-label={`${t("quotation", { n: quoteLabel(index) })} ${t("address")}`}
                     />
                     <Input
                       value={panel.phone}
-                      onChange={(e) => patchQuotation(index, { phone: e.target.value })}
+                      readOnly
                       placeholder={t("phonePlaceholder")}
-                      className="h-7 border-0 bg-background px-1.5 text-xs shadow-none"
+                      className="h-7 border-0 bg-background px-1.5 font-normal text-xs shadow-none placeholder:text-xs md:text-xs"
                       aria-label={`${t("quotation", { n: quoteLabel(index) })} ${t("phone")}`}
                     />
                   </div>
@@ -271,9 +456,9 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
             <tr>
               {quotations.map((_, index) => (
                 <Fragment key={`q-cols-${index}`}>
-                  <th className={`${headCell} min-w-[100px]`}>{t("brand")}</th>
-                  <th className={`${headCell} min-w-[140px] text-right`}>{t("unitCost")}</th>
-                  <th className={`${headCell} min-w-[120px] text-right`}>{t("totalCost")}</th>
+                  <th className={`${headCell} w-12 text-center`}>{t("winner")}</th>
+                  <th className={`${headCell} w-[140px]`}>{t("brand")}</th>
+                  <th className={`${headCell} w-[80px] text-right`}>{t("unitCost")}</th>
                 </Fragment>
               ))}
             </tr>
@@ -285,12 +470,29 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                   {itemIndex + 1}
                 </td>
                 <td className={bodyCell}>
-                  <Input
-                    value={item.itemCode}
-                    onChange={(e) => patchItem(item.uid, { itemCode: e.target.value })}
-                    placeholder={t("itemCodePlaceholder")}
-                    className="h-8 border-0 bg-background px-1.5 text-xs shadow-none"
-                  />
+                  <Combobox
+                    items={catalogComboItems}
+                    value={item.itemCode || null}
+                    onValueChange={(val) =>
+                      selectItem(item.uid, typeof val === "string" ? val : "")
+                    }
+                  >
+                    <ComboboxInput
+                      placeholder={t("itemCodePlaceholder")}
+                      className="h-7 min-w-0 border-0 bg-background px-1.5 text-xs shadow-none [&_input]:text-xs [&_input]:md:text-xs"
+                      aria-label={t("itemCode")}
+                    />
+                    <ComboboxContent>
+                      <ComboboxEmpty className="text-xs">{t("selectItem")}</ComboboxEmpty>
+                      <ComboboxList>
+                        {(c) => (
+                          <ComboboxItem key={c.code} value={c.code} className="text-xs">
+                            {`${c.code} — ${c.description}`}
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
                 </td>
                 <td className={bodyCell}>
                   <Textarea
@@ -298,30 +500,43 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                     onChange={(e) => patchItem(item.uid, { description: e.target.value })}
                     placeholder={t("descriptionPlaceholder")}
                     rows={3}
-                    className="min-h-[72px] resize-none border-0 bg-background px-1.5 text-xs shadow-none"
+                    className="min-h-[56px] resize-none border-0 bg-background px-1.5 text-xs shadow-none placeholder:text-xs md:text-xs"
                   />
                 </td>
                 <td className={bodyCell}>
-                  <Input
-                    value={item.qty}
-                    onChange={(e) => patchItem(item.uid, { qty: e.target.value })}
-                    placeholder={t("qtyPlaceholder")}
-                    inputMode="decimal"
-                          className="h-8 border-0 bg-background px-1.5 text-right text-sm shadow-none"
-                  />
+                    <Input
+                      value={item.qty}
+                      onChange={(e) => patchItem(item.uid, { qty: e.target.value })}
+                      placeholder={t("qtyPlaceholder")}
+                      inputMode="decimal"
+                      className="h-7 border-0 bg-background px-1.5 text-right text-xs shadow-none placeholder:text-xs md:text-xs"
+                    />
                 </td>
                 <td className={bodyCell}>
-                  <Input
-                    value={item.uom}
-                    onChange={(e) => patchItem(item.uid, { uom: e.target.value })}
-                    placeholder={t("uomPlaceholder")}
-                    className="h-8 border-0 bg-background px-1.5 text-xs shadow-none"
-                  />
+                    <Input
+                      value={item.uom}
+                      onChange={(e) => patchItem(item.uid, { uom: e.target.value })}
+                      placeholder={t("uomPlaceholder")}
+                      className="h-7 border-0 bg-background px-1.5 text-xs shadow-none placeholder:text-xs md:text-xs"
+                    />
                 </td>
                 {quotations.map((panel, qIndex) => {
-                  const pricing = panel.pricing[item.uid] ?? { brand: "", unitCost: "" };
+                  const pricing = panel.pricing[item.uid] ?? emptyPricing();
                   return (
                     <Fragment key={`item-${item.uid}-q-${qIndex}`}>
+                      <td className={bodyCell}>
+                        <div className="flex h-7 items-center justify-center">
+                          <Checkbox
+                            checked={pricing.selected}
+                            onCheckedChange={(checked) =>
+                              patchPricing(qIndex, item.uid, {
+                                selected: checked === true,
+                              })
+                            }
+                            aria-label={`${t("quotation", { n: quoteLabel(qIndex) })} ${t("winner")}`}
+                          />
+                        </div>
+                      </td>
                       <td className={bodyCell}>
                         <Input
                           value={pricing.brand}
@@ -329,7 +544,7 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                             patchPricing(qIndex, item.uid, { brand: e.target.value })
                           }
                           placeholder={t("brandPlaceholder")}
-                          className="h-8 border-0 bg-background px-1.5 text-xs shadow-none"
+                          className="h-7 border-0 bg-background px-1.5 text-xs shadow-none placeholder:text-xs md:text-xs"
                         />
                       </td>
                       <td className={bodyCell}>
@@ -340,13 +555,8 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                           }
                           placeholder={t("unitCostPlaceholder")}
                           inputMode="decimal"
-                          className="h-8 border-0 bg-background px-1.5 text-right text-sm shadow-none"
+                          className="h-7 border-0 bg-background px-1.5 text-right text-xs shadow-none placeholder:text-xs md:text-xs"
                         />
-                      </td>
-                      <td className={bodyCell}>
-                        <div className="flex h-8 items-center justify-end text-sm tabular-nums">
-                          {money.format(lineTotal(item, pricing))}
-                        </div>
                       </td>
                     </Fragment>
                   );
@@ -360,7 +570,7 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                 className={key === "grandTotal" ? "border-t-2 border-border" : undefined}
               >
                 <td className={`${bodyCell} bg-muted/20`} colSpan={5}>
-                  <div className="flex justify-end pr-2 text-sm font-medium">{t(key)}</div>
+                  <div className="flex justify-end pr-2 text-xs font-medium">{t(key)}</div>
                 </td>
                 {quotations.map((panel, qIndex) => {
                   if (readonly) {
@@ -370,7 +580,7 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                     return (
                       <td key={`${key}-${qIndex}`} className={bodyCell} colSpan={3}>
                         <div
-                          className={`flex h-8 items-center justify-end text-sm tabular-nums${strong ? " font-semibold" : ""}`}
+                          className={`flex h-7 items-center justify-end text-xs tabular-nums${strong ? " font-semibold" : ""}`}
                         >
                           {money.format(amount)}
                         </div>
@@ -385,7 +595,7 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                         onChange={(e) => patchTotals(qIndex, { [field]: e.target.value })}
                         placeholder={t(`${field}Placeholder`)}
                         inputMode="decimal"
-                        className="h-8 border-0 bg-background px-1.5 text-right text-sm shadow-none"
+                        className="h-7 border-0 bg-background px-1.5 text-right text-xs shadow-none placeholder:text-xs md:text-xs"
                       />
                     </td>
                   );
@@ -412,14 +622,14 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                         onChange={(e) => patchCriteria(qIndex, { [key]: e.target.value })}
                         placeholder={t("criteriaPlaceholder")}
                         rows={key === "warranty" ? 3 : 1}
-                        className="min-h-[36px] resize-none border-0 bg-background px-1.5 text-center text-xs shadow-none"
+                        className="min-h-[28px] resize-none border-0 bg-background px-1.5 text-center text-xs shadow-none placeholder:text-xs md:text-xs"
                       />
                     ) : (
                       <Input
                         value={panel.criteria[key]}
                         onChange={(e) => patchCriteria(qIndex, { [key]: e.target.value })}
                         placeholder={t("criteriaPlaceholder")}
-                        className="h-8 border-0 bg-background px-1.5 text-center text-xs shadow-none"
+                        className="h-7 border-0 bg-background px-1.5 text-center text-xs shadow-none placeholder:text-xs md:text-xs"
                       />
                     )}
                   </td>
@@ -430,9 +640,9 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
         </table>
       </div>
 
-      <div className="flex flex-wrap gap-4">
-        <Button type="button" variant="outline" size="sm" onClick={addItem}>
-          <Plus className="size-3.5" />
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" size="xs" onClick={addItem}>
+          <Plus className="size-3" />
           {t("addItem")}
         </Button>
       </div>

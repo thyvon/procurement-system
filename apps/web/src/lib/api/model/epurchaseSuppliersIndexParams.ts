@@ -4,6 +4,7 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
+import type { EpurchaseSuppliersIndexIsOnboard } from './epurchaseSuppliersIndexIsOnboard';
 
 export type EpurchaseSuppliersIndexParams = {
 /**
@@ -19,4 +20,9 @@ page?: number;
  * @maximum 100
  */
 per_page?: number;
+/**
+ * Upstream sends is_onboard as "1"/"0" — not Laravel's boolean
+ * vocabulary, so `boolean` (which also rejects "true") would 422.
+ */
+is_onboard?: EpurchaseSuppliersIndexIsOnboard;
 };

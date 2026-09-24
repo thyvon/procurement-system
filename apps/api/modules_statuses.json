@@ -4,5 +4,6 @@
     "Organization": true,
     "Users": true,
     "Products": true,
-    "EPurchase": true
+    "EPurchase": true,
+    "PurchaseOrders": true
 }

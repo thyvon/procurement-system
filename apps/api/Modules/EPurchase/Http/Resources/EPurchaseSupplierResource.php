@@ -20,6 +20,7 @@ class EPurchaseSupplierResource extends JsonResource
             'nameEn' => (string) ($this->resource['name_en'] ?? ''),
             'nameKhmer' => (string) ($this->resource['name_kh'] ?? ''),
             'phone' => (string) ($this->resource['phone'] ?? ''),
+            'address' => (string) ($this->resource['address'] ?? ''),
             'email' => (string) ($this->resource['email'] ?? ''),
             'supplierType' => (string) ($this->resource['supplier_type'] ?? ''),
             'paymentTerm' => (string) ($this->resource['payment_term'] ?? ''),

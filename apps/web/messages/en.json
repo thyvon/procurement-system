@@ -132,16 +132,36 @@
       "openMenu": "Open menu",
       "view": "View",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "confirmDelete": "Delete",
+      "deleting": "Deleting...",
+      "deleteDescription": "Are you sure you want to delete <strong>{name}</strong>? This action cannot be undone."
     },
     "evaluations": {
-      "newTitle": "New evaluation"
+      "newTitle": "New evaluation",
+      "deleteTitle": "Delete evaluation",
+      "deleted": "Evaluation deleted."
     },
     "form": {
       "title": "Price Evaluation Form",
       "createTitle": "New Evaluation",
       "createDescription": "Create a price evaluation from supplier quotations.",
+      "editTitle": "Edit Evaluation",
+      "editDescription": "Update the price evaluation.",
       "back": "Back to list",
+      "save": "Save",
+      "saving": "Saving...",
+      "created": "Evaluation created.",
+      "updated": "Evaluation updated.",
+      "loadFailed": "Could not load this evaluation.",
+      "missingSupplier": "Select a supplier for every quotation.",
+      "missingItem": "Complete item code, description, qty and UoM for every row.",
+      "noWinner": "Select at least one winner for item {item}.",
+      "winner": "Winner",
+      "selectSupplier": "No supplier found",
+      "supplierSearchMinChars": "Type at least {n} characters to search",
+      "selectItem": "No item found",
       "no": "No.",
       "itemCode": "Item Code",
       "description": "Item Description",
@@ -504,7 +524,8 @@
         "brands": "Brands",
         "groups": "Groups",
         "uoms": "Units of Measure",
-        "variations": "Variations"
+        "variations": "Variations",
+        "evaluations": "Evaluations"
       }
     }
   }

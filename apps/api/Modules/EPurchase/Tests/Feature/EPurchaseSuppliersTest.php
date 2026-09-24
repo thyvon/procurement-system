@@ -50,6 +50,7 @@ function epurchaseSuppliersPayload(array $overrides = []): array
                 'name_en' => 'Kuy Leng',
                 'name_kh' => 'គុយ ឡេង',
                 'phone' => '012 876 676',
+                'address' => '120 Street 271, Phnom Penh',
                 'email' => 'supplier@example.com',
                 'supplier_type' => 'Shop',
                 'payment_term' => 'Non-Credit',
@@ -62,6 +63,7 @@ function epurchaseSuppliersPayload(array $overrides = []): array
                 'name_en' => 'Acme Trading Co',
                 'name_kh' => 'អាកមេ',
                 'phone' => '011 222 333',
+                'address' => '45 Monitor St, Battambang',
                 'email' => 'NA',
                 'supplier_type' => 'Company',
                 'payment_term' => '30 Days',
@@ -74,6 +76,7 @@ function epurchaseSuppliersPayload(array $overrides = []): array
                 'name_en' => 'Paper Co',
                 'name_kh' => '',
                 'phone' => '',
+                'address' => '',
                 'email' => '',
                 'supplier_type' => 'Shop',
                 'payment_term' => 'Cash',
@@ -117,6 +120,7 @@ it('returns a page of company suppliers with meta', function () {
         ->assertJsonPath('data.0.nameKhmer', 'គុយ ឡេង')
         ->assertJsonPath('data.0.phone', '012 876 676')
         ->assertJsonPath('data.0.email', 'supplier@example.com')
+        ->assertJsonPath('data.0.address', '120 Street 271, Phnom Penh')
         ->assertJsonPath('data.0.supplierType', 'Shop')
         ->assertJsonPath('data.0.paymentTerm', 'Non-Credit')
         ->assertJsonPath('data.0.isOnboard', '1')
@@ -149,6 +153,28 @@ it('passes page and search to the company system', function () {
             && $request['length'] === '2'
             && $request['search[value]'] === 'shop';
     });
+});
+
+it('filters to onboarded suppliers when is_onboard=1', function () {
+    seedEpurchaseSuppliersSession($this->user);
+    Http::fake(['*/suppliers-master-list*' => Http::response(epurchaseSuppliersPayload())]);
+
+    $response = getEpurchaseSuppliers(['is_onboard' => 1])
+        ->assertOk()
+        ->assertJsonPath('meta.total', 2)
+        ->assertJsonPath('data.0.code', 'SUP-00055')
+        ->assertJsonPath('data.1.code', 'SUP-00057');
+
+    expect($response->json('data'))->toHaveCount(2);
+});
+
+it('rejects is_onboard values other than 1 with a 422 envelope', function () {
+    seedEpurchaseSuppliersSession($this->user);
+
+    getEpurchaseSuppliers(['is_onboard' => '0'])
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
 });
 
 it('forgets the cached session and returns 401 when upstream rejects it', function () {

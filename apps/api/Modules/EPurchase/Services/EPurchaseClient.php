@@ -3,6 +3,7 @@
 namespace Modules\EPurchase\Services;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -20,6 +21,10 @@ class EPurchaseClient
 
     private const SUPPLIERS_PATH = '/suppliers-master-list';
 
+    private const VENDOR_SEARCH_PATH = '/api/po/getVentors';
+
+    private const VENDOR_INFO_PATH = '/api/po/getVendorInfo';
+
     /**
      * Exchange company credentials for a company session and profile.
      *
@@ -32,32 +37,15 @@ class EPurchaseClient
      */
     public function login(string $employeeId, string $password): EPurchaseLoginResult
     {
-        $baseUrl = config('epurchase.base_url');
-
-        if (! is_string($baseUrl) || $baseUrl === '') {
-            throw new EPurchaseUnavailableException('E-Purchase is not configured.');
-        }
-
-        try {
-            $response = Http::baseUrl($baseUrl)
-                ->acceptJson()
-                ->timeout((int) config('epurchase.timeout', 10))
-                ->connectTimeout(5)
-                ->retry(
-                    [100, 500],
-                    when: fn (Throwable $exception): bool => $exception instanceof ConnectionException
-                        || ($exception instanceof RequestException && $exception->response->serverError()),
-                    throw: false,
-                )
-                ->post(self::LOGIN_PATH, [
-                    'login_with_db' => false,
-                    'employee_id' => $employeeId,
-                    'password' => $password,
-                    'is_change_password' => 0,
-                ]);
-        } catch (ConnectionException $exception) {
-            throw new EPurchaseUnavailableException('E-Purchase is unreachable.', 0, $exception);
-        }
+        $response = $this->send(
+            null,
+            fn (PendingRequest $http) => $http->post(self::LOGIN_PATH, [
+                'login_with_db' => false,
+                'employee_id' => $employeeId,
+                'password' => $password,
+                'is_change_password' => 0,
+            ]),
+        );
 
         $body = $response->json();
 
@@ -143,6 +131,85 @@ class EPurchaseClient
     }
 
     /**
+     * Search company vendors by free-text term (autocomplete).
+     *
+     * @return array<int, array<string, mixed>>
+     *
+     * @throws EPurchaseSessionExpiredException when the cached session is rejected upstream
+     * @throws EPurchaseUnavailableException when the company system is unreachable or malformed
+     */
+    public function vendorSearch(EPurchaseSession $session, string $term): array
+    {
+        $body = $this->vendorRequest($session, self::VENDOR_SEARCH_PATH, json: ['term' => $term]);
+        $rows = is_array($body['data'] ?? null) ? $body['data'] : [];
+
+        return array_values(array_filter($rows, 'is_array'));
+    }
+
+    /**
+     * Fetch one vendor's full profile by numeric id (upstream `SupplierCode`).
+     *
+     * @return array<string, mixed>
+     *
+     * @throws EPurchaseSessionExpiredException when the cached session is rejected upstream
+     * @throws EPurchaseUnavailableException when the company system is unreachable or malformed
+     */
+    public function vendorInfo(EPurchaseSession $session, string $supplierCode): array
+    {
+        $body = $this->vendorRequest(
+            $session,
+            self::VENDOR_INFO_PATH,
+            json: ['SupplierCode' => $supplierCode],
+        );
+        $data = $body['data'] ?? null;
+
+        if (! is_array($data)) {
+            throw new EPurchaseUnavailableException('E-Purchase returned an unexpected response.');
+        }
+
+        return $data;
+    }
+
+    /**
+     * Authenticated POST against /api/po/* endpoints ({result, msg, data} envelope).
+     * Upstream routes (getVentors, getVendorInfo) only accept POST.
+     *
+     * @param  array<string, mixed>  $json
+     * @return array<string, mixed>
+     *
+     * @throws EPurchaseSessionExpiredException
+     * @throws EPurchaseUnavailableException
+     */
+    private function vendorRequest(
+        EPurchaseSession $session,
+        string $path,
+        array $json = [],
+    ): array {
+        $response = $this->send(
+            $session,
+            fn (PendingRequest $http) => $http->asJson()->post($path, $json),
+        );
+
+        if ($response->status() === 401 || $response->status() === 419) {
+            throw new EPurchaseSessionExpiredException('Company session expired. Please log in again.');
+        }
+
+        if (! $response->successful()) {
+            throw new EPurchaseUnavailableException(
+                'E-Purchase vendor request failed with status '.$response->status().'.'
+            );
+        }
+
+        $body = $response->json();
+
+        if (! is_array($body) || ($body['result'] ?? null) !== 'success' || ! array_key_exists('data', $body)) {
+            throw new EPurchaseUnavailableException('E-Purchase returned an unexpected response.');
+        }
+
+        return $body;
+    }
+
+    /**
      * Authenticated GET against an upstream DataTables endpoint.
      *
      * @param  array<string, string>  $extraQuery
@@ -159,45 +226,23 @@ class EPurchaseClient
         string $search,
         array $extraQuery = [],
     ): array {
-        $baseUrl = config('epurchase.base_url');
-
-        if (! is_string($baseUrl) || $baseUrl === '') {
-            throw new EPurchaseUnavailableException('E-Purchase is not configured.');
-        }
-
-        try {
-            $response = Http::baseUrl($baseUrl)
-                ->acceptJson()
-                ->timeout((int) config('epurchase.timeout', 10))
-                ->connectTimeout(5)
-                ->withHeaders([
-                    'Authorization' => 'Bearer '.$session->jwt,
-                    'X-Requested-With' => 'XMLHttpRequest',
-                    ...($session->cookieHeader !== '' ? ['Cookie' => $session->cookieHeader] : []),
-                ])
-                ->retry(
-                    [100, 500],
-                    when: fn (Throwable $exception): bool => $exception instanceof ConnectionException
-                        || ($exception instanceof RequestException && $exception->response->serverError()),
-                    throw: false,
-                )
-                ->get($path, array_merge([
-                    'draw' => '1',
-                    'start' => (string) $start,
-                    'length' => (string) $length,
-                    'search[value]' => $search,
-                    'search[regex]' => 'false',
-                    'order[0][column]' => '11',
-                    'order[0][dir]' => 'desc',
-                    'getTable' => '1',
-                    '_' => (string) (int) (microtime(true) * 1000),
-                    ...($session->formToken !== null && $session->formToken !== ''
-                        ? ['_token' => $session->formToken]
-                        : []),
-                ], $extraQuery));
-        } catch (ConnectionException $exception) {
-            throw new EPurchaseUnavailableException('E-Purchase is unreachable.', 0, $exception);
-        }
+        $response = $this->send(
+            $session,
+            fn (PendingRequest $http) => $http->get($path, array_merge([
+                'draw' => '1',
+                'start' => (string) $start,
+                'length' => (string) $length,
+                'search[value]' => $search,
+                'search[regex]' => 'false',
+                'order[0][column]' => '11',
+                'order[0][dir]' => 'desc',
+                'getTable' => '1',
+                '_' => (string) (int) (microtime(true) * 1000),
+                ...($session->formToken !== null && $session->formToken !== ''
+                    ? ['_token' => $session->formToken]
+                    : []),
+            ], $extraQuery)),
+        );
 
         if ($response->status() === 401 || $response->status() === 419) {
             throw new EPurchaseSessionExpiredException('Company session expired. Please log in again.');
@@ -234,6 +279,49 @@ class EPurchaseClient
             'recordsFiltered' => (int) ($body['recordsFiltered'] ?? count($rows)),
             'data' => array_values($rows),
         ];
+    }
+
+    /**
+     * Shared HTTP bootstrap: base_url, timeout, retry policy, and optional
+     * session headers (Bearer JWT + cookies). Connection failures map to
+     * EPurchaseUnavailableException.
+     *
+     * @param  callable(PendingRequest): Response  $send
+     *
+     * @throws EPurchaseUnavailableException
+     */
+    private function send(?EPurchaseSession $session, callable $send): Response
+    {
+        $baseUrl = config('epurchase.base_url');
+
+        if (! is_string($baseUrl) || $baseUrl === '') {
+            throw new EPurchaseUnavailableException('E-Purchase is not configured.');
+        }
+
+        $http = Http::baseUrl($baseUrl)
+            ->acceptJson()
+            ->timeout((int) config('epurchase.timeout', 10))
+            ->connectTimeout(5)
+            ->retry(
+                [100, 500],
+                when: fn (Throwable $exception): bool => $exception instanceof ConnectionException
+                    || ($exception instanceof RequestException && $exception->response->serverError()),
+                throw: false,
+            );
+
+        if ($session !== null) {
+            $http = $http->withHeaders([
+                'Authorization' => 'Bearer '.$session->jwt,
+                'X-Requested-With' => 'XMLHttpRequest',
+                ...($session->cookieHeader !== '' ? ['Cookie' => $session->cookieHeader] : []),
+            ]);
+        }
+
+        try {
+            return $send($http);
+        } catch (ConnectionException $exception) {
+            throw new EPurchaseUnavailableException('E-Purchase is unreachable.', 0, $exception);
+        }
     }
 
     /**

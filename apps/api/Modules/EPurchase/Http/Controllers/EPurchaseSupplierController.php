@@ -2,34 +2,24 @@
 
 namespace Modules\EPurchase\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Modules\EPurchase\Http\Requests\IndexEPurchaseSuppliersRequest;
 use Modules\EPurchase\Http\Resources\EPurchaseSupplierResource;
-use Modules\EPurchase\Services\EPurchaseClient;
 use Modules\EPurchase\Services\EPurchaseSessionExpiredException;
-use Modules\EPurchase\Services\EPurchaseSessionService;
 use Modules\EPurchase\Services\EPurchaseUnavailableException;
 
-class EPurchaseSupplierController extends Controller
+class EPurchaseSupplierController extends EPurchaseProxyController
 {
-    public function __construct(
-        private readonly EPurchaseClient $client,
-        private readonly EPurchaseSessionService $sessions,
-    ) {}
-
     /**
      * Read-only proxy of the upstream suppliers list (server-side paging/search).
-     * No policy/permission for v1 — auth:sanctum only (mirrors EPurchaseItemController).
      */
     public function index(IndexEPurchaseSuppliersRequest $request): JsonResponse
     {
-        $user = $request->user();
-        $session = $user !== null ? $this->sessions->get($user->getAuthIdentifier()) : null;
+        $session = $this->session($request);
 
         if ($session === null) {
-            return ApiResponse::error(401, 'Company session expired. Please log in again.', 'EPurchaseSessionExpired');
+            return $this->sessionExpiredResponse();
         }
 
         $perPage = (int) $request->integer('per_page', 10);
@@ -38,25 +28,33 @@ class EPurchaseSupplierController extends Controller
 
         try {
             $result = $this->client->suppliers($session, ($page - 1) * $perPage, $perPage, $search);
-        } catch (EPurchaseSessionExpiredException) {
-            if ($user !== null) {
-                $this->sessions->forget($user->getAuthIdentifier());
-            }
+        } catch (EPurchaseSessionExpiredException|EPurchaseUnavailableException $exception) {
+            return $this->clientFailureResponse($exception, $request);
+        }
 
-            return ApiResponse::error(401, 'Company session expired. Please log in again.', 'EPurchaseSessionExpired');
-        } catch (EPurchaseUnavailableException $exception) {
-            report($exception);
+        $rows = $result['data'];
+        $total = $result['recordsFiltered'];
 
-            return ApiResponse::error(502, 'Company list is temporarily unavailable.', 'EPurchaseUnavailable');
+        // Upstream cannot filter by onboarding — narrow the fetched page here.
+        // Best-effort: totals reflect this page only while the filter is active.
+        if ($request->has('is_onboard')) {
+            $wantOnboarded = $request->string('is_onboard')->toString() === '1';
+            $rows = array_values(array_filter($rows, function (array $row) use ($wantOnboarded): bool {
+                $flag = strtolower((string) ($row['is_onboard'] ?? ''));
+                $onboarded = $flag === '1' || $flag === 'onboarded';
+
+                return $onboarded === $wantOnboarded;
+            }));
+            $total = count($rows);
         }
 
         return ApiResponse::success(
-            EPurchaseSupplierResource::collection(collect($result['data']))->resolve($request),
+            EPurchaseSupplierResource::collection(collect($rows))->resolve($request),
             200,
             [
                 'page' => $page,
                 'perPage' => $perPage,
-                'total' => $result['recordsFiltered'],
+                'total' => $total,
             ]
         );
     }

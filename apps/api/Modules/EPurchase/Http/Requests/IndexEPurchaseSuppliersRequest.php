@@ -20,6 +20,9 @@ class IndexEPurchaseSuppliersRequest extends FormRequest
             'search' => ['sometimes', 'string', 'max:255'],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            // Upstream sends is_onboard as "1"/"0" — not Laravel's boolean
+            // vocabulary, so `boolean` (which also rejects "true") would 422.
+            'is_onboard' => ['sometimes', 'in:1'],
         ];
     }
 }
