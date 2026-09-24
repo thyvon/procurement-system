@@ -116,8 +116,7 @@ it('returns a page of company suppliers with meta', function () {
         ->assertJsonPath('meta.perPage', 10)
         ->assertJsonPath('meta.total', 3)
         ->assertJsonPath('data.0.code', 'SUP-00055')
-        ->assertJsonPath('data.0.nameEn', 'Kuy Leng')
-        ->assertJsonPath('data.0.nameKhmer', 'គុយ ឡេង')
+        ->assertJsonPath('data.0.name', 'Kuy Leng')
         ->assertJsonPath('data.0.phone', '012 876 676')
         ->assertJsonPath('data.0.email', 'supplier@example.com')
         ->assertJsonPath('data.0.address', '120 Street 271, Phnom Penh')
@@ -133,6 +132,21 @@ it('returns a page of company suppliers with meta', function () {
     });
 
     expect($response->json('data'))->toHaveCount(3);
+    expect($response->json('data.1.name'))->toBe('Acme Trading Co');
+    expect($response->json('data.2.name'))->toBe('Paper Co');
+});
+
+it('falls back to the Khmer name when English is missing', function () {
+    seedEpurchaseSuppliersSession($this->user);
+
+    $payload = epurchaseSuppliersPayload();
+    $payload['data'][0]['name_en'] = '';
+    $payload['data'][0]['name_kh'] = 'គុយ ឡេង';
+    Http::fake(['*/suppliers-master-list*' => Http::response($payload)]);
+
+    getEpurchaseSuppliers()
+        ->assertOk()
+        ->assertJsonPath('data.0.name', 'គុយ ឡេង');
 });
 
 it('passes page and search to the company system', function () {

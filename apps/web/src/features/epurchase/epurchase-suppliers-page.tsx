@@ -13,8 +13,7 @@ import { type DataTableFeatures } from "@/components/ui/data-table-features"
 
 type EPurchaseSupplier = {
   code: string
-  nameEn: string
-  nameKhmer: string
+  name: string
   phone: string
   paymentTerm: string
   isOnboard: string
@@ -52,23 +51,12 @@ function useEPurchaseSupplierColumns(): ColumnDef<DataTableFeatures, EPurchaseSu
         <span className="font-mono text-xs">{row.getValue("code")}</span>
       ),
     }),
-    columnHelper.accessor("nameEn", {
+    columnHelper.accessor("name", {
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc("nameEn")} />
+        <DataTableColumnHeader column={column} title={tc("name")} />
       ),
       cell: ({ row }) => {
-        const name: string = row.getValue("nameEn")
-        return (
-          <span className="whitespace-normal break-words">{name || "—"}</span>
-        )
-      },
-    }),
-    columnHelper.accessor("nameKhmer", {
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc("nameKhmer")} />
-      ),
-      cell: ({ row }) => {
-        const name: string = row.getValue("nameKhmer")
+        const name: string = row.getValue("name")
         return (
           <span className="whitespace-normal break-words">{name || "—"}</span>
         )
@@ -144,7 +132,7 @@ export function EPurchaseSuppliersPage() {
   })
 
   if (query.isPending) {
-    return <DataTableSkeleton columns={7} actions={0} />
+    return <DataTableSkeleton columns={6} actions={0} />
   }
 
   if (query.isError) {

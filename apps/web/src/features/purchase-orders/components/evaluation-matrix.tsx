@@ -71,8 +71,7 @@ export type { ItemRow, QuotationPricing, QuotationPanel };
 type EPurchaseVendorInfo = {
   id: number;
   code: string;
-  nameEn: string;
-  nameKhmer: string;
+  name: string;
   phone: string;
   address: string;
   email: string;
@@ -339,7 +338,7 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
 
     patchQuotation(index, {
       supplierCode: row.code,
-      supplierName: row.nameEn,
+      supplierName: row.name,
       address: "",
       phone: "",
       vatPercentage: "",

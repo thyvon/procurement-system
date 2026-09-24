@@ -4,6 +4,7 @@ namespace Modules\EPurchase\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\EPurchase\Services\SupplierName;
 
 /**
  * @mixin array<string, mixed>
@@ -18,8 +19,7 @@ class EPurchaseVendorInfoResource extends JsonResource
         return [
             'id' => (int) ($this->resource['id'] ?? 0),
             'code' => (string) ($this->resource['code'] ?? ''),
-            'nameEn' => (string) ($this->resource['name_en'] ?? ''),
-            'nameKhmer' => (string) ($this->resource['name_kh'] ?? ''),
+            'name' => SupplierName::resolve($this->resource),
             'phone' => (string) ($this->resource['phone'] ?? ''),
             'address' => (string) ($this->resource['address'] ?? ''),
             'email' => (string) ($this->resource['email'] ?? ''),

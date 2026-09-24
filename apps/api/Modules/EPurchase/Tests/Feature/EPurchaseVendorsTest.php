@@ -122,8 +122,7 @@ it('posts term to getVentors and returns search rows', function () {
         ->assertOk()
         ->assertJsonPath('data.0.id', 17)
         ->assertJsonPath('data.0.code', 'SUP-00017')
-        ->assertJsonPath('data.0.nameEn', 'BEST ELECTRONIC SOLUTION')
-        ->assertJsonPath('data.0.nameKhmer', 'ហាងលក់ឧបករណ៍')
+        ->assertJsonPath('data.0.name', 'BEST ELECTRONIC SOLUTION')
         ->assertJsonPath('data.0.text', 'BEST ELECTRONIC SOLUTION')
         ->assertJsonPath('data.1.id', 660);
 
@@ -177,8 +176,7 @@ it('returns vendor info with phone and address', function () {
         ->assertOk()
         ->assertJsonPath('data.id', 17)
         ->assertJsonPath('data.code', 'SUP-00017')
-        ->assertJsonPath('data.nameEn', 'BEST ELECTRONIC SOLUTION')
-        ->assertJsonPath('data.nameKhmer', 'ហាងលក់ឧបករណ៍')
+        ->assertJsonPath('data.name', 'BEST ELECTRONIC SOLUTION')
         ->assertJsonPath('data.phone', '012 797 963 / 017 819 419')
         ->assertJsonPath('data.address', '594 E0 Phnom Penh')
         ->assertJsonPath('data.email', 'best.electronic9@gmail.com')

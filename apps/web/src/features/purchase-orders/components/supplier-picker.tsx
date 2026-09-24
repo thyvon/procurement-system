@@ -19,8 +19,7 @@ import { unwrap, withAuth } from "@/lib/api-client";
 export type VendorSearchRow = {
   id: number;
   code: string;
-  nameEn: string;
-  nameKhmer: string;
+  name: string;
   text: string;
 };
 
@@ -37,12 +36,12 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
   return debounced;
 }
 
-function selectedLabel(code: string, nameEn: string): string {
-  return nameEn || code;
+function selectedLabel(code: string, name: string): string {
+  return name || code;
 }
 
-function optionLabel(code: string, nameEn: string): string {
-  return nameEn ? `${code} — ${nameEn}` : code;
+function optionLabel(code: string, name: string): string {
+  return name ? `${code} — ${name}` : code;
 }
 
 interface SupplierPickerProps {
@@ -101,7 +100,7 @@ export function SupplierPicker({
     if (!value) return rows;
     if (rows.some((row) => row.code === value)) return rows;
     return [
-      { id: 0, code: value, nameEn: supplierName, nameKhmer: "", text: value },
+      { id: 0, code: value, name: supplierName, text: value },
       ...rows,
     ];
   }, [rows, value, supplierName]);
@@ -110,7 +109,7 @@ export function SupplierPicker({
     () =>
       ComboboxNS.createItems(comboData, {
         getValue: (row) => row.code,
-        getLabel: (row) => selectedLabel(row.code, row.nameEn),
+        getLabel: (row) => selectedLabel(row.code, row.name),
       }),
     [comboData]
   );
@@ -142,7 +141,7 @@ export function SupplierPicker({
       filter={null}
       itemToStringLabel={(code) => {
         const row = comboData.find((candidate) => candidate.code === code);
-        return row ? selectedLabel(row.code, row.nameEn) : code;
+        return row ? selectedLabel(row.code, row.name) : code;
       }}
     >
       <ComboboxInput
@@ -166,7 +165,7 @@ export function SupplierPicker({
         <ComboboxList>
           {(row) => (
             <ComboboxItem key={row.code} value={row.code} className="text-xs">
-              {optionLabel(row.code, row.nameEn)}
+              {optionLabel(row.code, row.name)}
             </ComboboxItem>
           )}
         </ComboboxList>

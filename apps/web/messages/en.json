@@ -106,8 +106,7 @@
     },
     "columns": {
       "code": "Code",
-      "nameEn": "Supplier Name",
-      "nameKhmer": "Name (KH)",
+      "name": "Supplier Name",
       "phone": "Phone",
       "paymentTerm": "Payment Term",
       "isOnboard": "Onboard Status",
