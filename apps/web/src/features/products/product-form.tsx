@@ -691,7 +691,7 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
                         value={brandId}
                         onValueChange={(val) => setBrandId(val as string)}
                       >
-                        <ComboboxInput placeholder="None" />
+                        <ComboboxInput placeholder={t("none")} />
                         <ComboboxContent>
                           <ComboboxEmpty>{t("brand")}</ComboboxEmpty>
                           <ComboboxList>
@@ -729,7 +729,7 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
                           setSubUnitId("");
                         }}
                       >
-                        <ComboboxInput placeholder="None" />
+                        <ComboboxInput placeholder={t("none")} />
                         <ComboboxContent>
                           <ComboboxEmpty>{t("uom")}</ComboboxEmpty>
                           <ComboboxList>
@@ -771,7 +771,7 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
                           value={subUnitId}
                           onValueChange={(val) => setSubUnitId(val as string)}
                         >
-                          <ComboboxInput placeholder="None" />
+                          <ComboboxInput placeholder={t("none")} />
                           <ComboboxContent>
                             <ComboboxEmpty>{t("subUnit")}</ComboboxEmpty>
                             <ComboboxList>

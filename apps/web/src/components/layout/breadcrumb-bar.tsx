@@ -16,6 +16,7 @@ import {
 
 const SEGMENT_LABELS: Record<string, string> = {
   products: "nav.products",
+  users: "nav.users",
   create: "breadcrumb.create",
   edit: "breadcrumb.edit",
 }
