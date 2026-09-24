@@ -3,6 +3,8 @@
 use App\Models\User;
 use Laravel\Sanctum\PersonalAccessToken;
 use Modules\Auth\Models\RefreshToken;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
     $this->user = User::factory()->create([
@@ -105,4 +107,32 @@ it('returns the authenticated user from me', function () {
         ->getJson('/api/v1/auth/me')
         ->assertOk()
         ->assertJsonPath('data.email', 'admin@procurement.local');
+});
+
+it('returns the caller permissions on me for UX gating', function () {
+    Role::findOrCreate('staff', 'sanctum');
+    Permission::findOrCreate('users.view', 'sanctum');
+    Permission::findOrCreate('users.manage', 'sanctum');
+
+    $staff = User::factory()->create([
+        'email' => 'staff.me@test.local',
+        'password' => 'secret-password',
+    ]);
+    $staff->assignRole('staff');
+    $staff->givePermissionTo('users.view');
+
+    $token = $this->postJson('/api/v1/auth/login', [
+        'email' => 'staff.me@test.local',
+        'password' => 'secret-password',
+    ])->assertOk()->json('data.access_token');
+
+    $me = $this->withToken($token)
+        ->getJson('/api/v1/auth/me')
+        ->assertOk()
+        ->assertJsonPath('data.email', 'staff.me@test.local')
+        ->assertJsonPath('data.roles', ['staff'])
+        ->json('data.permissions');
+
+    expect($me)->toContain('users.view')
+        ->not->toContain('users.manage');
 });

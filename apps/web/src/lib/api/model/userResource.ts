@@ -15,6 +15,7 @@ export interface UserResource {
   entityId: string | null;
   isActive: boolean;
   roles?: unknown[];
+  permissions?: unknown[];
   /** @nullable */
   createdAt: string | null;
 }

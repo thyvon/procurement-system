@@ -41,6 +41,7 @@ import { Label } from "@/components/ui/label"
 import { RequiredMark } from "@/components/required-mark"
 import { Switch } from "@/components/ui/switch"
 import { unwrap, withAuth } from "@/lib/api-client"
+import { useMe } from "@/hooks/use-me"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
 
 type UserRow = {
@@ -67,9 +68,13 @@ const initialsOf = (name: string) =>
 function useUserColumns({
   onEditRequest,
   onDeactivateRequest,
+  canManageUsers,
+  meId,
 }: {
   onEditRequest: (user: UserRow) => void
   onDeactivateRequest: (user: UserRow) => void
+  canManageUsers: boolean
+  meId: number | null
 }): ColumnDef<DataTableFeatures, UserRow>[] {
   const tc = useTranslations("users.columns")
   const tt = useTranslations("users.table")
@@ -134,6 +139,12 @@ function useUserColumns({
       enableHiding: false,
       cell: ({ row }) => {
         const user = row.original
+        const isSelf = meId !== null && user.id === meId
+        const canEdit = canManageUsers || isSelf
+        const canDeactivate = canManageUsers && !isSelf
+        if (!canEdit && !canDeactivate) {
+          return null
+        }
         return (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="ghost" className="size-8 p-0" />}>
@@ -142,18 +153,22 @@ function useUserColumns({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => onEditRequest(user)}>
-                  <Pencil className="mr-2 size-4" />
-                  {tt("edit")}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => onDeactivateRequest(user)}
-                >
-                  <UserX className="mr-2 size-4" />
-                  {tt("deactivate")}
-                </DropdownMenuItem>
+                {canEdit && (
+                  <DropdownMenuItem onClick={() => onEditRequest(user)}>
+                    <Pencil className="mr-2 size-4" />
+                    {tt("edit")}
+                  </DropdownMenuItem>
+                )}
+                {canEdit && canDeactivate && <DropdownMenuSeparator />}
+                {canDeactivate && (
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => onDeactivateRequest(user)}
+                  >
+                    <UserX className="mr-2 size-4" />
+                    {tt("deactivate")}
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -175,6 +190,10 @@ export function UsersTab() {
   const t = useTranslations("users.users")
   const tt = useTranslations("users.table")
   const qc = useQueryClient()
+  const meQuery = useMe()
+  const permissions = (meQuery.data?.permissions ?? []) as string[]
+  const canManageUsers = permissions.includes("users.manage")
+  const meId = meQuery.data?.id ?? null
   const [statusFilter, setStatusFilter] = useState("all")
   const [editing, setEditing] = useState<UserRow | null>(null)
   const [deactivateTarget, setDeactivateTarget] = useState<UserRow | null>(null)
@@ -191,7 +210,7 @@ export function UsersTab() {
     queryKey: ["roles"],
     queryFn: async () =>
       unwrap<{ id: number; name: string }[]>(await rolesRolesIndex(withAuth())),
-    enabled: formOpen,
+    enabled: formOpen && canManageUsers,
   })
 
   const saveMutation = useMutation({
@@ -202,12 +221,14 @@ export function UsersTab() {
           email: string
           password?: string
           is_active: boolean
-          roles: string[]
+          roles?: string[]
         } = {
           name: form.name,
           email: form.email,
           is_active: form.isActive,
-          roles: form.roles,
+        }
+        if (canManageUsers) {
+          payload.roles = form.roles
         }
         if (form.password.trim()) {
           payload.password = form.password
@@ -259,6 +280,8 @@ export function UsersTab() {
       setFormOpen(true)
     },
     onDeactivateRequest: setDeactivateTarget,
+    canManageUsers,
+    meId,
   })
 
   const canSave =
@@ -286,16 +309,18 @@ export function UsersTab() {
         ]}
         filterPlaceholder={tt("allStatuses")}
         toolbar={
-          <Button
-            onClick={() => {
-              setEditing(null)
-              setForm({ ...EMPTY_FORM })
-              setFormOpen(true)
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            {t("newTitle")}
-          </Button>
+          canManageUsers ? (
+            <Button
+              onClick={() => {
+                setEditing(null)
+                setForm({ ...EMPTY_FORM })
+                setFormOpen(true)
+              }}
+            >
+              <Plus className="mr-2 size-4" />
+              {t("newTitle")}
+            </Button>
+          ) : null
         }
       />
 
@@ -341,35 +366,37 @@ export function UsersTab() {
                 className="flex-1"
               />
             </div>
-            <div className="flex items-start gap-3">
-              <span className="w-28 shrink-0 pt-1.5 text-left after:ml-1 after:content-[':']">{t("roles")}</span>
-              <div className="flex flex-1 flex-col gap-2">
-                {(rolesQuery.data ?? []).map((role) => (
-                  <label
-                    key={role.id}
-                    className="flex items-center gap-2 text-sm leading-none"
-                  >
-                    <Checkbox
-                      checked={form.roles.includes(role.name)}
-                      onCheckedChange={(checked) =>
-                        setForm((f) => ({
-                          ...f,
-                          roles: checked
-                            ? [...f.roles, role.name]
-                            : f.roles.filter((r) => r !== role.name),
-                        }))
-                      }
-                    />
-                    {role.name}
-                  </label>
-                ))}
-                {rolesQuery.isPending && formOpen && (
-                  <span className="text-xs text-muted-foreground">
-                    {t("loadingRoles")}
-                  </span>
-                )}
+            {canManageUsers && (
+              <div className="flex items-start gap-3">
+                <span className="w-28 shrink-0 pt-1.5 text-left after:ml-1 after:content-[':']">{t("roles")}</span>
+                <div className="flex flex-1 flex-col gap-2">
+                  {(rolesQuery.data ?? []).map((role) => (
+                    <label
+                      key={role.id}
+                      className="flex items-center gap-2 text-sm leading-none"
+                    >
+                      <Checkbox
+                        checked={form.roles.includes(role.name)}
+                        onCheckedChange={(checked) =>
+                          setForm((f) => ({
+                            ...f,
+                            roles: checked
+                              ? [...f.roles, role.name]
+                              : f.roles.filter((r) => r !== role.name),
+                          }))
+                        }
+                      />
+                      {role.name}
+                    </label>
+                  ))}
+                  {rolesQuery.isPending && formOpen && (
+                    <span className="text-xs text-muted-foreground">
+                      {t("loadingRoles")}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             <div className="flex items-center gap-3">
               <Label htmlFor="user-active" className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("active")}</Label>
               <Switch

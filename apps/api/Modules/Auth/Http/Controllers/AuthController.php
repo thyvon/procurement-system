@@ -90,6 +90,6 @@ class AuthController extends Controller
 
     public function me(): JsonResponse
     {
-        return ApiResponse::success(new UserResource(request()->user()));
+        return ApiResponse::success(new UserResource(request()->user()->load('roles')));
     }
 }

@@ -25,6 +25,15 @@ class UserResource extends JsonResource
             'entityId' => $this->entity_id,
             'isActive' => $this->is_active ?? null,
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')->values()),
+            'permissions' => $this->when(
+                $request->user()?->is($this->resource) ?? false,
+                function () use ($request) {
+                    $user = $request->user();
+                    $user->loadMissing(['permissions', 'roles.permissions']);
+
+                    return $user->getAllPermissions()->pluck('name')->values();
+                },
+            ),
             'createdAt' => $this->created_at?->toIso8601String(),
         ];
     }
