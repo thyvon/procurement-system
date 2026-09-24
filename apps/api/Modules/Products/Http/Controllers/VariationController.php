@@ -10,10 +10,12 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Modules\Products\Http\Requests\StoreMergeVariationRequest;
 use Modules\Products\Http\Requests\StoreVariationTemplateRequest;
+use Modules\Products\Http\Requests\UpdateVariationTemplateRequest;
 use Modules\Products\Http\Resources\ProductResource;
 use Modules\Products\Http\Resources\VariationTemplateResource;
 use Modules\Products\Models\Product;
 use Modules\Products\Models\VariationTemplate;
+use Modules\Products\Models\VariationTemplateOption;
 use Modules\Products\Repositories\ProductRepositoryInterface;
 use Modules\Products\Repositories\VariationTemplateRepositoryInterface;
 use Modules\Products\Services\VariationService;
@@ -56,6 +58,52 @@ class VariationController extends Controller
         return ApiResponse::success(new VariationTemplateResource($template->load('options')), 201);
     }
 
+    public function templateShow(VariationTemplate $variationTemplate): VariationTemplateResource
+    {
+        $this->authorize('view', $variationTemplate);
+
+        return new VariationTemplateResource($variationTemplate->load('options'));
+    }
+
+    public function templateUpdate(UpdateVariationTemplateRequest $request, VariationTemplate $variationTemplate): VariationTemplateResource
+    {
+        $this->authorize('update', $variationTemplate);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        $validated = $request->validated();
+        $hasOptions = array_key_exists('options', $validated);
+        [$data, $options] = $this->splitPayload($validated);
+
+        DB::transaction(function () use ($user, $variationTemplate, $data, $options, $hasOptions) {
+            $data['updated_by'] = $user->getKey();
+            $updated = $this->templates->update($variationTemplate, $data);
+
+            if ($hasOptions) {
+                $this->syncOptions($updated, $options);
+            }
+        });
+
+        return new VariationTemplateResource($variationTemplate->load('options'));
+    }
+
+    public function templateDestroy(VariationTemplate $variationTemplate): JsonResponse
+    {
+        $this->authorize('delete', $variationTemplate);
+
+        if ($this->templateIsInUse($variationTemplate)) {
+            abort(409, 'Cannot delete a variation template that is assigned to products or used by variants.');
+        }
+
+        DB::transaction(function () use ($variationTemplate) {
+            $variationTemplate->options()->delete();
+            $this->templates->delete($variationTemplate);
+        });
+
+        return ApiResponse::success(['deleted' => true]);
+    }
+
     public function merge(StoreMergeVariationRequest $request): JsonResponse
     {
         $this->authorize('update', Product::class);
@@ -85,13 +133,54 @@ class VariationController extends Controller
         return [$validated, $options];
     }
 
+    /**
+     * Upsert-by-id option rows and hard-delete rows no longer present,
+     * mirroring UomController::syncSubUnits.
+     *
+     * @param  array<int, array<string, mixed>>  $options
+     */
     private function syncOptions(VariationTemplate $template, array $options): void
     {
+        $keepIds = [];
+
         foreach ($options as $index => $row) {
-            $template->options()->create([
+            $option = ! empty($row['id'])
+                ? $template->options()->findOrFail($row['id'])
+                : new VariationTemplateOption;
+
+            $option->forceFill([
+                'variation_template_id' => $template->getKey(),
                 'value' => $row['value'],
                 'sort_order' => $row['sort_order'] ?? $index,
             ]);
+            $option->save();
+            $keepIds[] = $option->getKey();
         }
+
+        $template->options()->whereNotIn('id', $keepIds)->delete();
+    }
+
+    private function templateIsInUse(VariationTemplate $template): bool
+    {
+        $assignedToProduct = DB::table('product_variation_template')
+            ->where('variation_template_id', $template->getKey())
+            ->exists();
+
+        if ($assignedToProduct) {
+            return true;
+        }
+
+        $optionIds = $template->options()->pluck('id');
+        if ($optionIds->isEmpty()) {
+            return false;
+        }
+
+        return DB::table('product_variants')
+            ->where(function ($query) use ($optionIds) {
+                foreach ($optionIds as $optionId) {
+                    $query->orWhere('option_values', 'like', '%'.$optionId.'%');
+                }
+            })
+            ->exists();
     }
 }

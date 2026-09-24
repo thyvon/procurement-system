@@ -25,11 +25,17 @@ import type {
 import type {
   AuthenticationExceptionResponse,
   AuthorizationExceptionResponse,
+  ModelNotFoundExceptionResponse,
   ProductsMergeVariation200,
+  ProductsVariationTemplatesDestroy200,
+  ProductsVariationTemplatesDestroy409,
   ProductsVariationTemplatesIndex200,
+  ProductsVariationTemplatesShow200,
   ProductsVariationTemplatesStore201,
+  ProductsVariationTemplatesUpdate200,
   StoreMergeVariationRequest,
   StoreVariationTemplateRequest,
+  UpdateVariationTemplateRequest,
   ValidationExceptionResponse
 } from '../model';
 
@@ -354,6 +360,471 @@ export function useProductsVariationTemplatesStore<TData = Awaited<ReturnType<ty
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getProductsVariationTemplatesStoreQueryOptions(storeVariationTemplateRequest,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type productsVariationTemplatesShowResponse200 = {
+  data: ProductsVariationTemplatesShow200
+  status: 200
+}
+
+export type productsVariationTemplatesShowResponse401 = {
+  data: AuthenticationExceptionResponse
+  status: 401
+}
+
+export type productsVariationTemplatesShowResponse403 = {
+  data: AuthorizationExceptionResponse
+  status: 403
+}
+
+export type productsVariationTemplatesShowResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
+export type productsVariationTemplatesShowResponseSuccess = (productsVariationTemplatesShowResponse200) & {
+  headers: Headers;
+};
+export type productsVariationTemplatesShowResponseError = (productsVariationTemplatesShowResponse401 | productsVariationTemplatesShowResponse403 | productsVariationTemplatesShowResponse404) & {
+  headers: Headers;
+};
+
+export type productsVariationTemplatesShowResponse = (productsVariationTemplatesShowResponseSuccess | productsVariationTemplatesShowResponseError)
+
+export const getProductsVariationTemplatesShowUrl = (variationTemplate: string,) => {
+
+
+
+
+  return `http://localhost:8000/api/v1/products/variation-templates/${variationTemplate}`
+}
+
+export const productsVariationTemplatesShow = async (variationTemplate: string, options?: RequestInit): Promise<productsVariationTemplatesShowResponse> => {
+
+  const res = await fetch(getProductsVariationTemplatesShowUrl(variationTemplate),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: productsVariationTemplatesShowResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as productsVariationTemplatesShowResponse
+}
+
+
+
+
+
+export const getProductsVariationTemplatesShowQueryKey = (variationTemplate: string,) => {
+    return [
+    `http://localhost:8000/api/v1/products/variation-templates/${variationTemplate}`
+    ] as const;
+    }
+
+
+export const getProductsVariationTemplatesShowQueryOptions = <TData = Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(variationTemplate: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getProductsVariationTemplatesShowQueryKey(variationTemplate);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsVariationTemplatesShow>>> = ({ signal }) => productsVariationTemplatesShow(variationTemplate, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: variationTemplate !== null && variationTemplate !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ProductsVariationTemplatesShowQueryResult = NonNullable<Awaited<ReturnType<typeof productsVariationTemplatesShow>>>
+export type ProductsVariationTemplatesShowQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
+
+
+export function useProductsVariationTemplatesShow<TData = Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ variationTemplate: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof productsVariationTemplatesShow>>,
+          TError,
+          Awaited<ReturnType<typeof productsVariationTemplatesShow>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsVariationTemplatesShow<TData = Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ variationTemplate: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof productsVariationTemplatesShow>>,
+          TError,
+          Awaited<ReturnType<typeof productsVariationTemplatesShow>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsVariationTemplatesShow<TData = Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ variationTemplate: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useProductsVariationTemplatesShow<TData = Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ variationTemplate: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getProductsVariationTemplatesShowQueryOptions(variationTemplate,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getProductsVariationTemplatesShowSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(variationTemplate: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getProductsVariationTemplatesShowQueryKey(variationTemplate);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsVariationTemplatesShow>>> = ({ signal }) => productsVariationTemplatesShow(variationTemplate, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseSuspenseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ProductsVariationTemplatesShowSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof productsVariationTemplatesShow>>>
+export type ProductsVariationTemplatesShowSuspenseQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
+
+
+export function useProductsVariationTemplatesShowSuspense<TData = Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ variationTemplate: string, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsVariationTemplatesShowSuspense<TData = Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ variationTemplate: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsVariationTemplatesShowSuspense<TData = Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ variationTemplate: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useProductsVariationTemplatesShowSuspense<TData = Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ variationTemplate: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesShow>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getProductsVariationTemplatesShowSuspenseQueryOptions(variationTemplate,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type productsVariationTemplatesUpdateResponse200 = {
+  data: ProductsVariationTemplatesUpdate200
+  status: 200
+}
+
+export type productsVariationTemplatesUpdateResponse401 = {
+  data: AuthenticationExceptionResponse
+  status: 401
+}
+
+export type productsVariationTemplatesUpdateResponse403 = {
+  data: AuthorizationExceptionResponse
+  status: 403
+}
+
+export type productsVariationTemplatesUpdateResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
+export type productsVariationTemplatesUpdateResponse422 = {
+  data: ValidationExceptionResponse
+  status: 422
+}
+
+export type productsVariationTemplatesUpdateResponseSuccess = (productsVariationTemplatesUpdateResponse200) & {
+  headers: Headers;
+};
+export type productsVariationTemplatesUpdateResponseError = (productsVariationTemplatesUpdateResponse401 | productsVariationTemplatesUpdateResponse403 | productsVariationTemplatesUpdateResponse404 | productsVariationTemplatesUpdateResponse422) & {
+  headers: Headers;
+};
+
+export type productsVariationTemplatesUpdateResponse = (productsVariationTemplatesUpdateResponseSuccess | productsVariationTemplatesUpdateResponseError)
+
+export const getProductsVariationTemplatesUpdateUrl = (variationTemplate: string,) => {
+
+
+
+
+  return `http://localhost:8000/api/v1/products/variation-templates/${variationTemplate}`
+}
+
+export const productsVariationTemplatesUpdate = async (variationTemplate: string,
+    updateVariationTemplateRequest?: UpdateVariationTemplateRequest, options?: RequestInit): Promise<productsVariationTemplatesUpdateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+const res = await fetch(getProductsVariationTemplatesUpdateUrl(variationTemplate),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateVariationTemplateRequest)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: productsVariationTemplatesUpdateResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as productsVariationTemplatesUpdateResponse
+}
+
+
+
+
+
+export const getProductsVariationTemplatesUpdateQueryKey = (variationTemplate: string,
+    updateVariationTemplateRequest?: UpdateVariationTemplateRequest,) => {
+    return [
+    'PUT', `http://localhost:8000/api/v1/products/variation-templates/${variationTemplate}`, updateVariationTemplateRequest
+    ] as const;
+    }
+
+
+export const getProductsVariationTemplatesUpdateQueryOptions = <TData = Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(variationTemplate: string,
+    updateVariationTemplateRequest?: UpdateVariationTemplateRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getProductsVariationTemplatesUpdateQueryKey(variationTemplate,updateVariationTemplateRequest);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>> = ({ signal }) => productsVariationTemplatesUpdate(variationTemplate,updateVariationTemplateRequest, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: variationTemplate !== null && variationTemplate !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ProductsVariationTemplatesUpdateQueryResult = NonNullable<Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>>
+export type ProductsVariationTemplatesUpdateQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse
+
+
+export function useProductsVariationTemplatesUpdate<TData = Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ variationTemplate: string,
+    updateVariationTemplateRequest: undefined |  UpdateVariationTemplateRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>,
+          TError,
+          Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsVariationTemplatesUpdate<TData = Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ variationTemplate: string,
+    updateVariationTemplateRequest?: UpdateVariationTemplateRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>,
+          TError,
+          Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsVariationTemplatesUpdate<TData = Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ variationTemplate: string,
+    updateVariationTemplateRequest?: UpdateVariationTemplateRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useProductsVariationTemplatesUpdate<TData = Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ variationTemplate: string,
+    updateVariationTemplateRequest?: UpdateVariationTemplateRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesUpdate>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getProductsVariationTemplatesUpdateQueryOptions(variationTemplate,updateVariationTemplateRequest,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type productsVariationTemplatesDestroyResponse200 = {
+  data: ProductsVariationTemplatesDestroy200
+  status: 200
+}
+
+export type productsVariationTemplatesDestroyResponse401 = {
+  data: AuthenticationExceptionResponse
+  status: 401
+}
+
+export type productsVariationTemplatesDestroyResponse403 = {
+  data: AuthorizationExceptionResponse
+  status: 403
+}
+
+export type productsVariationTemplatesDestroyResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
+export type productsVariationTemplatesDestroyResponse409 = {
+  data: ProductsVariationTemplatesDestroy409
+  status: 409
+}
+
+export type productsVariationTemplatesDestroyResponseSuccess = (productsVariationTemplatesDestroyResponse200) & {
+  headers: Headers;
+};
+export type productsVariationTemplatesDestroyResponseError = (productsVariationTemplatesDestroyResponse401 | productsVariationTemplatesDestroyResponse403 | productsVariationTemplatesDestroyResponse404 | productsVariationTemplatesDestroyResponse409) & {
+  headers: Headers;
+};
+
+export type productsVariationTemplatesDestroyResponse = (productsVariationTemplatesDestroyResponseSuccess | productsVariationTemplatesDestroyResponseError)
+
+export const getProductsVariationTemplatesDestroyUrl = (variationTemplate: string,) => {
+
+
+
+
+  return `http://localhost:8000/api/v1/products/variation-templates/${variationTemplate}`
+}
+
+export const productsVariationTemplatesDestroy = async (variationTemplate: string, options?: RequestInit): Promise<productsVariationTemplatesDestroyResponse> => {
+
+  const res = await fetch(getProductsVariationTemplatesDestroyUrl(variationTemplate),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: productsVariationTemplatesDestroyResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as productsVariationTemplatesDestroyResponse
+}
+
+
+
+
+
+export const getProductsVariationTemplatesDestroyQueryKey = (variationTemplate: string,) => {
+    return [
+    'DELETE', `http://localhost:8000/api/v1/products/variation-templates/${variationTemplate}`
+    ] as const;
+    }
+
+
+export const getProductsVariationTemplatesDestroyQueryOptions = <TData = Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ProductsVariationTemplatesDestroy409>(variationTemplate: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getProductsVariationTemplatesDestroyQueryKey(variationTemplate);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>> = ({ signal }) => productsVariationTemplatesDestroy(variationTemplate, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: variationTemplate !== null && variationTemplate !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ProductsVariationTemplatesDestroyQueryResult = NonNullable<Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>>
+export type ProductsVariationTemplatesDestroyQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ProductsVariationTemplatesDestroy409
+
+
+export function useProductsVariationTemplatesDestroy<TData = Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ProductsVariationTemplatesDestroy409>(
+ variationTemplate: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>,
+          TError,
+          Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsVariationTemplatesDestroy<TData = Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ProductsVariationTemplatesDestroy409>(
+ variationTemplate: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>,
+          TError,
+          Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsVariationTemplatesDestroy<TData = Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ProductsVariationTemplatesDestroy409>(
+ variationTemplate: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useProductsVariationTemplatesDestroy<TData = Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ProductsVariationTemplatesDestroy409>(
+ variationTemplate: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsVariationTemplatesDestroy>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getProductsVariationTemplatesDestroyQueryOptions(variationTemplate,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

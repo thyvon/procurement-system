@@ -28,18 +28,18 @@ Project-wide rules live in the root `AGENTS.md` (API-first principle, consistenc
 ## Errors and mutations
 
 - No per-mutation `onError` toasts — the global `MutationCache` in `src/app/providers.tsx` toasts the API `message`. Opt out with `meta: { silent: true }` only when the form shows the error inline (e.g. login).
-- All mutations use `useMutation` — no manual `saving` state + try/catch (see `entity-quick-add-modal.tsx` for the anti-pattern).
+- All mutations use `useMutation` — no manual `saving` state + try/catch.
 - Success/error text comes from the API message where available; client checks are UX-only hints — the API response is the source of truth.
 
 ## UI
 
-- shadcn `components/ui` + Tailwind tokens only; one `cn` import source; one Toaster (sonner from `providers.tsx` — the extra `Toaster` in `(app)/layout.tsx` is dead debt, don't add more); no raw palette classes or inline gradient styles.
+- shadcn `components/ui` + Tailwind tokens only; one `cn` import source; one Toaster (sonner from `providers.tsx`); no raw palette classes or inline gradient styles.
 
 ## Known debt (do not copy)
 
-See root `AGENTS.md` → "Known inconsistencies". The main ones here: `product-form.tsx` (`payload as never`), `products-tab.tsx` (status filter never sent to the API), `entity-quick-add-modal.tsx` (manual saving/try-catch instead of `useMutation`), two `cn` import sources, hardcoded English in the Products feature.
+See root `AGENTS.md` → "Known inconsistencies". The main ones here: `import-dialog.tsx` (`rows as never`), status filter never sent to the API (all 6 product tabs), two `cn` import sources, hardcoded English in the Products feature.
 
 ## Verification
 
-- `npm run typecheck` && `npm run lint` before finishing. If typecheck errors point at `.next/types/validator.ts`, delete `.next/types` (gitignored, stale build output) and rerun.
+- `pnpm typecheck` && `pnpm lint` before finishing. If typecheck errors point at `.next/types/validator.ts`, delete `.next/types` (gitignored, stale build output) and rerun.
 - Husky pre-commit also runs lint + typecheck.

@@ -52,8 +52,7 @@ All business logic, validation, authorization, defaults/code generation, and sta
 
 ## Known inconsistencies (do not copy — fix opportunistically when already in the area)
 
-- `product-form.tsx`: `payload as never` instead of the generated request type.
-- `products-tab.tsx`: status filter UI is wired to state but never sent to the API (`productsItemsIndex({})`).
-- `entity-quick-add-modal.tsx`: manual `saving`/try/catch instead of `useMutation`; requires a category for groups client-side, but the API's group create has no `category_id` field at all — a client-only rule with nowhere to send the value.
-- `ProductRefController` returns raw models (snake_case); `ProductImportController` builds its own 422 without `errors`; `VariationController::merge` takes a plain `Request` (no FormRequest).
-- Products feature UI strings hardcoded English; `messages/km.json` has orphan `nav.catalog` key; two `cn` import sources; no Prettier despite docs mentioning it.
+- `import-dialog.tsx`: `rows as never` instead of the generated request type.
+- `products-tab.tsx`: status filter UI is wired to state but never sent to the API (`productsItemsIndex({})`); the same client-side-only status filter exists in all 6 product tabs (`DataTable` never applies it as a column filter).
+- `ProductRefController` returns raw models (snake_case); `ProductImportController` builds its own 422 without `errors`.
+- Products feature UI strings partially hardcoded English; two `cn` import sources; no Prettier despite docs mentioning it.

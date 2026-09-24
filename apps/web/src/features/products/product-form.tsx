@@ -10,10 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RequiredMark } from "@/components/required-mark";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Field, FieldLabel } from "@/components/ui/field";
 import {
   Combobox,
   ComboboxContent,
@@ -43,7 +42,13 @@ import {
   productsVariationTemplatesIndex,
 } from "@/lib/api/variation/variation";
 import { VariantMatrix, type VariantRow } from "./components/variant-matrix";
-import { EntityQuickAddModal } from "./components/entity-quick-add-modal";
+import { MultiSelectCombobox } from "./components/multi-select-combobox";
+import { CategoryDialog } from "./components/category-dialog";
+import { GroupDialog } from "./components/group-dialog";
+import { BrandDialog } from "./components/brand-dialog";
+import { UomDialog } from "./components/uom-dialog";
+import { SubUnitDialog } from "./components/sub-unit-dialog";
+import { VariationTemplateDialog } from "./components/variation-template-dialog";
 
 type ProductType = "single" | "variable";
 
@@ -83,7 +88,6 @@ function toVariantRows(
       v.subUnitPurchasePrice !== null && v.subUnitPurchasePrice !== undefined
         ? String(v.subUnitPurchasePrice)
         : "",
-    imageUrl: v.imageUrl ?? "",
   }));
 }
 
@@ -127,7 +131,7 @@ export function ProductForm({ mode, productId }: ProductFormProps) {
   if (isEdit && (!productQuery.data || productQuery.isError)) {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">{t("nameRequired")}</p>
+        <p className="text-sm text-muted-foreground">{t("loadError")}</p>
         <BackButton label={t("back")} />
       </div>
     );
@@ -242,7 +246,10 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
   const [templateIds, setTemplateIds] = useState<string[]>(initial?.templateIds ?? []);
   const [variantRows, setVariantRows] = useState<VariantRow[]>(initial?.variantRows ?? []);
 
-  const [quickAddEntity, setQuickAddEntity] = useState<"category" | "brand" | "group" | "uom" | null>(null);
+  const [quickAddEntity, setQuickAddEntity] = useState<
+    "category" | "subCategory" | "brand" | "group" | "uom" | "subUnit" | null
+  >(null);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
   const { data: groupsData } = useQuery({
     queryKey: ["groups"],
@@ -267,10 +274,15 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
 
   const { data: templatesData } = useQuery({
     queryKey: ["variation-templates"],
-    queryFn: async () => unwrap<Array<{ id: string; name: string; options?: Array<{ id: string; value: string }> }>>(
-      await productsVariationTemplatesIndex(withAuth())
-    ),
-    enabled: productType === "variable",
+    queryFn: async () =>
+      unwrap<
+        Array<{
+          id: string;
+          name: string;
+          isActive: boolean;
+          options?: Array<{ id: string; value: string; sortOrder: number }>;
+        }>
+      >(await productsVariationTemplatesIndex(withAuth())),
   });
 
   const groups = useMemo(() => groupsData ?? [], [groupsData]);
@@ -290,43 +302,60 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
 
   const selectedUom = useMemo(() => uoms.find((u) => u.id === uomId), [uoms, uomId]);
 
-  const buildPayload = () => {
-    const payload = {
-      code: code.trim() || null,
-      name: name.trim(),
-      name_km: nameKm.trim() || null,
-      description: description.trim() || null,
-      product_type: productType,
-      category_id: subCategoryId || categoryId || null,
-      group_id: groupId || null,
-      brand_id: brandId || null,
-      uom_id: uomId || null,
-      sub_unit_id: subUnitId || null,
-      purchase_price: purchasePrice === "" ? null : Number(purchasePrice),
-      sub_unit_purchase_price:
-        subUnitPurchasePrice === "" ? null : Number(subUnitPurchasePrice),
-      is_active: isActive,
-      ...(productType === "variable"
-        ? {
-            template_ids: templateIds,
-            variants: variantRows.map((row) => ({
-              id: row.id ?? null,
-              code: row.sku.trim() || null,
-              description: row.description.trim() || null,
-              option_values: row.values as unknown as string[],
-              sub_unit_id: row.subUnitId || null,
-              purchase_price:
-                row.purchasePrice === "" ? null : Number(row.purchasePrice),
-              sub_unit_purchase_price:
-                row.subUnitPurchasePrice === ""
-                  ? null
-                  : Number(row.subUnitPurchasePrice),
-            })),
-          }
-        : {}),
-    };
-    return payload;
+  const addTemplate = (templateId: string) => {
+    if (!templateIds.includes(templateId)) {
+      setTemplateIds((prev) => [...prev, templateId]);
+    }
   };
+
+  const handleTemplatesChange = (next: string[]) => {
+    const removed = templateIds.filter((tid) => !next.includes(tid));
+    setTemplateIds(next);
+    if (removed.length > 0) {
+      setVariantRows((prev) =>
+        prev.map((r) => {
+          const values = { ...r.values };
+          for (const tid of removed) delete values[tid];
+          return { ...r, values };
+        })
+      );
+    }
+  };
+
+  const buildPayload = () => ({
+    code: code.trim() || null,
+    name: name.trim(),
+    name_km: nameKm.trim() || null,
+    description: description.trim() || null,
+    product_type: productType,
+    category_id: subCategoryId || categoryId || null,
+    group_id: groupId || null,
+    brand_id: brandId || null,
+    uom_id: uomId || null,
+    sub_unit_id: subUnitId || null,
+    purchase_price: purchasePrice === "" ? null : Number(purchasePrice),
+    sub_unit_purchase_price:
+      subUnitPurchasePrice === "" ? null : Number(subUnitPurchasePrice),
+    is_active: isActive,
+    ...(productType === "variable"
+      ? {
+          template_ids: templateIds,
+          variants: variantRows.map((row) => ({
+            id: row.id ?? null,
+            code: row.sku.trim() || null,
+            description: row.description.trim() || null,
+            option_values: row.values as unknown as string[],
+            sub_unit_id: row.subUnitId || null,
+            purchase_price:
+              row.purchasePrice === "" ? null : Number(row.purchasePrice),
+            sub_unit_purchase_price:
+              row.subUnitPurchasePrice === ""
+                ? null
+                : Number(row.subUnitPurchasePrice),
+          })),
+        }
+      : {}),
+  });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -352,26 +381,51 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
       toast.error(t("nameRequired"));
       return;
     }
+    if (productType === "variable") {
+      if (templateIds.length === 0) {
+        toast.error(t("matrix.needTemplate"));
+        return;
+      }
+      if (variantRows.length === 0) {
+        toast.error(t("matrix.needRow"));
+        return;
+      }
+      const seen = new Set<string>();
+      for (const r of variantRows) {
+        const ids = templateIds.map((tid) => r.values[tid]).filter(Boolean);
+        if (ids.length !== templateIds.length) {
+          toast.error(t("matrix.rowMissingValue"));
+          return;
+        }
+        const key = ids.slice().sort().join("|");
+        if (seen.has(key)) {
+          toast.error(t("matrix.duplicateCombo"));
+          return;
+        }
+        seen.add(key);
+      }
+    }
     saveMutation.mutate();
   };
 
-  const handleQuickAddSaved = (entity: string, newId?: string) => {
-    if (entity === "category" && newId) {
-      setCategoryId(newId);
+  // Dialogs invalidate their own query keys; here we only select the new record.
+  const selectSaved = (
+    entity: "category" | "subCategory" | "group" | "brand" | "uom" | "subUnit",
+    id: string
+  ) => {
+    if (entity === "category") {
+      setCategoryId(id);
       setSubCategoryId("");
+      setGroupId("");
     }
-    if (entity === "group" && newId) setGroupId(newId);
-    if (entity === "brand" && newId) setBrandId(newId);
-    if (entity === "uom" && newId) setUomId(newId);
-    const key =
-      entity === "category"
-        ? "categories"
-        : entity === "group"
-          ? "groups"
-          : entity === "brand"
-            ? "brands"
-            : "uoms";
-    qc.invalidateQueries({ queryKey: [key] });
+    if (entity === "subCategory") setSubCategoryId(id);
+    if (entity === "group") setGroupId(id);
+    if (entity === "brand") setBrandId(id);
+    if (entity === "uom") {
+      setUomId(id);
+      setSubUnitId("");
+    }
+    if (entity === "subUnit") setSubUnitId(id);
   };
 
   return (
@@ -406,45 +460,48 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
             <div>
               <Label className="text-sm font-medium">{t("descriptionSection")}</Label>
               <div className="mt-2 space-y-4">
-                <Field orientation="vertical">
-                  <FieldLabel>{t("code")}</FieldLabel>
+                <div className="flex items-center gap-3">
+                  <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("code")}</Label>
                   <Input
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     placeholder={t("codePlaceholder")}
-                    className="font-mono"
+                    className="flex-1 font-mono"
                   />
-                </Field>
-                <Field orientation="vertical">
-                  <FieldLabel>{t("nameKm")}</FieldLabel>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Label className="w-28 shrink-0 pt-1.5 text-left after:ml-1 after:content-[':']">{t("nameKm")}</Label>
                   <Textarea
                     value={nameKm}
                     onChange={(e) => setNameKm(e.target.value)}
                     placeholder={t("nameKmPlaceholder")}
                     rows={3}
+                    className="flex-1"
                   />
-                </Field>
-                <Field orientation="vertical">
-                  <FieldLabel>{t("nameEn")}</FieldLabel>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Label className="w-28 shrink-0 pt-1.5 text-left after:ml-1 after:content-[':']">{t("nameEn")} <RequiredMark /></Label>
                   <Textarea
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder={t("nameEnPlaceholder")}
                     rows={3}
+                    className="flex-1"
                   />
-                </Field>
-                <Field orientation="vertical">
-                  <FieldLabel>{t("description")}</FieldLabel>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Label className="w-28 shrink-0 pt-1.5 text-left after:ml-1 after:content-[':']">{t("description")}</Label>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
                     placeholder={t("descriptionPlaceholder")}
+                    className="flex-1"
                   />
-                </Field>
+                </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field orientation="vertical">
-                    <FieldLabel>{t("purchasePrice")}</FieldLabel>
+                  <div className="flex items-center gap-3">
+                    <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("purchasePrice")}</Label>
                     <Input
                       type="number"
                       min="0"
@@ -452,11 +509,11 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
                       value={purchasePrice}
                       onChange={(e) => setPurchasePrice(e.target.value)}
                       placeholder="0.00"
-                      className="font-mono"
+                      className="flex-1 font-mono"
                     />
-                  </Field>
-                  <Field orientation="vertical">
-                    <FieldLabel>{t("subUnitPurchasePrice")}</FieldLabel>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("subUnitPurchasePrice")}</Label>
                     <Input
                       type="number"
                       min="0"
@@ -464,10 +521,10 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
                       value={subUnitPurchasePrice}
                       onChange={(e) => setSubUnitPurchasePrice(e.target.value)}
                       placeholder="0.00"
-                      className="font-mono"
+                      className="flex-1 font-mono"
                       disabled={!subUnitId}
                     />
-                  </Field>
+                  </div>
                 </div>
               </div>
             </div>
@@ -475,44 +532,43 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
             <div>
               <Label className="text-sm font-medium">{t("catalogSection")}</Label>
               <div className="mt-2 space-y-4">
-                <Field orientation="vertical">
-                  <FieldLabel>{t("productType")}</FieldLabel>
-                  <Combobox
-                    items={ComboboxNS.createItems(
-                      [
-                        { value: "single" as const, label: t("typeSingle") },
-                        { value: "variable" as const, label: t("typeVariable") },
-                      ],
-                      {
-                        getValue: (x) => x.value,
-                        getLabel: (x) => x.label,
-                      }
-                    )}
-                    value={productType}
-                    onValueChange={(val) => {
-                      setProductType(val as ProductType);
-                      if (val !== "variable") {
-                        setTemplateIds([]);
-                        setVariantRows([]);
-                      }
-                    }}
-                  >
-                    <ComboboxInput placeholder={t("selectType")} />
-                    <ComboboxContent>
-                      <ComboboxEmpty>{t("selectType")}</ComboboxEmpty>
-                      <ComboboxList>
-                        {(x) => (
-                          <ComboboxItem key={x.value} value={x.value}>
-                            {x.label}
-                          </ComboboxItem>
-                        )}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
-                </Field>
-                <Field orientation="vertical">
-                  <FieldLabel>{t("category")}</FieldLabel>
-                  <div className="flex gap-1.5">
+                <div className="flex items-center gap-3">
+                  <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("productType")}</Label>
+                  <div className="flex-1">
+                    <Combobox
+                      items={ComboboxNS.createItems(
+                        [
+                          { value: "single" as const, label: t("typeSingle") },
+                          { value: "variable" as const, label: t("typeVariable") },
+                        ],
+                        {
+                          getValue: (x) => x.value,
+                          getLabel: (x) => x.label,
+                        }
+                      )}
+                      value={productType}
+                      onValueChange={(val) => {
+                        setProductType(val as ProductType);
+                        if (val !== "variable") setTemplateIds([]);
+                      }}
+                    >
+                      <ComboboxInput placeholder={t("selectType")} />
+                      <ComboboxContent>
+                        <ComboboxEmpty>{t("selectType")}</ComboboxEmpty>
+                        <ComboboxList>
+                          {(x) => (
+                            <ComboboxItem key={x.value} value={x.value}>
+                              {x.label}
+                            </ComboboxItem>
+                          )}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("category")}</Label>
+                  <div className="flex flex-1 gap-1.5">
                     <div className="flex-1">
                       <Combobox
                         items={ComboboxNS.createItems(parentCategories, {
@@ -548,50 +604,70 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
                       <Plus className="size-4" />
                     </Button>
                   </div>
-                </Field>
-                {categoryId && subCategories.length > 0 && (
-                  <Field orientation="vertical">
-                    <FieldLabel>{t("subCategory")}</FieldLabel>
-                    <Select
-                      value={subCategoryId}
-                      onValueChange={(v) => setSubCategoryId(v ?? "")}
-                      items={subCategories.map((c) => ({ value: c.id, label: c.name }))}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={t("selectSubCategory")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {subCategories.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                )}
-                <Field orientation="vertical">
-                  <FieldLabel>{t("group")}</FieldLabel>
-                  <div className="flex gap-1.5">
-                    <div className="flex-1">
-                      <Select
-                        value={groupId}
-                        onValueChange={(v) => setGroupId(v ?? "")}
-                        items={groups.map((g) => ({ value: g.id, label: g.name }))}
+                </div>
+                {categoryId && (
+                  <div className="flex items-center gap-3">
+                    <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("subCategory")}</Label>
+                    <div className="flex flex-1 gap-1.5">
+                      <div className="flex-1">
+                        <Combobox
+                          items={ComboboxNS.createItems(subCategories, {
+                            getValue: (c) => c.id,
+                            getLabel: (c) => c.name,
+                          })}
+                          value={subCategoryId}
+                          onValueChange={(val) => setSubCategoryId(val as string)}
+                        >
+                          <ComboboxInput placeholder={t("selectSubCategory")} />
+                          <ComboboxContent>
+                            <ComboboxEmpty>{t("selectSubCategory")}</ComboboxEmpty>
+                            <ComboboxList>
+                              {(c) => (
+                                <ComboboxItem key={c.id} value={c.id}>
+                                  {c.name}
+                                </ComboboxItem>
+                              )}
+                            </ComboboxList>
+                          </ComboboxContent>
+                        </Combobox>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={() => setQuickAddEntity("subCategory")}
                       >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={
-                            groups.length ? t("selectGroup") : t("noGroups")
-                          } />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {groups.map((g) => (
-                            <SelectItem key={g.id} value={g.id}>
-                              {g.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <Plus className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("group")}</Label>
+                  <div className="flex flex-1 gap-1.5">
+                    <div className="flex-1">
+                      <Combobox
+                        items={ComboboxNS.createItems(groups, {
+                          getValue: (g) => g.id,
+                          getLabel: (g) => g.name,
+                        })}
+                        value={groupId}
+                        onValueChange={(val) => setGroupId(val as string)}
+                      >
+                        <ComboboxInput
+                          placeholder={groups.length ? t("selectGroup") : t("noGroups")}
+                        />
+                        <ComboboxContent>
+                          <ComboboxEmpty>{t("noGroups")}</ComboboxEmpty>
+                          <ComboboxList>
+                            {(g) => (
+                              <ComboboxItem key={g.id} value={g.id}>
+                                {g.name}
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
                     </div>
                     <Button
                       variant="outline"
@@ -602,10 +678,10 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
                       <Plus className="size-4" />
                     </Button>
                   </div>
-                </Field>
-                <Field orientation="vertical">
-                  <FieldLabel>{t("brand")}</FieldLabel>
-                  <div className="flex gap-1.5">
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("brand")}</Label>
+                  <div className="flex flex-1 gap-1.5">
                     <div className="flex-1">
                       <Combobox
                         items={ComboboxNS.createItems(brands, {
@@ -637,10 +713,10 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
                       <Plus className="size-4" />
                     </Button>
                   </div>
-                </Field>
-                <Field orientation="vertical">
-                  <FieldLabel>{t("uom")}</FieldLabel>
-                  <div className="flex gap-1.5">
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("uom")}</Label>
+                  <div className="flex flex-1 gap-1.5">
                     <div className="flex-1">
                       <Combobox
                         items={ComboboxNS.createItems(uoms, {
@@ -680,33 +756,48 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
                       <Plus className="size-4" />
                     </Button>
                   </div>
-                </Field>
-                {selectedUom?.subUnits && selectedUom.subUnits.length > 0 && (
-                  <Field orientation="vertical">
-                    <FieldLabel>{t("subUnit")}</FieldLabel>
-                    <Select
-                      value={subUnitId}
-                      onValueChange={(v) => setSubUnitId(v ?? "")}
-                      items={selectedUom.subUnits.map((s) => ({
-                        value: s.id,
-                        label: `${s.shortName || s.name}${s.conversionFactor ? ` (×${s.conversionFactor})` : ""}`,
-                      }))}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="None" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedUom.subUnits.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.shortName || s.name}{s.conversionFactor ? ` (×${s.conversionFactor})` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
+                </div>
+                {selectedUom && (
+                  <div className="flex items-center gap-3">
+                    <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("subUnit")}</Label>
+                    <div className="flex flex-1 gap-1.5">
+                      <div className="flex-1">
+                        <Combobox
+                          items={ComboboxNS.createItems(selectedUom.subUnits ?? [], {
+                            getValue: (s) => s.id,
+                            getLabel: (s) =>
+                              `${s.shortName || s.name}${s.conversionFactor ? ` (×${s.conversionFactor})` : ""}`,
+                          })}
+                          value={subUnitId}
+                          onValueChange={(val) => setSubUnitId(val as string)}
+                        >
+                          <ComboboxInput placeholder="None" />
+                          <ComboboxContent>
+                            <ComboboxEmpty>{t("subUnit")}</ComboboxEmpty>
+                            <ComboboxList>
+                              {(s) => (
+                                <ComboboxItem key={s.id} value={s.id}>
+                                  {s.shortName || s.name}
+                                  {s.conversionFactor ? ` (×${s.conversionFactor})` : ""}
+                                </ComboboxItem>
+                              )}
+                            </ComboboxList>
+                          </ComboboxContent>
+                        </Combobox>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={() => setQuickAddEntity("subUnit")}
+                      >
+                        <Plus className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
                 )}
-                <div className="flex items-center justify-between">
-                  <FieldLabel>{t("status")}</FieldLabel>
+                <div className="flex items-center gap-3">
+                  <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("status")}</Label>
                   <Switch
                     checked={isActive}
                     onCheckedChange={setIsActive}
@@ -726,63 +817,61 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
           <CardContent>
             <Label className="text-sm font-medium">{t("variationTemplates")}</Label>
             <div className="mt-2 space-y-2">
+              <MultiSelectCombobox
+                options={templates.map((x) => ({
+                  id: x.id,
+                  label: x.name,
+                  meta: String(x.options?.length ?? 0),
+                }))}
+                value={templateIds}
+                onValueChange={handleTemplatesChange}
+                placeholder={t("selectTemplates")}
+                emptyMessage={t("noTemplates")}
+                footer={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={() => setTemplateDialogOpen(true)}
+                  >
+                    <Plus className="size-4" />
+                    <span>{t("createTemplate")}</span>
+                  </Button>
+                }
+              />
               <p className="text-xs text-muted-foreground">
                 {t("variationTemplatesHint")}
               </p>
-              <div className="flex flex-wrap gap-2">
-                {templates.map((x) => (
-                  <Button
-                    key={x.id}
-                    type="button"
-                    variant={templateIds.includes(x.id) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setTemplateIds((prev) =>
-                        prev.includes(x.id)
-                          ? prev.filter((id) => id !== x.id)
-                          : [...prev, x.id]
-                      );
-                    }}
-                  >
-                    {x.name}
-                    {x.options && (
-                      <span className="ml-1 text-xs opacity-60">
-                        ({x.options.length})
-                      </span>
-                    )}
-                  </Button>
-                ))}
-                {templates.length === 0 && (
-                  <p className="text-sm text-muted-foreground">{t("noTemplates")}</p>
-                )}
-              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {productType === "variable" && (
-        <Card>
-          <CardHeader className="flex-row items-center justify-between gap-3">
-            <CardTitle>{t("variationMatrix")}</CardTitle>
-            <div className="text-sm text-muted-foreground">
-              {t("matrix.count", { count: variantRows.length })}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <VariantMatrix
-              rows={variantRows}
-              onRowsChange={setVariantRows}
-              templateIds={templateIds}
-              templates={templates.map((x) => ({ ...x, options: x.options ?? [] }))}
-              uoms={uoms}
-              productCode={code}
-              productName={name}
-              isVariation={productType === "variable"}
-            />
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between gap-3">
+          <CardTitle>{t("variationMatrix")}</CardTitle>
+          <div className="text-sm text-muted-foreground">
+            {t("matrix.count", { count: variantRows.length })}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <VariantMatrix
+            rows={variantRows}
+            onRowsChange={setVariantRows}
+            templateIds={templateIds}
+            templates={templates.map((x) => ({
+              ...x,
+              options: x.options ?? [],
+            }))}
+            uoms={uoms}
+            productCode={code}
+            productName={name}
+            productUomId={uomId}
+            isVariation={productType === "variable"}
+          />
+        </CardContent>
+      </Card>
 
       <div className="flex items-center justify-end gap-2">
         <Button
@@ -798,14 +887,79 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
         </Button>
       </div>
 
-      {quickAddEntity && (
-        <EntityQuickAddModal
-          entity={quickAddEntity}
-          open={!!quickAddEntity}
+      {quickAddEntity === "category" && (
+        <CategoryDialog
+          open
           onOpenChange={(open) => {
             if (!open) setQuickAddEntity(null);
           }}
-          onSaved={(newId) => handleQuickAddSaved(quickAddEntity, newId)}
+          onSaved={(id) => selectSaved("category", id)}
+        />
+      )}
+
+      {quickAddEntity === "subCategory" && categoryId && (
+        <CategoryDialog
+          key={`sub-${categoryId}`}
+          open
+          onOpenChange={(open) => {
+            if (!open) setQuickAddEntity(null);
+          }}
+          parentId={categoryId}
+          onSaved={(id) => selectSaved("subCategory", id)}
+        />
+      )}
+
+      {quickAddEntity === "group" && (
+        <GroupDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setQuickAddEntity(null);
+          }}
+          onSaved={(id) => selectSaved("group", id)}
+        />
+      )}
+
+      {quickAddEntity === "brand" && (
+        <BrandDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setQuickAddEntity(null);
+          }}
+          onSaved={(id) => selectSaved("brand", id)}
+        />
+      )}
+
+      {quickAddEntity === "uom" && (
+        <UomDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setQuickAddEntity(null);
+          }}
+          onSaved={(id) => selectSaved("uom", id)}
+        />
+      )}
+
+      {quickAddEntity === "subUnit" && selectedUom && (
+        <SubUnitDialog
+          key={selectedUom.id}
+          open
+          onOpenChange={(open) => {
+            if (!open) setQuickAddEntity(null);
+          }}
+          uom={selectedUom}
+          onSaved={(id) => selectSaved("subUnit", id)}
+        />
+      )}
+
+      {templateDialogOpen && (
+        <VariationTemplateDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setTemplateDialogOpen(false);
+          }}
+          onSaved={(id) => {
+            if (id) addTemplate(id);
+          }}
         />
       )}
     </div>

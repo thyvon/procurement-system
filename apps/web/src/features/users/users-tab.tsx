@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { RequiredMark } from "@/components/required-mark"
 import { Switch } from "@/components/ui/switch"
 import { unwrap, withAuth } from "@/lib/api-client"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
@@ -309,7 +310,7 @@ export function UsersTab() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <Label htmlFor="user-name" className="w-28 shrink-0 text-right after:content-[':']">{t("name")} *</Label>
+              <Label htmlFor="user-name" className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("name")} <RequiredMark /></Label>
               <Input
                 id="user-name"
                 value={form.name}
@@ -319,7 +320,7 @@ export function UsersTab() {
               />
             </div>
             <div className="flex items-center gap-3">
-              <Label htmlFor="user-email" className="w-28 shrink-0 text-right after:content-[':']">{t("email")} *</Label>
+              <Label htmlFor="user-email" className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("email")} <RequiredMark /></Label>
               <Input
                 id="user-email"
                 type="email"
@@ -330,7 +331,7 @@ export function UsersTab() {
               />
             </div>
             <div className="flex items-center gap-3">
-              <Label htmlFor="user-password" className="w-28 shrink-0 text-right after:content-[':']">{t("password")} {!editing && "*"}</Label>
+              <Label htmlFor="user-password" className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("password")} {!editing && <RequiredMark />}</Label>
               <Input
                 id="user-password"
                 type="password"
@@ -341,7 +342,7 @@ export function UsersTab() {
               />
             </div>
             <div className="flex items-start gap-3">
-              <span className="w-28 shrink-0 pt-1.5 text-right after:content-[':']">{t("roles")}</span>
+              <span className="w-28 shrink-0 pt-1.5 text-left after:ml-1 after:content-[':']">{t("roles")}</span>
               <div className="flex flex-1 flex-col gap-2">
                 {(rolesQuery.data ?? []).map((role) => (
                   <label
@@ -370,7 +371,7 @@ export function UsersTab() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Label htmlFor="user-active" className="w-28 shrink-0 text-right after:content-[':']">{t("active")}</Label>
+              <Label htmlFor="user-active" className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("active")}</Label>
               <Switch
                 id="user-active"
                 checked={form.isActive}

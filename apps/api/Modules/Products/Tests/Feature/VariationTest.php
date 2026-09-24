@@ -59,6 +59,114 @@ it('lists variation templates', function () {
         ->assertJsonPath('data.0.name', 'Color');
 });
 
+it('shows a variation template with its options', function () {
+    $template = VariationTemplate::create([
+        'name' => 'Size', 'entity_id' => $this->entity->getKey(),
+    ]);
+    $template->options()->create(['value' => 'Small', 'sort_order' => 0]);
+    $template->options()->create(['value' => 'Large', 'sort_order' => 1]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/products/variation-templates/'.$template->getKey())
+        ->assertOk()
+        ->assertJsonPath('data.name', 'Size')
+        ->assertJsonCount(2, 'data.options')
+        ->assertJsonPath('data.options.0.value', 'Small');
+});
+
+it('updates a variation template and syncs its options', function () {
+    $template = VariationTemplate::create([
+        'name' => 'Size', 'entity_id' => $this->entity->getKey(), 'is_active' => true,
+    ]);
+    $small = $template->options()->create(['value' => 'Small', 'sort_order' => 0]);
+    $template->options()->create(['value' => 'Large', 'sort_order' => 1]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->putJson('/api/v1/products/variation-templates/'.$template->getKey(), [
+            'name' => 'T-Shirt Size',
+            'is_active' => false,
+            'options' => [
+                ['id' => $small->getKey(), 'value' => 'Small', 'sort_order' => 5],
+                ['value' => 'Medium', 'sort_order' => 20],
+            ],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.name', 'T-Shirt Size')
+        ->assertJsonPath('data.isActive', false)
+        ->assertJsonCount(2, 'data.options')
+        ->assertJsonPath('data.options.0.value', 'Small')
+        ->assertJsonPath('data.options.1.value', 'Medium');
+
+    expect($template->refresh()->options()->pluck('value')->all())->toBe(['Small', 'Medium'])
+        ->and($template->options()->where('value', 'Small')->first()->sort_order)->toBe(5);
+});
+
+it('rejects renaming a template to another name in the same entity', function () {
+    VariationTemplate::create([
+        'name' => 'Color', 'entity_id' => $this->entity->getKey(),
+    ]);
+    $size = VariationTemplate::create([
+        'name' => 'Size', 'entity_id' => $this->entity->getKey(),
+    ]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->putJson('/api/v1/products/variation-templates/'.$size->getKey(), [
+            'name' => 'Color',
+        ])
+        ->assertStatus(422)
+        ->assertJsonPath('error', 'ValidationException');
+});
+
+it('deletes a variation template that is not in use', function () {
+    $template = VariationTemplate::create([
+        'name' => 'Material', 'entity_id' => $this->entity->getKey(),
+    ]);
+    $template->options()->create(['value' => 'Cotton', 'sort_order' => 0]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->deleteJson('/api/v1/products/variation-templates/'.$template->getKey())
+        ->assertOk()
+        ->assertJsonPath('data.deleted', true);
+
+    expect(VariationTemplate::withTrashed()->find($template->getKey())->deleted_at)->not->toBeNull()
+        ->and($template->options()->count())->toBe(0);
+});
+
+it('rejects deleting a template assigned to a product with 409', function () {
+    $template = VariationTemplate::create([
+        'name' => 'Size', 'entity_id' => $this->entity->getKey(),
+    ]);
+    $product = makeProduct($this->entity);
+    $product->variationTemplates()->attach($template->getKey());
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->deleteJson('/api/v1/products/variation-templates/'.$template->getKey())
+        ->assertStatus(409)
+        ->assertJsonPath('statusCode', 409);
+
+    expect(VariationTemplate::find($template->getKey()))->not->toBeNull();
+});
+
+it('rejects deleting a template whose option is used by a variant with 409', function () {
+    $template = VariationTemplate::create([
+        'name' => 'Size', 'entity_id' => $this->entity->getKey(),
+    ]);
+    $option = $template->options()->create(['value' => 'Medium', 'sort_order' => 0]);
+    $product = makeProduct($this->entity, ['product_type' => 'variable']);
+    $product->variants()->create([
+        'entity_id' => $this->entity->getKey(),
+        'name' => 'Generic Medium',
+        'option_values' => [$template->getKey() => $option->getKey()],
+    ]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->deleteJson('/api/v1/products/variation-templates/'.$template->getKey())
+        ->assertStatus(409)
+        ->assertJsonPath('statusCode', 409);
+
+    expect(VariationTemplate::find($template->getKey()))->not->toBeNull();
+});
+
 it('rejects duplicate template names within entity with 422', function () {
     VariationTemplate::create([
         'name' => 'Color', 'entity_id' => $this->entity->getKey(),

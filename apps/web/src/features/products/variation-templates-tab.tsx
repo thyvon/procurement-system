@@ -7,10 +7,12 @@ import { toast } from "sonner"
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table"
 import { MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react"
 import {
-  productsUomsDestroy,
-  productsUomsIndex,
-} from "@/lib/api/uom/uom"
+  productsVariationTemplatesDestroy,
+  productsVariationTemplatesIndex,
+} from "@/lib/api/variation/variation"
+import type { VariationTemplateResource } from "@/lib/api/model/variationTemplateResource"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { DataTable } from "@/components/ui/data-table"
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton"
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header"
@@ -32,61 +34,41 @@ import {
 } from "@/components/ui/dialog"
 import { unwrap, withAuth } from "@/lib/api-client"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
-import { UomDialog, type Uom } from "./components/uom-dialog"
+import { VariationTemplateDialog } from "./components/variation-template-dialog"
 
-const columnHelper = createColumnHelper<DataTableFeatures, Uom>()
+const columnHelper = createColumnHelper<DataTableFeatures, VariationTemplateResource>()
 
-function useUomColumns({
+function useTemplateColumns({
   onEditRequest,
   onDeleteRequest,
 }: {
-  onEditRequest: (uom: Uom) => void
-  onDeleteRequest: (uom: Uom) => void
-}): ColumnDef<DataTableFeatures, Uom>[] {
+  onEditRequest: (template: VariationTemplateResource) => void
+  onDeleteRequest: (template: VariationTemplateResource) => void
+}): ColumnDef<DataTableFeatures, VariationTemplateResource>[] {
   const tc = useTranslations("products.columns")
   const tt = useTranslations("products.table")
   return [
-    columnHelper.accessor("code", {
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc("refCode")} />
-      ),
-      cell: ({ row }) => (
-        <span className="font-mono text-xs">{row.getValue("code")}</span>
-      ),
-    }),
-    columnHelper.accessor("shortName", {
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc("shortName")} />
-      ),
-      cell: ({ row }) => (
-        <span className="font-mono text-xs">{row.getValue("shortName")}</span>
-      ),
-    }),
     columnHelper.accessor("name", {
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={tc("name")} />
       ),
     }),
     columnHelper.display({
-      id: "subUnits",
+      id: "options",
       enableSorting: false,
       enableHiding: false,
-      header: () => tc("subUnits"),
+      header: () => tc("options"),
       cell: ({ row }) => {
-        const subUnits = row.original.subUnits ?? []
-        if (subUnits.length === 0) {
-          return <span className="text-muted-foreground">—</span>
+        const options = row.original.options ?? []
+        if (options.length === 0) {
+          return <Badge variant="outline">0</Badge>
         }
         return (
-          <span className="text-xs">
-            {subUnits
-              .map(
-                (s) =>
-                  `${s.shortName || s.name}${
-                    s.conversionFactor ? ` ×${s.conversionFactor}` : ""
-                  }`,
-              )
-              .join(", ")}
+          <span className="flex flex-wrap items-center gap-1 text-xs">
+            <Badge variant="outline">{options.length}</Badge>
+            <span className="text-muted-foreground">
+              {options.map((o) => o.value).join(", ")}
+            </span>
           </span>
         )
       },
@@ -106,7 +88,7 @@ function useUomColumns({
       enableSorting: false,
       enableHiding: false,
       cell: ({ row }) => {
-        const uom = row.original
+        const template = row.original
         return (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="ghost" className="size-8 p-0" />}>
@@ -115,14 +97,14 @@ function useUomColumns({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => onEditRequest(uom)}>
+                <DropdownMenuItem onClick={() => onEditRequest(template)}>
                   <Pencil className="mr-2 size-4" />
                   {tt("edit")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive"
-                  onClick={() => onDeleteRequest(uom)}
+                  onClick={() => onDeleteRequest(template)}
                 >
                   <Trash2 className="mr-2 size-4" />
                   {tt("delete")}
@@ -133,43 +115,46 @@ function useUomColumns({
         )
       },
     }),
-  ] as ColumnDef<DataTableFeatures, Uom>[]
+  ] as ColumnDef<DataTableFeatures, VariationTemplateResource>[]
 }
 
-export function UomsTab() {
-  const t = useTranslations("products.uoms")
+export function VariationTemplatesTab() {
+  const t = useTranslations("products.variationTemplates")
   const tt = useTranslations("products.table")
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState("all")
-  const [editing, setEditing] = useState<Uom | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Uom | null>(null)
+  const [editing, setEditing] = useState<VariationTemplateResource | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<VariationTemplateResource | null>(null)
   const [formOpen, setFormOpen] = useState(false)
 
   const query = useQuery({
-    queryKey: ["uoms"],
+    queryKey: ["variation-templates"],
     queryFn: async () =>
-      unwrap<Uom[]>(await productsUomsIndex(withAuth())),
+      unwrap<VariationTemplateResource[]>(
+        await productsVariationTemplatesIndex(withAuth())
+      ),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => unwrap(await productsUomsDestroy(id, withAuth())),
+    mutationFn: async (id: string) =>
+      unwrap(await productsVariationTemplatesDestroy(id, withAuth())),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["uoms"] })
+      qc.invalidateQueries({ queryKey: ["variation-templates"] })
       setDeleteTarget(null)
       toast.success(t("deleted"))
     },
   })
 
-  const columns = useUomColumns({
-    onEditRequest: (uom) => {
-      setEditing(uom)
+  const columns = useTemplateColumns({
+    onEditRequest: (template) => {
+      setEditing(template)
       setFormOpen(true)
     },
     onDeleteRequest: setDeleteTarget,
   })
 
   if (query.isPending) {
-    return <DataTableSkeleton columns={6} actions={1} />
+    return <DataTableSkeleton columns={4} actions={1} />
   }
 
   return (
@@ -201,7 +186,7 @@ export function UomsTab() {
       />
 
       {formOpen && (
-        <UomDialog
+        <VariationTemplateDialog
           key={editing?.id ?? "new"}
           open
           onOpenChange={(open) => {

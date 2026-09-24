@@ -1,7 +1,4 @@
 {
-  "app": {
-    "name": "ការ​ទិញយុត្តាធិបតី"
-  },
   "common": {
     "loading": "កំពុងផ្ទុក…",
     "soon": "នឹងមកដល់ឆាប់ៗ",
@@ -20,10 +17,7 @@
     "tabEPurchase": "ចូលជាមួយ E-Purchase",
     "employeeId": "លេខកូដបុគ្គលិក",
     "employeeIdPlaceholder": "e.g. 00xxxx or firstname.lastname",
-    "employeePasswordPlaceholder": "ពាក្យសម្ងាត់ចូលកុំព្យូទ័រ​របស់អ្នក",
     "employeeIdRequired": "សូមបញ្ចូលលេខកូដបុគ្គលិក",
-    "updating": "កំពុងធ្វើបច្ចុប្បន្នភាព…",
-    "cancel": "បោះបង់",
     "welcome": "សូមស្វាគមន៍",
     "email": "អ៊ីមែល",
     "password": "ពាក្យសម្ងាត់",
@@ -44,6 +38,7 @@
     "brands": "ម៉ាក",
     "groups": "ក្រុម",
     "uoms": "ឯកតា",
+    "variationTemplates": "ទម្រង់ភាពប្រែប្រួល",
     "users": "អ្នកប្រើប្រាស់",
     "roles": "តួនាទី",
     "suppliers": "អ្នកផ្គត់ផ្គង់",
@@ -62,12 +57,10 @@
     "system": "តាមប្រព័ន្ធ"
   },
   "dashboard": {
-    "title": "ផ្ទាំងគ្រប់គ្រង",
     "greeting": "សូមស្វាគមន៍មកវិញ",
     "statusActive": "សកម្ម",
     "statusInactive": "អសកម្ម",
     "entityId": "លេខសម្គាល់អង្គភាព",
-    "name": "ឈ្មោះ",
     "email": "អ៊ីមែល",
     "status": "ស្ថានភាព"
   },
@@ -94,7 +87,8 @@
       "order": "លំដាប់",
       "price": "តម្លៃ",
       "shortName": "ឈ្មោះកាត់",
-      "subUnits": "ឯកតារង"
+      "subUnits": "ឯកតារង",
+      "options": "ជម្រើស"
     },
     "table": {
       "searchPlaceholder": "តមូរតាមឈ្មោះ...",
@@ -118,8 +112,10 @@
     },
     "categories": {
       "newTitle": "ប្រភេទថ្មី",
+      "newSubTitle": "ប្រភេទរងថ្មី",
       "editTitle": "កែប្រែប្រភេទ",
       "newDescription": "បន្ថែមប្រភេទផលិតផលថ្មី។",
+      "newSubDescription": "បន្ថែមប្រភេទរងក្រោមប្រភេទមេដែលបានជ្រើស។",
       "editDescription": "ធ្វើបច្ចុប្បន្នភាពព័ត៌មានប្រភេទ។",
       "name": "ឈ្មោះ",
       "nameKm": "ឈ្មោះ (ខ្មែរ)",
@@ -177,6 +173,8 @@
     },
     "uoms": {
       "newTitle": "ឯកតាថ្មី",
+      "newSubUnitTitle": "ឯកតារងថ្មី",
+      "newSubUnitDescription": "បន្ថែមឯកតារងទៅ {name}។",
       "editTitle": "កែប្រែឯកតា",
       "newDescription": "បន្ថែមឯកតារាប់ថ្មី។",
       "editDescription": "ធ្វើបច្ចុប្បន្នភាពព័ត៌មានឯកតា។",
@@ -196,6 +194,7 @@
       "conversionFactorPlaceholder": "1",
       "removeSubUnit": "លុបឯកតារង",
       "subUnitIncomplete": "ត្រូវការឈ្មោះ ឈ្មោះកាត់ និងកំណើន (> 0)។",
+      "subUnitCreated": "បានបង្កើតឯកតារង។",
       "cancel": "បោះបង់",
       "save": "រក្សាទុក",
       "saving": "កំពុងរក្សាទុក...",
@@ -203,6 +202,28 @@
       "updated": "បានធ្វើបច្ចុប្បន្នភាពឯកតា។",
       "deleteTitle": "លុបឯកតា",
       "deleted": "បានលុបឯកតា។"
+    },
+    "variationTemplates": {
+      "newTitle": "ទម្រង់ថ្មី",
+      "editTitle": "កែប្រែទម្រង់",
+      "newDescription": "បន្ថែមទម្រង់ភាពប្រែប្រួលជាមួយតម្លៃជម្រើសរបស់វា។",
+      "editDescription": "ធ្វើបច្ចុប្បន្នភាពឈ្មោះ ស្ថានភាព និងតម្លៃជម្រើសនៃទម្រង់។",
+      "name": "ឈ្មោះ",
+      "active": "សកម្ម",
+      "namePlaceholder": "ឧ. ទំហំ, ពណ៌",
+      "options": "តម្លៃជម្រើស",
+      "valuesHint": "ឧទាហរណ៍៖ Small, Medium, Large ឬ Red, Blue, Black។",
+      "addOption": "បន្ថែមជម្រើស",
+      "optionValue": "តម្លៃ",
+      "optionValuePlaceholder": "ឧ. Small",
+      "sortOrder": "លំដាប់",
+      "cancel": "បោះបង់",
+      "save": "រក្សាទុក",
+      "saving": "កំពុងរក្សាទុក...",
+      "created": "បានបង្កើតទម្រង់ភាពប្រែប្រួល។",
+      "updated": "បានធ្វើបច្ចុប្បន្នភាពទម្រង់ភាពប្រែប្រួល។",
+      "deleteTitle": "លុបទម្រង់",
+      "deleted": "បានលុបទម្រង់ភាពប្រែប្រួល។"
     },
     "form": {
       "createTitle": "បន្ថែមផលិតផល",
@@ -238,8 +259,10 @@
       "purchasePrice": "តម្លៃទិញ",
       "subUnitPurchasePrice": "តម្លៃទិញឯកតារង",
       "variationTemplates": "ទម្រង់ភាពប្រែប្រួល",
-      "variationTemplatesHint": "ជ្រើសរើសទម្រង់ដើម្បីកំណត់វិស័យភាពប្រែប្រួល (ឧ. ទំហំ, ពណ៌)។",
-      "noTemplates": "មិនមានទម្រង់ទេ។",
+      "createTemplate": "បង្កើតទម្រង់ថ្មី",
+      "selectTemplates": "ជ្រើសរើសទម្រង់...",
+      "variationTemplatesHint": "តម្លៃត្រូវបានកំណត់តាមជួរនៅក្នុងម៉ាទ្រីសភាពប្រែប្រួលខាងក្រោម។",
+      "noTemplates": "រកមិនឃើញទម្រង់ទេ។",
       "variationMatrix": "ម៉ាទ្រីសភាពប្រែប្រួល",
       "back": "ត្រឡប់ទៅផលិតផល",
       "cancel": "បោះបង់",
@@ -248,6 +271,7 @@
       "created": "បានបង្កើតផលិតផល។",
       "updated": "បានធ្វើបច្ចុប្បន្នភាពផលិតផល។",
       "nameRequired": "ត្រូវការឈ្មោះផលិតផល។",
+      "loadError": "មិនអាចផ្ទុកផលិតផលនេះបានទេ។",
       "matrix": {
         "count": "{count} វ៉ារីយ៉ង់",
         "no": "លេខ",
@@ -259,11 +283,14 @@
         "subUnitPurchasePrice": "តម្លៃឯកតារង",
         "actions": "សកម្មភាព",
         "addRow": "បន្ថែមជួរវ៉ារីយ៉ង់",
-        "addRowTitle": "បន្ថែមជួរវ៉ារីយ៉ង់",
         "cancel": "បោះបង់",
         "add": "បន្ថែម",
-        "selectValuesHint": "ជ្រើសរើសតម្លៃសម្រាប់ជួរទម្រង់នីមួយៗ។",
         "selectTemplateFirst": "ជ្រើសរើសទម្រង់ភាពប្រែប្រួលយ៉ាងតិចមួយសិន។",
+        "selectValuesForAll": "ត្រូវជ្រើសរើសតម្លៃសម្រាប់ជួរទម្រង់ទាំងអស់។",
+        "needTemplate": "ជ្រើសរើសទម្រង់ភាពប្រែប្រួលយ៉ាងតិចមួយ។",
+        "needRow": "ត្រូវបន្ថែមជួរវ៉ារីយ៉ង់យ៉ាងតិចមួយដើម្បីរក្សាទុក។",
+        "rowMissingValue": "ជួរវ៉ារីយ៉ង់នីមួយៗត្រូវការតម្លៃសម្រាប់ទម្រង់នីមួយៗ។",
+        "duplicateCombo": "មានជួរពីរដែលមានបន្សំតម្លៃភាពប្រែប្រួលដូចគ្នា។",
         "pickTemplate": "ជ្រើស {name}...",
         "none": "—"
       }
@@ -275,7 +302,6 @@
       "code": "កូដ",
       "description": "ការពិពណ៌នា",
       "catalog": "បញ្ជី",
-      "pricing": "តម្លៃ",
       "type": "ប្រភេទ",
       "category": "ប្រភេទ",
       "group": "ក្រុម",

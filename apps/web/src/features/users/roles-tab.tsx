@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { RequiredMark } from "@/components/required-mark"
 import { unwrap, withAuth } from "@/lib/api-client"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
 
@@ -244,7 +245,7 @@ export function RolesTab() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <Label htmlFor="role-name" className="w-28 shrink-0 text-right after:content-[':']">{t("name")} *</Label>
+              <Label htmlFor="role-name" className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("name")} <RequiredMark /></Label>
               <Input
                 id="role-name"
                 value={form.name}
@@ -254,7 +255,7 @@ export function RolesTab() {
               />
             </div>
             <div className="flex items-start gap-3">
-              <span className="w-28 shrink-0 pt-1.5 text-right after:content-[':']">{tp("label")}</span>
+              <span className="w-28 shrink-0 pt-1.5 text-left after:ml-1 after:content-[':']">{tp("label")}</span>
               <div className="flex flex-1 flex-col gap-2">
                 <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-5">
                   <span />

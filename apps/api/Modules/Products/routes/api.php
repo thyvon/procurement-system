@@ -25,6 +25,9 @@ Route::prefix('v1/products')
 
         Route::get('variation-templates', [VariationController::class, 'templateIndex'])->name('variation-templates.index');
         Route::post('variation-templates', [VariationController::class, 'templateStore'])->name('variation-templates.store');
+        Route::get('variation-templates/{variationTemplate}', [VariationController::class, 'templateShow'])->name('variation-templates.show');
+        Route::put('variation-templates/{variationTemplate}', [VariationController::class, 'templateUpdate'])->name('variation-templates.update');
+        Route::delete('variation-templates/{variationTemplate}', [VariationController::class, 'templateDestroy'])->name('variation-templates.destroy');
         Route::post('merge-variation', [VariationController::class, 'merge'])->name('merge-variation');
 
         Route::get('import/template', [ProductImportController::class, 'template'])->name('import.template');

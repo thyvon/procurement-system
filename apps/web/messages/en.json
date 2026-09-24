@@ -1,7 +1,4 @@
 {
-  "app": {
-    "name": "Procurement"
-  },
   "common": {
     "loading": "Loading…",
     "soon": "Coming soon",
@@ -20,10 +17,7 @@
     "tabEPurchase": "Login with E-Purchase",
     "employeeId": "Employee ID",
     "employeeIdPlaceholder": "e.g. 00xxxx or firstname.lastname",
-    "employeePasswordPlaceholder": "Your PC Login password",
     "employeeIdRequired": "Employee ID is required",
-    "updating": "Updating…",
-    "cancel": "Cancel",
     "welcome": "Welcome",
     "email": "Email",
     "password": "Password",
@@ -44,6 +38,7 @@
     "brands": "Brands",
     "groups": "Groups",
     "uoms": "Units",
+    "variationTemplates": "Variation Templates",
     "users": "Users",
     "roles": "Roles",
     "suppliers": "Suppliers",
@@ -62,12 +57,10 @@
     "system": "System"
   },
   "dashboard": {
-    "title": "Dashboard",
     "greeting": "Welcome back",
     "statusActive": "Active",
     "statusInactive": "Inactive",
     "entityId": "Entity ID",
-    "name": "Name",
     "email": "Email",
     "status": "Status"
   },
@@ -94,7 +87,8 @@
       "order": "Order",
       "price": "Price",
       "shortName": "Short Name",
-      "subUnits": "Sub-Units"
+      "subUnits": "Sub-Units",
+      "options": "Options"
     },
     "table": {
       "searchPlaceholder": "Filter by name...",
@@ -118,8 +112,10 @@
     },
     "categories": {
       "newTitle": "New category",
+      "newSubTitle": "New sub-category",
       "editTitle": "Edit category",
       "newDescription": "Add a new product category.",
+      "newSubDescription": "Add a sub-category under the selected parent.",
       "editDescription": "Update the category details.",
       "name": "Name",
       "nameKm": "Name (KH)",
@@ -177,6 +173,8 @@
     },
     "uoms": {
       "newTitle": "New unit",
+      "newSubUnitTitle": "New sub-unit",
+      "newSubUnitDescription": "Add a sub-unit to {name}.",
       "editTitle": "Edit unit",
       "newDescription": "Add a new unit of measure.",
       "editDescription": "Update the unit details.",
@@ -196,6 +194,7 @@
       "conversionFactorPlaceholder": "1",
       "removeSubUnit": "Remove sub-unit",
       "subUnitIncomplete": "Name, short name and factor (> 0) are required.",
+      "subUnitCreated": "Sub-unit created.",
       "cancel": "Cancel",
       "save": "Save",
       "saving": "Saving...",
@@ -203,6 +202,28 @@
       "updated": "Unit updated.",
       "deleteTitle": "Delete unit",
       "deleted": "Unit deleted."
+    },
+    "variationTemplates": {
+      "newTitle": "New template",
+      "editTitle": "Edit template",
+      "newDescription": "Add a variation template with its option values.",
+      "editDescription": "Update the template name, status and option values.",
+      "name": "Name",
+      "active": "Active",
+      "namePlaceholder": "e.g. Size, Color",
+      "options": "Option Values",
+      "valuesHint": "Examples: Small, Medium, Large or Red, Blue, Black.",
+      "addOption": "Add option",
+      "optionValue": "Value",
+      "optionValuePlaceholder": "e.g. Small",
+      "sortOrder": "Order",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "created": "Variation template created.",
+      "updated": "Variation template updated.",
+      "deleteTitle": "Delete template",
+      "deleted": "Variation template deleted."
     },
     "form": {
       "createTitle": "Add Product",
@@ -238,8 +259,10 @@
       "purchasePrice": "Purchase Price",
       "subUnitPurchasePrice": "Sub-Unit Purchase Price",
       "variationTemplates": "Variation Templates",
-      "variationTemplatesHint": "Select templates to define variation dimensions (e.g., Size, Color).",
-      "noTemplates": "No templates available.",
+      "createTemplate": "Create a new template",
+      "selectTemplates": "Select templates...",
+      "variationTemplatesHint": "Values are assigned per row in the Variation Matrix below.",
+      "noTemplates": "No templates found.",
       "variationMatrix": "Variation Matrix",
       "back": "Back to products",
       "cancel": "Cancel",
@@ -248,6 +271,7 @@
       "created": "Product created.",
       "updated": "Product updated.",
       "nameRequired": "Product name is required.",
+      "loadError": "Could not load this product.",
       "matrix": {
         "count": "{count} variants",
         "no": "No.",
@@ -259,11 +283,14 @@
         "subUnitPurchasePrice": "Sub-Unit Price",
         "actions": "Actions",
         "addRow": "Add Variant Row",
-        "addRowTitle": "Add Variant Row",
         "cancel": "Cancel",
         "add": "Add",
-        "selectValuesHint": "Select values for each template column.",
         "selectTemplateFirst": "Select at least one variation template first.",
+        "selectValuesForAll": "Select a value for every template column.",
+        "needTemplate": "Select at least one variation template.",
+        "needRow": "Add at least one variant row to save.",
+        "rowMissingValue": "Every variant row needs a value for each template.",
+        "duplicateCombo": "Two rows have the same variation value combination.",
         "pickTemplate": "Pick {name}...",
         "none": "—"
       }
@@ -275,7 +302,6 @@
       "code": "Code",
       "description": "Description",
       "catalog": "Catalog",
-      "pricing": "Pricing",
       "type": "Type",
       "category": "Category",
       "group": "Group",

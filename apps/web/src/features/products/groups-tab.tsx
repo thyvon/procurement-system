@@ -9,8 +9,6 @@ import { MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react"
 import {
   productsGroupsDestroy,
   productsGroupsIndex,
-  productsGroupsStore,
-  productsGroupsUpdate,
 } from "@/lib/api/product-group/product-group"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
@@ -32,19 +30,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { unwrap, withAuth } from "@/lib/api-client"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
-
-type Group = {
-  id: string
-  code: string
-  name: string
-  description: string | null
-  isActive: boolean
-}
+import { GroupDialog, type Group } from "./components/group-dialog"
 
 const columnHelper = createColumnHelper<DataTableFeatures, Group>()
 
@@ -122,12 +110,6 @@ function useGroupColumns({
   ] as ColumnDef<DataTableFeatures, Group>[]
 }
 
-const EMPTY_FORM = {
-  name: "",
-  description: "",
-  isActive: true,
-}
-
 export function GroupsTab() {
   const t = useTranslations("products.groups")
   const tt = useTranslations("products.table")
@@ -136,37 +118,11 @@ export function GroupsTab() {
   const [editing, setEditing] = useState<Group | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Group | null>(null)
   const [formOpen, setFormOpen] = useState(false)
-  const [form, setForm] = useState({ ...EMPTY_FORM })
 
   const query = useQuery({
     queryKey: ["groups"],
     queryFn: async () =>
       unwrap<Group[]>(await productsGroupsIndex(withAuth())),
-  })
-
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const payload: {
-        name: string
-        description?: string | null
-        is_active?: boolean
-      } = {
-        name: form.name,
-        description: form.description || null,
-        is_active: form.isActive,
-      }
-      if (editing) {
-        return unwrap(await productsGroupsUpdate(editing.id, payload, withAuth()))
-      }
-      return unwrap(await productsGroupsStore(payload, withAuth()))
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["groups"] })
-      setFormOpen(false)
-      toast.success(editing ? t("updated") : t("created"))
-      setEditing(null)
-      setForm({ ...EMPTY_FORM })
-    },
   })
 
   const deleteMutation = useMutation({
@@ -181,11 +137,6 @@ export function GroupsTab() {
   const columns = useGroupColumns({
     onEditRequest: (group) => {
       setEditing(group)
-      setForm({
-        name: group.name,
-        description: group.description ?? "",
-        isActive: group.isActive,
-      })
       setFormOpen(true)
     },
     onDeleteRequest: setDeleteTarget,
@@ -214,7 +165,6 @@ export function GroupsTab() {
           <Button
             onClick={() => {
               setEditing(null)
-              setForm({ ...EMPTY_FORM })
               setFormOpen(true)
             }}
           >
@@ -224,62 +174,19 @@ export function GroupsTab() {
         }
       />
 
-      {/* Create / Edit dialog */}
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editing ? t("editTitle") : t("newTitle")}</DialogTitle>
-            <DialogDescription>
-              {editing ? t("editDescription") : t("newDescription")}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Label htmlFor="group-name" className="w-28 shrink-0 text-right after:content-[':']">{t("name")} *</Label>
-              <Input
-                id="group-name"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder={t("namePlaceholder")}
-                className="flex-1"
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <Label htmlFor="group-description" className="w-28 shrink-0 text-right after:content-[':']">{t("description")}</Label>
-              <Input
-                id="group-description"
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder={t("descriptionPlaceholder")}
-                className="flex-1"
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <Label htmlFor="group-active" className="w-28 shrink-0 text-right after:content-[':']">{t("active")}</Label>
-              <Switch
-                id="group-active"
-                checked={form.isActive}
-                onCheckedChange={(checked) => setForm((f) => ({ ...f, isActive: checked }))}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setFormOpen(false)}
-              disabled={saveMutation.isPending}
-            >
-              {t("cancel")}
-            </Button>
-            <Button
-              onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending || !form.name.trim()}
-            >
-              {saveMutation.isPending ? t("saving") : t("save")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {formOpen && (
+        <GroupDialog
+          key={editing?.id ?? "new"}
+          open
+          onOpenChange={(open) => {
+            if (!open) {
+              setFormOpen(false)
+              setEditing(null)
+            }
+          }}
+          editing={editing}
+        />
+      )}
 
       {/* Delete confirmation dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>

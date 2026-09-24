@@ -9,6 +9,7 @@ import type { StoreVariationTemplateRequestOptionsItem } from './storeVariationT
 export interface StoreVariationTemplateRequest {
   /** @maxLength 255 */
   name: string;
+  is_active?: boolean;
   /** @minItems 1 */
   options?: StoreVariationTemplateRequestOptionsItem[];
 }

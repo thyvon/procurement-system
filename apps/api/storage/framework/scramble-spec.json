@@ -935,6 +935,43 @@
                 }
             }
         },
+        "/v1/permissions": {
+            "get": {
+                "operationId": "permissions.index",
+                "tags": [
+                    "Permission"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `PermissionResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PermissionResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/products/items": {
             "get": {
                 "operationId": "products.items.index",
@@ -1077,7 +1114,20 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/components/schemas/ProductResource"
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/ProductResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "categoryName",
+                                                        "groupName",
+                                                        "brandName",
+                                                        "uomShortName"
+                                                    ]
+                                                }
+                                            ]
                                         },
                                         "meta": {
                                             "type": "null"
@@ -1197,7 +1247,20 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/components/schemas/ProductResource"
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/ProductResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "categoryName",
+                                                        "groupName",
+                                                        "brandName",
+                                                        "uomShortName"
+                                                    ]
+                                                }
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -1636,6 +1699,7 @@
                         "name": "group",
                         "in": "path",
                         "required": true,
+                        "description": "The group ID",
                         "schema": {
                             "type": "string"
                         }
@@ -1663,6 +1727,9 @@
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
                     }
@@ -1678,6 +1745,7 @@
                         "name": "group",
                         "in": "path",
                         "required": true,
+                        "description": "The group ID",
                         "schema": {
                             "type": "string"
                         }
@@ -1701,6 +1769,9 @@
                             }
                         }
                     },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
                     },
@@ -1719,6 +1790,7 @@
                         "name": "group",
                         "in": "path",
                         "required": true,
+                        "description": "The group ID",
                         "schema": {
                             "type": "string"
                         }
@@ -1754,6 +1826,9 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -2024,6 +2099,286 @@
                                 }
                             }
                         }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/roles": {
+            "get": {
+                "operationId": "roles.roles.index",
+                "tags": [
+                    "Role"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `RoleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/RoleResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "roles.roles.store",
+                "tags": [
+                    "Role"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreRoleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/RoleResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "permissions"
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/roles/{role}": {
+            "get": {
+                "operationId": "roles.roles.show",
+                "tags": [
+                    "Role"
+                ],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "description": "The role ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`RoleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/RoleResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "permissions"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "roles.roles.update",
+                "tags": [
+                    "Role"
+                ],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "description": "The role ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateRoleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`RoleResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/RoleResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "permissions"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "roles.roles.destroy",
+                "tags": [
+                    "Role"
+                ],
+                "parameters": [
+                    {
+                        "name": "role",
+                        "in": "path",
+                        "required": true,
+                        "description": "The role ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "deleted": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "deleted"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -2748,12 +3103,228 @@
                 }
             }
         },
+        "/v1/products/variation-templates/{variationTemplate}": {
+            "get": {
+                "operationId": "products.variation-templates.show",
+                "tags": [
+                    "Variation"
+                ],
+                "parameters": [
+                    {
+                        "name": "variationTemplate",
+                        "in": "path",
+                        "required": true,
+                        "description": "The variation template ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`VariationTemplateResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/VariationTemplateResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "options"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "products.variation-templates.update",
+                "tags": [
+                    "Variation"
+                ],
+                "parameters": [
+                    {
+                        "name": "variationTemplate",
+                        "in": "path",
+                        "required": true,
+                        "description": "The variation template ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateVariationTemplateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`VariationTemplateResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/VariationTemplateResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "options"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "products.variation-templates.destroy",
+                "tags": [
+                    "Variation"
+                ],
+                "parameters": [
+                    {
+                        "name": "variationTemplate",
+                        "in": "path",
+                        "required": true,
+                        "description": "The variation template ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "deleted": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "deleted"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                "Cannot delete a variation template that is assigned to products or used by variants."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/products/merge-variation": {
             "post": {
                 "operationId": "products.merge-variation",
                 "tags": [
                     "Variation"
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreMergeVariationRequest"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "",
@@ -2777,46 +3348,14 @@
                             }
                         }
                     },
-                    "422": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "statusCode": {
-                                            "type": "integer",
-                                            "const": 422
-                                        },
-                                        "message": {
-                                            "type": "string"
-                                        },
-                                        "error": {
-                                            "type": "string",
-                                            "const": "InvalidMergeRequest"
-                                        },
-                                        "correlationId": {
-                                            "type": [
-                                                "string",
-                                                "null"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "statusCode",
-                                        "message",
-                                        "error",
-                                        "correlationId"
-                                    ]
-                                }
-                            }
-                        }
-                    },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     }
                 }
             }
@@ -2832,6 +3371,12 @@
                     },
                     "entity_id": {
                         "type": "string"
+                    },
+                    "code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "name": {
                         "type": "string"
@@ -2882,6 +3427,7 @@
                 "required": [
                     "id",
                     "entity_id",
+                    "code",
                     "name",
                     "description",
                     "is_active",
@@ -2899,6 +3445,12 @@
                     "id": {
                         "type": "string"
                     },
+                    "code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "name": {
                         "type": "string"
                     },
@@ -2914,6 +3466,7 @@
                 },
                 "required": [
                     "id",
+                    "code",
                     "name",
                     "description",
                     "isActive"
@@ -2991,6 +3544,26 @@
                     "password"
                 ],
                 "title": "LoginRequest"
+            },
+            "PermissionResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "guardName": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "guardName"
+                ],
+                "title": "PermissionResource"
             },
             "Product": {
                 "type": "object",
@@ -3287,6 +3860,12 @@
                     "entity_id": {
                         "type": "string"
                     },
+                    "code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "name": {
                         "type": "string"
                     },
@@ -3336,6 +3915,7 @@
                 "required": [
                     "id",
                     "entity_id",
+                    "code",
                     "name",
                     "description",
                     "is_active",
@@ -3353,6 +3933,12 @@
                     "id": {
                         "type": "string"
                     },
+                    "code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "name": {
                         "type": "string"
                     },
@@ -3368,6 +3954,7 @@
                 },
                 "required": [
                     "id",
+                    "code",
                     "name",
                     "description",
                     "isActive"
@@ -3478,6 +4065,16 @@
                     },
                     "variantCount": {
                         "type": "integer"
+                    },
+                    "variants": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProductVariantResource"
+                        }
+                    },
+                    "templateIds": {
+                        "type": "array",
+                        "items": {}
                     }
                 },
                 "required": [
@@ -3499,6 +4096,77 @@
                 ],
                 "title": "ProductResource"
             },
+            "ProductVariantResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "productId": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "optionValues": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "subUnitId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "purchasePrice": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "subUnitPurchasePrice": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "imageUrl": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "isActive": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id",
+                    "productId",
+                    "code",
+                    "name",
+                    "description",
+                    "optionValues",
+                    "subUnitId",
+                    "purchasePrice",
+                    "subUnitPurchasePrice",
+                    "imageUrl",
+                    "isActive"
+                ],
+                "title": "ProductVariantResource"
+            },
             "RefreshRequest": {
                 "type": "object",
                 "properties": {
@@ -3510,6 +4178,37 @@
                     "refresh_token"
                 ],
                 "title": "RefreshRequest"
+            },
+            "RoleResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "guardName": {
+                        "type": "string"
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "createdAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "guardName",
+                    "createdAt"
+                ],
+                "title": "RoleResource"
             },
             "StoreBrandRequest": {
                 "type": "object",
@@ -3985,6 +4684,51 @@
                 ],
                 "title": "StoreEntityRequest"
             },
+            "StoreMergeVariationRequest": {
+                "type": "object",
+                "properties": {
+                    "parentId": {
+                        "type": "string"
+                    },
+                    "templateIds": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "minItems": 1
+                    },
+                    "assignments": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "productId": {
+                                    "type": "string"
+                                },
+                                "values": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    },
+                                    "minItems": 1
+                                }
+                            },
+                            "required": [
+                                "productId",
+                                "values"
+                            ]
+                        },
+                        "minItems": 1
+                    }
+                },
+                "required": [
+                    "parentId",
+                    "templateIds",
+                    "assignments"
+                ],
+                "title": "StoreMergeVariationRequest"
+            },
             "StoreProductCategoryRequest": {
                 "type": "object",
                 "properties": {
@@ -4127,12 +4871,103 @@
                     },
                     "is_active": {
                         "type": "boolean"
+                    },
+                    "template_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "variants": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 26
+                                },
+                                "code": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 64
+                                },
+                                "name": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 255
+                                },
+                                "description": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "option_values": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "maxLength": 26
+                                    },
+                                    "minItems": 1
+                                },
+                                "sub_unit_id": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "purchase_price": {
+                                    "type": [
+                                        "number",
+                                        "null"
+                                    ],
+                                    "minimum": 0
+                                },
+                                "sub_unit_purchase_price": {
+                                    "type": [
+                                        "number",
+                                        "null"
+                                    ],
+                                    "minimum": 0
+                                },
+                                "is_active": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
                     }
                 },
                 "required": [
                     "name"
                 ],
                 "title": "StoreProductRequest"
+            },
+            "StoreRoleRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "title": "StoreRoleRequest"
             },
             "StoreUomRequest": {
                 "type": "object",
@@ -4204,11 +5039,7 @@
                     "roles": {
                         "type": "array",
                         "items": {
-                            "type": "string",
-                            "enum": [
-                                "admin",
-                                "staff"
-                            ]
+                            "type": "string"
                         }
                     }
                 },
@@ -4225,6 +5056,9 @@
                     "name": {
                         "type": "string",
                         "maxLength": 255
+                    },
+                    "is_active": {
+                        "type": "boolean"
                     },
                     "options": {
                         "type": "array",
@@ -4257,6 +5091,12 @@
                     },
                     "entity_id": {
                         "type": "string"
+                    },
+                    "code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "name": {
                         "type": "string"
@@ -4304,6 +5144,7 @@
                 "required": [
                     "id",
                     "entity_id",
+                    "code",
                     "name",
                     "short_name",
                     "is_active",
@@ -4320,6 +5161,12 @@
                 "properties": {
                     "id": {
                         "type": "string"
+                    },
+                    "code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "name": {
                         "type": "string"
@@ -4339,6 +5186,7 @@
                 },
                 "required": [
                     "id",
+                    "code",
                     "name",
                     "shortName",
                     "isActive"
@@ -4987,9 +5835,97 @@
                     },
                     "is_active": {
                         "type": "boolean"
+                    },
+                    "template_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "variants": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 26
+                                },
+                                "code": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 64
+                                },
+                                "name": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 255
+                                },
+                                "description": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "option_values": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "maxLength": 26
+                                    },
+                                    "minItems": 1
+                                },
+                                "sub_unit_id": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "purchase_price": {
+                                    "type": [
+                                        "number",
+                                        "null"
+                                    ],
+                                    "minimum": 0
+                                },
+                                "sub_unit_purchase_price": {
+                                    "type": [
+                                        "number",
+                                        "null"
+                                    ],
+                                    "minimum": 0
+                                },
+                                "is_active": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
                     }
                 },
                 "title": "UpdateProductRequest"
+            },
+            "UpdateRoleRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "permissions": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "title": "UpdateRoleRequest"
             },
             "UpdateUomRequest": {
                 "type": "object",
@@ -5055,15 +5991,47 @@
                     "roles": {
                         "type": "array",
                         "items": {
-                            "type": "string",
-                            "enum": [
-                                "admin",
-                                "staff"
-                            ]
+                            "type": "string"
                         }
                     }
                 },
                 "title": "UpdateUserRequest"
+            },
+            "UpdateVariationTemplateRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
+                    "options": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "value": {
+                                    "type": "string",
+                                    "maxLength": 255
+                                },
+                                "sort_order": {
+                                    "type": "integer",
+                                    "minimum": 0
+                                }
+                            }
+                        },
+                        "minItems": 1
+                    }
+                },
+                "title": "UpdateVariationTemplateRequest"
             },
             "UserResource": {
                 "type": "object",
@@ -5078,7 +6046,10 @@
                         "type": "string"
                     },
                     "avatar": {
-                        "type": "null"
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "entityId": {
                         "type": [

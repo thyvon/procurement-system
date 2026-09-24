@@ -8,6 +8,7 @@ import { CategoriesTab } from "./categories-tab";
 import { BrandsTab } from "./brands-tab";
 import { GroupsTab } from "./groups-tab";
 import { UomsTab } from "./uoms-tab";
+import { VariationTemplatesTab } from "./variation-templates-tab";
 
 export function ProductManagementPage() {
   const t = useTranslations("nav");
@@ -22,6 +23,7 @@ export function ProductManagementPage() {
           <TabsTrigger value="brands">{t("brands")}</TabsTrigger>
           <TabsTrigger value="groups">{t("groups")}</TabsTrigger>
           <TabsTrigger value="uoms">{t("uoms")}</TabsTrigger>
+          <TabsTrigger value="variation-templates">{t("variationTemplates")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="products">
@@ -38,6 +40,9 @@ export function ProductManagementPage() {
         </TabsContent>
         <TabsContent value="uoms">
           <UomsTab />
+        </TabsContent>
+        <TabsContent value="variation-templates">
+          <VariationTemplatesTab />
         </TabsContent>
       </Tabs>
     </div>
