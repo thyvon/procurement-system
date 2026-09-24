@@ -45,6 +45,7 @@ function epurchaseSuppliersPayload(array $overrides = []): array
         'recordsFiltered' => 3,
         'data' => [
             [
+                'id' => 55,
                 'code' => 'SUP-00055',
                 'company_name' => 'គុយ ឡេង',
                 'name_en' => 'Kuy Leng',
@@ -58,6 +59,7 @@ function epurchaseSuppliersPayload(array $overrides = []): array
                 'status' => 1,
             ],
             [
+                'id' => 56,
                 'code' => 'SUP-00056',
                 'company_name' => 'Acme Trading',
                 'name_en' => 'Acme Trading Co',
@@ -71,6 +73,7 @@ function epurchaseSuppliersPayload(array $overrides = []): array
                 'status' => 0,
             ],
             [
+                'id' => 57,
                 'code' => 'SUP-00057',
                 'company_name' => 'Paper Co',
                 'name_en' => 'Paper Co',
@@ -115,6 +118,7 @@ it('returns a page of company suppliers with meta', function () {
         ->assertJsonPath('meta.page', 1)
         ->assertJsonPath('meta.perPage', 10)
         ->assertJsonPath('meta.total', 3)
+        ->assertJsonPath('data.0.id', 55)
         ->assertJsonPath('data.0.code', 'SUP-00055')
         ->assertJsonPath('data.0.name', 'Kuy Leng')
         ->assertJsonPath('data.0.phone', '012 876 676')

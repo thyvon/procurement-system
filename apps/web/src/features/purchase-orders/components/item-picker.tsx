@@ -13,16 +13,18 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox";
-import { epurchaseSuppliersIndex } from "@/lib/api/epurchase-supplier/epurchase-supplier";
+import { epurchaseItemsIndex } from "@/lib/api/epurchase-item/epurchase-item";
 import { unwrapWithMeta, withAuth } from "@/lib/api-client";
 
-export type SupplierRow = {
-  id: number;
+export type CatalogItem = {
   code: string;
-  name: string;
-  phone: string;
-  address: string;
-  vatPercentage: string;
+  description: string;
+  category: string;
+  subCategory: string;
+  uom: string;
+  estimatePrice: number | null;
+  avgPrice: number | null;
+  status: string;
 };
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
@@ -36,52 +38,50 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
   return debounced;
 }
 
-function selectedLabel(name: string, code: string): string {
-  return name || code;
+function selectedLabel(code: string): string {
+  return code;
 }
 
-function optionLabel(code: string, name: string): string {
-  return name ? `${code} — ${name}` : code;
+function optionLabel(code: string, description: string): string {
+  return description ? `${code} — ${description}` : code;
 }
 
-interface SupplierPickerProps {
+interface ItemPickerProps {
   value: string;
-  supplierName: string;
-  onSelect: (row: SupplierRow | null) => void;
+  description: string;
+  onSelect: (item: CatalogItem | null) => void;
   placeholder: string;
   emptyMessage: string;
   ariaLabel: string;
 }
 
-export function SupplierPicker({
+export function ItemPicker({
   value,
-  supplierName,
+  description,
   onSelect,
   placeholder,
   emptyMessage,
   ariaLabel,
-}: SupplierPickerProps) {
+}: ItemPickerProps) {
   const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
-  const [inputValue, setInputValue] = useState(() =>
-    value ? selectedLabel(supplierName, value) : ""
-  );
+  const [inputValue, setInputValue] = useState(() => selectedLabel(value));
   const [searchTerm, setSearchTerm] = useState("");
   const [prevValue, setPrevValue] = useState(value);
-  const [prevName, setPrevName] = useState(supplierName);
+  const [prevDescription, setPrevDescription] = useState(description);
   const debouncedTerm = useDebouncedValue(searchTerm.trim(), 300);
 
-  if (value !== prevValue || supplierName !== prevName) {
+  if (value !== prevValue || description !== prevDescription) {
     setPrevValue(value);
-    setPrevName(supplierName);
-    setInputValue(value ? selectedLabel(supplierName, value) : "");
+    setPrevDescription(description);
+    setInputValue(selectedLabel(value));
     setSearchTerm("");
   }
 
   const searchQuery = useQuery({
-    queryKey: ["epurchaseSuppliers", "picker", debouncedTerm],
-    queryFn: async (): Promise<SupplierRow[]> => {
-      const response = await epurchaseSuppliersIndex(
+    queryKey: ["epurchaseItems", "picker", debouncedTerm],
+    queryFn: async (): Promise<CatalogItem[]> => {
+      const response = await epurchaseItemsIndex(
         {
           search: debouncedTerm || undefined,
           page: 1,
@@ -89,8 +89,8 @@ export function SupplierPicker({
         },
         withAuth()
       );
-      const page = unwrapWithMeta<SupplierRow[]>(response) as {
-        data: SupplierRow[];
+      const page = unwrapWithMeta<CatalogItem[]>(response) as {
+        data: CatalogItem[];
       };
       return page.data;
     },
@@ -106,22 +106,24 @@ export function SupplierPicker({
     if (rows.some((row) => row.code === value)) return rows;
     return [
       {
-        id: 0,
         code: value,
-        name: supplierName,
-        phone: "",
-        address: "",
-        vatPercentage: "",
+        description,
+        category: "",
+        subCategory: "",
+        uom: "",
+        estimatePrice: null,
+        avgPrice: null,
+        status: "",
       },
       ...rows,
     ];
-  }, [rows, value, supplierName]);
+  }, [rows, value, description]);
 
   const items = useMemo(
     () =>
       ComboboxNS.createItems(comboData, {
         getValue: (row) => row.code,
-        getLabel: (row) => selectedLabel(row.name, row.code),
+        getLabel: (row) => selectedLabel(row.code),
       }),
     [comboData]
   );
@@ -146,14 +148,13 @@ export function SupplierPicker({
         }
         const row = comboData.find((candidate) => candidate.code === code);
         onSelect(row ?? null);
-        // Parent may reject a duplicate; restore the committed selection display.
-        setInputValue(value ? selectedLabel(supplierName, value) : "");
+        setInputValue(selectedLabel(code));
       }}
       onOpenChange={(nextOpen) => setOpen(nextOpen)}
       filter={null}
       itemToStringLabel={(code) => {
         const row = comboData.find((candidate) => candidate.code === code);
-        return row ? selectedLabel(row.name, row.code) : code;
+        return row ? selectedLabel(row.code) : code;
       }}
     >
       <ComboboxInput
@@ -161,7 +162,7 @@ export function SupplierPicker({
         className="h-7 min-w-0 border-0 bg-background px-1.5 font-normal text-xs shadow-none [&_input]:font-normal [&_input]:text-xs [&_input]:md:text-xs"
         aria-label={ariaLabel}
       />
-      <ComboboxContent>
+      <ComboboxContent className="min-w-80">
         {searchQuery.isFetching && (
           <div
             role="status"
@@ -175,7 +176,7 @@ export function SupplierPicker({
         <ComboboxList>
           {(row) => (
             <ComboboxItem key={row.code} value={row.code} className="text-xs">
-              {optionLabel(row.code, row.name)}
+              {optionLabel(row.code, row.description)}
             </ComboboxItem>
           )}
         </ComboboxList>

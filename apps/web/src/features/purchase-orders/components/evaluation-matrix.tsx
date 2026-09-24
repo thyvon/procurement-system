@@ -1,27 +1,15 @@
 "use client";
 
-import { Fragment, useMemo } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { Fragment } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Plus, X } from "lucide-react";
-import { Combobox as ComboboxNS } from "@base-ui/react/combobox";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox";
-import { epurchaseItemsIndex } from "@/lib/api/epurchase-item/epurchase-item";
-import { epurchaseVendorsInfo } from "@/lib/api/epurchase-vendor/epurchase-vendor";
-import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
-import { SupplierPicker, type VendorSearchRow } from "./supplier-picker";
+import { ItemPicker, type CatalogItem } from "./item-picker";
+import { SupplierPicker, type SupplierRow } from "./supplier-picker";
 
 type ItemRow = {
   uid: string;
@@ -67,28 +55,6 @@ export type EvaluationMatrixValue = {
 };
 
 export type { ItemRow, QuotationPricing, QuotationPanel };
-
-type EPurchaseVendorInfo = {
-  id: number;
-  code: string;
-  name: string;
-  phone: string;
-  address: string;
-  email: string;
-  paymentTerm: string;
-  vatPercentage: string;
-};
-
-type EPurchaseItem = {
-  code: string;
-  description: string;
-  category: string;
-  subCategory: string;
-  uom: string;
-  estimatePrice: number | null;
-  avgPrice: number | null;
-  status: string;
-};
 
 export const SEED_QUOTATION_COUNT = 2;
 
@@ -172,20 +138,6 @@ function quoteLabel(index: number): string {
   return ["I", "II", "III"][index] ?? String(index + 1);
 }
 
-function useCatalogItems() {
-  return useQuery({
-    queryKey: ["epurchaseItems", "picker"],
-    queryFn: async (): Promise<EPurchaseItem[]> => {
-      const response = await epurchaseItemsIndex({ per_page: 100 }, withAuth());
-      const page = unwrapWithMeta<EPurchaseItem[]>(response) as {
-        data: EPurchaseItem[];
-      };
-      return page.data;
-    },
-    retry: false,
-  });
-}
-
 const headCell =
   "border border-border bg-muted/60 px-2 py-1 text-left text-xs font-medium";
 const bodyCell = "border border-border p-1 align-top text-xs";
@@ -204,18 +156,6 @@ interface EvaluationMatrixProps {
 export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
   const t = useTranslations("purchaseOrders.form");
   const { items, quotations } = value;
-  const itemsQuery = useCatalogItems();
-
-  const catalogItems = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
-
-  const catalogComboItems = useMemo(
-    () =>
-      ComboboxNS.createItems(catalogItems, {
-        getValue: (c) => c.code,
-        getLabel: (c) => `${c.code} — ${c.description}`,
-      }),
-    [catalogItems]
-  );
 
   const patchItem = (uid: string, patch: Partial<ItemRow>) => {
     const nextItems = items.map((item) =>
@@ -243,40 +183,6 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
       }),
     });
   };
-
-  const vendorInfoMutation = useMutation({
-    mutationFn: async (variables: {
-      vendorId: number;
-      panelIndex: number;
-      supplierCode: string;
-    }): Promise<EPurchaseVendorInfo> => {
-      const response = await epurchaseVendorsInfo(
-        { supplier_code: String(variables.vendorId) },
-        withAuth()
-      );
-      return unwrap<EPurchaseVendorInfo>(response);
-    },
-    onSuccess: (info, variables) => {
-      onChange((current) => {
-        const panel = current.quotations[variables.panelIndex];
-        if (panel?.supplierCode !== variables.supplierCode) return current;
-
-        return {
-          ...current,
-          quotations: current.quotations.map((existing, i) => {
-            if (i !== variables.panelIndex) return existing;
-            const next: QuotationPanel = {
-              ...existing,
-              address: info.address,
-              phone: info.phone,
-              vatPercentage: info.vatPercentage ?? "",
-            };
-            return { ...next, ...recalcVat(next, current.items) };
-          }),
-        };
-      });
-    },
-  });
 
   const patchPricing = (
     index: number,
@@ -312,7 +218,7 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
     }));
   };
 
-  const selectSupplier = (index: number, row: VendorSearchRow | null) => {
+  const selectSupplier = (index: number, row: SupplierRow | null) => {
     if (!row) {
       patchQuotation(index, {
         supplierCode: "",
@@ -339,27 +245,21 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
     patchQuotation(index, {
       supplierCode: row.code,
       supplierName: row.name,
-      address: "",
-      phone: "",
-      vatPercentage: "",
-    });
-    vendorInfoMutation.mutate({
-      vendorId: row.id,
-      panelIndex: index,
-      supplierCode: row.code,
+      address: row.address,
+      phone: row.phone,
+      vatPercentage: row.vatPercentage,
     });
   };
 
-  const selectItem = (uid: string, code: string) => {
-    const item = catalogItems.find((c) => c.code === code);
-    if (!item) {
+  const selectItem = (uid: string, selected: CatalogItem | null) => {
+    if (!selected) {
       patchItem(uid, { itemCode: "" });
       return;
     }
     patchItem(uid, {
-      itemCode: item.code,
-      description: item.description,
-      uom: item.uom,
+      itemCode: selected.code,
+      description: selected.description,
+      uom: selected.uom,
     });
   };
 
@@ -413,10 +313,10 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
               <th className={`${headCell} w-10`} rowSpan={3}>
                 {t("no")}
               </th>
-              <th className={`${headCell} w-[100px]`} rowSpan={3}>
+              <th className={`${headCell} w-[50px]`} rowSpan={3}>
                 {t("itemCode")}
               </th>
-              <th className={`${headCell} w-[200px]`} rowSpan={3}>
+              <th className={`${headCell} w-[250px]`} rowSpan={3}>
                 {t("description")}
               </th>
               <th className={`${headCell} w-15`} rowSpan={3}>
@@ -501,29 +401,14 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                   {itemIndex + 1}
                 </td>
                 <td className={bodyCell}>
-                  <Combobox
-                    items={catalogComboItems}
-                    value={item.itemCode || null}
-                    onValueChange={(val) =>
-                      selectItem(item.uid, typeof val === "string" ? val : "")
-                    }
-                  >
-                    <ComboboxInput
-                      placeholder={t("itemCodePlaceholder")}
-                      className="h-7 min-w-0 border-0 bg-background px-1.5 text-xs shadow-none [&_input]:text-xs [&_input]:md:text-xs"
-                      aria-label={t("itemCode")}
-                    />
-                    <ComboboxContent>
-                      <ComboboxEmpty className="text-xs">{t("selectItem")}</ComboboxEmpty>
-                      <ComboboxList>
-                        {(c) => (
-                          <ComboboxItem key={c.code} value={c.code} className="text-xs">
-                            {`${c.code} — ${c.description}`}
-                          </ComboboxItem>
-                        )}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
+                  <ItemPicker
+                    value={item.itemCode}
+                    description={item.description}
+                    onSelect={(selected) => selectItem(item.uid, selected)}
+                    placeholder={t("itemCodePlaceholder")}
+                    emptyMessage={t("selectItem")}
+                    ariaLabel={t("itemCode")}
+                  />
                 </td>
                 <td className={bodyCell}>
                   <Textarea

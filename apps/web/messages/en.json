@@ -161,7 +161,6 @@
       "noWinner": "Select at least one winner for item {item}.",
       "winner": "Winner",
       "selectSupplier": "No supplier found",
-      "supplierSearchMinChars": "Type at least {n} characters to search",
       "selectItem": "No item found",
       "no": "No.",
       "itemCode": "Item Code",
