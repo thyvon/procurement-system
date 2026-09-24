@@ -4,10 +4,10 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
-import type { EvaluationResource } from './evaluationResource';
+import type { PurchaseOrdersEvaluationsStore201Data } from './purchaseOrdersEvaluationsStore201Data';
 
 export type PurchaseOrdersEvaluationsStore201 = {
-  data: EvaluationResource;
+  data: PurchaseOrdersEvaluationsStore201Data;
   /** @nullable */
   meta: null;
 };

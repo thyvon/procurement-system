@@ -16,7 +16,7 @@ class EvaluationRepository extends BaseRepository implements EvaluationRepositor
 
     public function filtered(array $filters, int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
-        $query = $this->query()->with(['quotations.lines', 'items']);
+        $query = $this->query()->with(['quotations.lines', 'items', 'creator']);
 
         $search = trim((string) ($filters['search'] ?? ''));
 

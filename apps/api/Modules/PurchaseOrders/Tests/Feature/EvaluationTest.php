@@ -88,6 +88,7 @@ it('creates an evaluation with a server-generated code and recomputed totals', f
     $response
         ->assertJsonPath('data.status', null)
         ->assertJsonPath('data.recommendationBasis', 'Best value for money.')
+        ->assertJsonPath('data.createdBy', $this->admin->name)
         // JSON drops the .0 fraction (no JSON_PRESERVE_ZERO_FRACTION) — 44.00 encodes as 44.
         // awarded = (10 × 3.5 selected) + (2 × 4.5 selected) = 44.00
         ->assertJsonPath('data.awardedTotal', 44)
@@ -292,6 +293,19 @@ it('rejects an item without any selected winning line', function () {
         ->and($response->json('errors'))->toHaveKey('items.1');
 });
 
+it('rejects an item with more than one selected winning line', function () {
+    $payload = evaluationPayload();
+    // Item 0 is already won by quotation 0; mark quotation 1 as winner too.
+    $payload['quotations'][1]['lines'][0]['is_selected'] = true;
+
+    $response = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/purchase-orders/evaluations', $payload)
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422);
+
+    expect($response->json('errors'))->toHaveKey('items.0');
+});
+
 it('rejects a quotation that does not price every item', function () {
     $payload = evaluationPayload();
     $payload['quotations'][0]['lines'] = [$payload['quotations'][0]['lines'][0]];
@@ -302,6 +316,30 @@ it('rejects a quotation that does not price every item', function () {
         ->assertJsonPath('statusCode', 422);
 
     expect($response->json('errors'))->toHaveKey('quotations.0.lines');
+});
+
+it('rejects a duplicate supplier within the same evaluation', function () {
+    $payload = evaluationPayload();
+    $payload['quotations'][1]['supplier_code'] = $payload['quotations'][0]['supplier_code'];
+
+    $response = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/purchase-orders/evaluations', $payload)
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422);
+
+    expect($response->json('errors'))->toHaveKey('quotations.1.supplier_code');
+});
+
+it('rejects duplicate suppliers even when supplier codes differ only by case', function () {
+    $payload = evaluationPayload();
+    $payload['quotations'][1]['supplier_code'] = strtoupper($payload['quotations'][0]['supplier_code']);
+
+    $response = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/purchase-orders/evaluations', $payload)
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422);
+
+    expect($response->json('errors'))->toHaveKey('quotations.1.supplier_code');
 });
 
 it('rejects duplicate item lines within a quotation', function () {

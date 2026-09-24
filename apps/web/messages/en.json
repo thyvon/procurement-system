@@ -122,6 +122,7 @@
       "supplier": "Supplier",
       "total": "Total",
       "status": "Status",
+      "createdBy": "Created by",
       "date": "Updated"
     },
     "table": {
@@ -156,6 +157,7 @@
       "updated": "Evaluation updated.",
       "loadFailed": "Could not load this evaluation.",
       "missingSupplier": "Select a supplier for every quotation.",
+      "duplicateSupplier": "This supplier is already selected in another quotation.",
       "missingItem": "Complete item code, description, qty and UoM for every row.",
       "noWinner": "Select at least one winner for item {item}.",
       "winner": "Winner",

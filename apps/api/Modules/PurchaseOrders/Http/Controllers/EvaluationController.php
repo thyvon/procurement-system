@@ -52,7 +52,7 @@ class EvaluationController extends Controller
         $evaluation = $this->service->create($request->evaluationData(), $user);
 
         return ApiResponse::success(
-            new EvaluationResource($evaluation->load(['items', 'quotations.lines'])),
+            new EvaluationResource($evaluation->load(['items', 'quotations.lines', 'creator'])),
             201,
         );
     }
@@ -61,7 +61,7 @@ class EvaluationController extends Controller
     {
         $this->authorize('view', $evaluation);
 
-        return new EvaluationResource($evaluation->load(['items', 'quotations.lines']));
+        return new EvaluationResource($evaluation->load(['items', 'quotations.lines', 'creator']));
     }
 
     public function update(UpdateEvaluationRequest $request, Evaluation $evaluation): EvaluationResource
@@ -73,7 +73,7 @@ class EvaluationController extends Controller
 
         $evaluation = $this->service->update($evaluation, $request->evaluationData(), $user);
 
-        return new EvaluationResource($evaluation->load(['items', 'quotations.lines']));
+        return new EvaluationResource($evaluation->load(['items', 'quotations.lines', 'creator']));
     }
 
     public function destroy(Evaluation $evaluation): JsonResponse

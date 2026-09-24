@@ -3,6 +3,7 @@
 import { Fragment, useMemo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { Plus, X } from "lucide-react";
 import { Combobox as ComboboxNS } from "@base-ui/react/combobox";
 import { Button } from "@/components/ui/button";
@@ -285,12 +286,31 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
   ) => {
     const panel = quotations[index];
     if (!panel) return;
-    patchQuotation(index, {
-      pricing: {
-        ...panel.pricing,
-        [itemUid]: { ...emptyPricing(), ...panel.pricing[itemUid], ...patch },
-      },
-    });
+
+    const nextPricing = {
+      ...panel.pricing,
+      [itemUid]: { ...emptyPricing(), ...panel.pricing[itemUid], ...patch },
+    };
+    const selecting = nextPricing[itemUid].selected;
+
+    onChange((current) => ({
+      ...current,
+      quotations: current.quotations.map((existing, i) => {
+        if (i === index) {
+          return { ...existing, pricing: nextPricing };
+        }
+        if (!selecting) return existing;
+        const existingLine = existing.pricing[itemUid];
+        if (!existingLine?.selected) return existing;
+        return {
+          ...existing,
+          pricing: {
+            ...existing.pricing,
+            [itemUid]: { ...existingLine, selected: false },
+          },
+        };
+      }),
+    }));
   };
 
   const selectSupplier = (index: number, row: VendorSearchRow | null) => {
@@ -305,6 +325,18 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
       });
       return;
     }
+
+    const alreadyUsed = quotations.some(
+      (panel, i) =>
+        i !== index &&
+        panel.supplierCode !== "" &&
+        panel.supplierCode === row.code
+    );
+    if (alreadyUsed) {
+      toast.error(t("duplicateSupplier"));
+      return;
+    }
+
     patchQuotation(index, {
       supplierCode: row.code,
       supplierName: row.nameEn,

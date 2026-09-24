@@ -18,6 +18,8 @@ export interface EvaluationResource {
   awardedTotal: number;
   /** @nullable */
   updatedAt: string | null;
+  /** @nullable */
+  createdBy?: string | null;
   suppliers: EvaluationResourceSuppliersItem[];
   items?: EvaluationItemResource[];
   quotations?: EvaluationQuotationResource[];

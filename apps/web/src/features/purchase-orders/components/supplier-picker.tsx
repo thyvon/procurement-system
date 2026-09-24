@@ -130,10 +130,13 @@ export function SupplierPicker({
         setSearchTerm("");
         if (!code) {
           onSelect(null);
+          setInputValue("");
           return;
         }
         const row = comboData.find((candidate) => candidate.code === code);
         onSelect(row ?? null);
+        // Parent may reject a duplicate; restore the committed selection display.
+        setInputValue(value ? selectedLabel(value, supplierName) : "");
       }}
       onOpenChange={(nextOpen) => setOpen(nextOpen)}
       filter={null}

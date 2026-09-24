@@ -91,6 +91,20 @@ function fromEvaluation(evaluation: EvaluationResource): EvaluationMatrixValue {
     };
   });
 
+  // Keep only the first winner per item (legacy rows may have multiple).
+  const seenWinners = new Set<string>();
+  for (const panel of quotations) {
+    for (const item of items) {
+      const line = panel.pricing[item.uid];
+      if (!line?.selected) continue;
+      if (seenWinners.has(item.uid)) {
+        panel.pricing[item.uid] = { ...line, selected: false };
+      } else {
+        seenWinners.add(item.uid);
+      }
+    }
+  }
+
   return { items, quotations };
 }
 

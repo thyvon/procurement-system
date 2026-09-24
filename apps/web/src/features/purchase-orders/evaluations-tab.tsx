@@ -42,6 +42,7 @@ type EvaluationRow = {
   total: number;
   status: string | null;
   updatedAt: string | null;
+  createdBy: string | null;
 };
 
 type EvaluationsPage = {
@@ -66,6 +67,7 @@ function toRow(resource: EvaluationResource): EvaluationRow {
     total: resource.awardedTotal,
     status: resource.status,
     updatedAt: resource.updatedAt,
+    createdBy: resource.createdBy ?? null,
   };
 }
 
@@ -126,6 +128,14 @@ function useEvaluationColumns({
       ),
       cell: ({ row }) => (
         <span className="text-muted-foreground">{row.getValue("status") ?? "—"}</span>
+      ),
+    }),
+    columnHelper.accessor("createdBy", {
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={tc("createdBy")} />
+      ),
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">{row.getValue("createdBy") ?? "—"}</span>
       ),
     }),
     columnHelper.accessor("updatedAt", {

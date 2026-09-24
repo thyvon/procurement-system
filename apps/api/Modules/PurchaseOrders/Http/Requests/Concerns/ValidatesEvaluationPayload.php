@@ -7,7 +7,8 @@ use Illuminate\Contracts\Validation\Validator;
 /**
  * Shared evaluation payload rules for Store/Update evaluation requests.
  * The matrix is always submitted whole: items + quotations with one line
- * per item per quotation, and at least one winning (selected) line per item.
+ * per item per quotation, at least one winning (selected) line per item,
+ * and no duplicate suppliers within one evaluation.
  */
 trait ValidatesEvaluationPayload
 {
@@ -60,9 +61,27 @@ trait ValidatesEvaluationPayload
         }
 
         $itemCount = count($items);
-        $selectedByItem = array_fill(0, $itemCount, false);
+        $selectedCount = array_fill(0, $itemCount, 0);
+        $seenSuppliers = [];
 
         foreach ($quotations as $quotationIndex => $quotation) {
+            if (! is_array($quotation)) {
+                continue;
+            }
+
+            $supplierCode = mb_strtolower(trim((string) ($quotation['supplier_code'] ?? '')));
+
+            if ($supplierCode !== '') {
+                if (isset($seenSuppliers[$supplierCode])) {
+                    $validator->errors()->add(
+                        "quotations.{$quotationIndex}.supplier_code",
+                        'Each supplier may appear only once per evaluation.',
+                    );
+                } else {
+                    $seenSuppliers[$supplierCode] = $quotationIndex;
+                }
+            }
+
             $lines = is_array($quotation['lines'] ?? null) ? $quotation['lines'] : [];
             $seen = [];
 
@@ -91,7 +110,7 @@ trait ValidatesEvaluationPayload
                 $seen[$itemIndex] = true;
 
                 if (filter_var($line['is_selected'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-                    $selectedByItem[$itemIndex] = true;
+                    $selectedCount[$itemIndex]++;
                 }
             }
 
@@ -104,11 +123,16 @@ trait ValidatesEvaluationPayload
             }
         }
 
-        foreach ($selectedByItem as $index => $selected) {
-            if (! $selected) {
+        foreach ($selectedCount as $index => $count) {
+            if ($count === 0) {
                 $validator->errors()->add(
                     "items.{$index}",
                     'Each item needs at least one selected (winning) quotation.',
+                );
+            } elseif ($count > 1) {
+                $validator->errors()->add(
+                    "items.{$index}",
+                    'Each item may have only one selected (winning) quotation.',
                 );
             }
         }

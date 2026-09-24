@@ -5,7 +5,6 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
-import { LocaleSwitch } from "@/components/layout/locale-switch"
 import { UserMenu } from "@/components/layout/user-menu"
 import type { UserResource } from "@/lib/api/model"
 
@@ -22,7 +21,6 @@ export function Topbar({ user }: Props) {
       <div className="flex flex-1 items-center" />
 
       <div className="flex items-center gap-1.5">
-        <LocaleSwitch />
         <ThemeToggle />
         <Button variant="ghost" size="icon" disabled aria-label="Notifications">
           <Bell className="h-4 w-4" />
