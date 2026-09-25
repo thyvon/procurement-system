@@ -8,8 +8,7 @@ import type { StoreEvaluationRequestItemsItem } from './storeEvaluationRequestIt
 import type { StoreEvaluationRequestQuotationsItem } from './storeEvaluationRequestQuotationsItem';
 
 export interface StoreEvaluationRequest {
-  /** @nullable */
-  recommendation_basis?: string | null;
+  recommendation_basis: string;
   /** @minItems 1 */
   items: StoreEvaluationRequestItemsItem[];
   /** @minItems 2 */

@@ -84,11 +84,13 @@ it('rejects non-image and oversized files with the 422 envelope', function () {
 });
 
 it('forbids an admin from changing the avatar of a user in another entity', function () {
+    // Cross-entity records are invisible (404) — entity scoping applies while
+    // the route model is resolved, before any policy check.
     $this->actingAs($this->adminA, 'sanctum')
         ->post("/api/v1/users/{$this->staffB->getKey()}/avatar", [
             'image' => UploadedFile::fake()->image('avatar.jpg', 64, 64),
         ])
-        ->assertStatus(403);
+        ->assertStatus(404);
 
     expect($this->staffB->refresh()->avatar_path)->toBeNull()
         ->and(Storage::disk('public')->allFiles('avatars'))->toBeEmpty();

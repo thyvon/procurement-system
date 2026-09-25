@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Collapsible } from "@base-ui/react/collapsible";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
@@ -18,6 +19,8 @@ import {
   Store,
   Users,
 } from "lucide-react";
+import { approvalsInboxCount } from "@/lib/api/approval-request/approval-request";
+import { unwrap, withAuth } from "@/lib/api-client";
 import {
   Sidebar,
   SidebarContent,
@@ -50,7 +53,23 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { key: "dashboard", href: "/", icon: LayoutDashboard, enabled: true },
-  { key: "products", href: "/products", icon: Boxes, enabled: true },
+  {
+    key: "products",
+    icon: Boxes,
+    enabled: true,
+    children: [
+      { key: "products", href: "/products", enabled: true },
+      { key: "categories", href: "/products/categories", enabled: true },
+      { key: "brands", href: "/products/brands", enabled: true },
+      { key: "groups", href: "/products/groups", enabled: true },
+      { key: "uoms", href: "/products/uoms", enabled: true },
+      {
+        key: "variationTemplates",
+        href: "/products/variation-templates",
+        enabled: true,
+      },
+    ],
+  },
   {
     key: "epurchase",
     icon: ShoppingBag,
@@ -60,26 +79,68 @@ const navItems: NavItem[] = [
       { key: "epurchaseSuppliers", href: "/epurchase/suppliers", enabled: true },
     ],
   },
-  { key: "purchaseOrders", href: "/purchase-orders", icon: FileText, enabled: true },
-  { key: "users", href: "/users", icon: Users, enabled: true },
+  {
+    key: "purchaseOrders",
+    icon: FileText,
+    enabled: true,
+    children: [
+      { key: "purchaseOrdersList", href: "/purchase-orders/list", enabled: true },
+      { key: "evaluations", href: "/purchase-orders/evaluations", enabled: true },
+    ],
+  },
+  {
+    key: "users",
+    icon: Users,
+    enabled: true,
+    children: [
+      { key: "users", href: "/users", enabled: true },
+      { key: "roles", href: "/users/roles", enabled: true },
+    ],
+  },
   { key: "suppliers", href: "#", icon: Store, enabled: false },
   { key: "requisitions", href: "#", icon: ClipboardList, enabled: false },
-  { key: "approvals", href: "#", icon: FileCheck2, enabled: false },
+  { key: "approvals", href: "/approvals", icon: FileCheck2, enabled: true },
   { key: "reports", href: "#", icon: BarChart3, enabled: false },
   { key: "settings", href: "#", icon: Settings, enabled: false },
 ];
 
+function useApprovalsInboxCount(): number | null {
+  const query = useQuery({
+    queryKey: ["approvals", "inbox", "count"],
+    queryFn: async () =>
+      unwrap<{ count: number }>(
+        await approvalsInboxCount(undefined, withAuth())
+      ),
+    staleTime: 30_000,
+  });
+
+  return query.data?.count ?? null;
+}
+
 function isPathActive(href: string, pathname: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
+/**
+ * The most specific matching child wins: `/products/categories` highlights
+ * only "Categories", while `/products/create` still lights up "Products".
+ */
+function findActiveChild(children: NavChild[] | undefined, pathname: string) {
+  return (children ?? [])
+    .filter((child) => child.enabled && isPathActive(child.href, pathname))
+    .reduce<NavChild | undefined>(
+      (best, child) =>
+        !best || child.href.length > best.href.length ? child : best,
+      undefined
+    );
 }
 
 function NavGroup({ item }: { item: NavItem }) {
   const t = useTranslations("nav");
   const pathname = usePathname();
   const { state, toggleSidebar } = useSidebar();
-  const active =
-    item.enabled &&
-    (item.children?.some((child) => isPathActive(child.href, pathname)) ?? false);
+  const activeChild = findActiveChild(item.children, pathname);
+  const active = item.enabled && activeChild !== undefined;
   const [open, setOpen] = React.useState(active);
   const [wasActive, setWasActive] = React.useState(active);
 
@@ -131,7 +192,7 @@ function NavGroup({ item }: { item: NavItem }) {
                 <SidebarMenuSubItem key={child.key}>
                   <SidebarMenuSubButton
                     render={<Link href={child.href} />}
-                    isActive={isPathActive(child.href, pathname)}
+                    isActive={activeChild?.href === child.href}
                   >
                     <span>{t(child.key)}</span>
                   </SidebarMenuSubButton>
@@ -153,7 +214,13 @@ function NavGroup({ item }: { item: NavItem }) {
   );
 }
 
-function NavLinkItem({ item }: { item: NavItem }) {
+function NavLinkItem({
+  item,
+  badge,
+}: {
+  item: NavItem;
+  badge?: number | null;
+}) {
   const t = useTranslations("nav");
   const tCommon = useTranslations("common");
   const pathname = usePathname();
@@ -180,12 +247,19 @@ function NavLinkItem({ item }: { item: NavItem }) {
       >
         <item.icon />
         <span>{t(item.key)}</span>
+        {badge != null && badge > 0 ? (
+          <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground group-data-[collapsible=icon]:hidden">
+            {badge > 99 ? "99+" : badge}
+          </span>
+        ) : null}
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
 }
 
 export function AppSidebar() {
+  const approvalsCount = useApprovalsInboxCount();
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -214,7 +288,11 @@ export function AppSidebar() {
                 item.children ? (
                   <NavGroup key={item.key} item={item} />
                 ) : (
-                  <NavLinkItem key={item.key} item={item} />
+                  <NavLinkItem
+                    key={item.key}
+                    item={item}
+                    badge={item.key === "approvals" ? approvalsCount : null}
+                  />
                 )
               )}
             </SidebarMenu>

@@ -13,36 +13,23 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-
-const SEGMENT_LABELS: Record<string, string> = {
-  products: "nav.products",
-  epurchase: "nav.epurchase",
-  items: "nav.epurchaseItems",
-  suppliers: "nav.epurchaseSuppliers",
-  "purchase-orders": "nav.purchaseOrders",
-  users: "nav.users",
-  create: "breadcrumb.create",
-  edit: "breadcrumb.edit",
-}
+import { resolveBreadcrumbs } from "@/lib/breadcrumbs"
 
 export function BreadcrumbBar() {
   const pathname = usePathname()
   const tNav = useTranslations("nav")
   const tBreadcrumb = useTranslations("breadcrumb")
 
-  const segments = pathname.split("/").filter(Boolean)
+  const crumbs = resolveBreadcrumbs(pathname)
 
-  function getLabel(segment: string): string {
-    const key = SEGMENT_LABELS[segment]
-    if (!key) return segment
+  if (crumbs.length === 0) return null
 
+  function getLabel(key: string): string {
     if (key.startsWith("nav.")) {
       return tNav(key.replace("nav.", ""))
     }
     return tBreadcrumb(key.replace("breadcrumb.", ""))
   }
-
-  if (segments.length === 0) return null
 
   return (
     <nav className="flex h-8 shrink-0 items-center gap-1 bg-background px-6 text-sm">
@@ -54,26 +41,20 @@ export function BreadcrumbBar() {
             </BreadcrumbLink>
           </BreadcrumbItem>
 
-          {segments.map((segment, index) => {
-            const isLast = index === segments.length - 1
-            const href = "/" + segments.slice(0, index + 1).join("/")
-            const label = getLabel(segment)
-
-            return (
-              <Fragment key={href}>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  {isLast ? (
-                    <BreadcrumbPage>{label}</BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink render={<Link href={href} />}>
-                      {label}
-                    </BreadcrumbLink>
-                  )}
-                </BreadcrumbItem>
-              </Fragment>
-            )
-          })}
+          {crumbs.map((crumb) => (
+            <Fragment key={crumb.href}>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                {crumb.isCurrent ? (
+                  <BreadcrumbPage>{getLabel(crumb.labelKey)}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink render={<Link href={crumb.href} />}>
+                    {getLabel(crumb.labelKey)}
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </Fragment>
+          ))}
         </BreadcrumbList>
       </Breadcrumb>
     </nav>

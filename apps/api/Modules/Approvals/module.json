@@ -1,0 +1,11 @@
+{
+    "name": "Approvals",
+    "alias": "approvals",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Approvals\\Providers\\ApprovalsServiceProvider"
+    ],
+    "files": []
+}

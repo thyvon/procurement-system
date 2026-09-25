@@ -42,6 +42,7 @@ function evaluationPayload(array $overrides = []): array
                 'lead_time' => '3 days',
                 'warranty' => '12 months',
                 'payment_terms' => '30 days',
+                'other_remarks' => 'Deliver within 7 days.',
                 'lines' => [
                     ['item_index' => 0, 'brand' => 'Double A', 'unit_cost' => 3.5, 'is_selected' => true],
                     ['item_index' => 1, 'brand' => 'Max', 'unit_cost' => 5, 'is_selected' => false],
@@ -86,7 +87,7 @@ it('creates an evaluation with a server-generated code and recomputed totals', f
     expect($response->json('data.code'))->toMatch('/^EVAL-\d{2}-\d{3}$/');
 
     $response
-        ->assertJsonPath('data.status', null)
+        ->assertJsonPath('data.status', 'draft')
         ->assertJsonPath('data.recommendationBasis', 'Best value for money.')
         ->assertJsonPath('data.createdBy', $this->admin->name)
         // JSON drops the .0 fraction (no JSON_PRESERVE_ZERO_FRACTION) — 44.00 encodes as 44.
@@ -129,7 +130,7 @@ it('lets staff list evaluations with pagination meta', function () {
         ->assertJsonPath('meta.total', 1);
 
     expect($response->json('data.0.awardedTotal'))->toEqual(44)
-        ->and($response->json('data.0.status'))->toBeNull();
+        ->and($response->json('data.0.status'))->toBe('draft');
 });
 
 it('pages the list with page and per_page', function () {
@@ -195,7 +196,8 @@ it('shows an evaluation with items, quotations and lines', function () {
         ->assertJsonCount(2, 'data.quotations.0.lines')
         ->assertJsonPath('data.quotations.0.lines.0.unitCost', 3.5)
         ->assertJsonPath('data.quotations.0.price', 'Good')
-        ->assertJsonPath('data.quotations.0.paymentTerms', '30 days');
+        ->assertJsonPath('data.quotations.0.paymentTerms', '30 days')
+        ->assertJsonPath('data.quotations.0.otherRemarks', 'Deliver within 7 days.');
 
     // Lines link back to items so the client can rebuild the matrix.
     $itemId = $response->json('data.items.0.id');
@@ -376,6 +378,92 @@ it('rejects missing required quotation supplier fields', function () {
         ->assertJsonPath('statusCode', 422)
         ->assertJsonValidationErrors(['quotations.1.supplier_code']);
 });
+
+it('rejects a quotation without an address or phone', function () {
+    $payload = evaluationPayload();
+    unset($payload['quotations'][0]['supplier_address'], $payload['quotations'][1]['supplier_phone']);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/purchase-orders/evaluations', $payload)
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonValidationErrors(['quotations.0.supplier_address', 'quotations.1.supplier_phone']);
+
+    expect(Evaluation::query()->count())->toBe(0);
+});
+
+it('rejects a blank recommendation basis', function () {
+    $payload = evaluationPayload();
+    $payload['recommendation_basis'] = '';
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/purchase-orders/evaluations', $payload)
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonValidationErrors(['recommendation_basis']);
+});
+
+it('rejects a blank item description', function () {
+    $payload = evaluationPayload();
+    $payload['items'][0]['description'] = '   ';
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/purchase-orders/evaluations', $payload)
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonValidationErrors(['items.0.description']);
+});
+
+it('filters the list by status', function () {
+    $approvedId = storeEvaluation()->json('data.id');
+    Evaluation::query()->whereKey($approvedId)->update(['status' => 'approved']);
+    $draftId = storeEvaluation()->json('data.id');
+
+    $approved = $this->actingAs($this->staff, 'sanctum')
+        ->getJson('/api/v1/purchase-orders/evaluations?status=approved')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.id', $approvedId);
+
+    $drafts = $this->actingAs($this->staff, 'sanctum')
+        ->getJson('/api/v1/purchase-orders/evaluations?status=draft')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.id', $draftId);
+
+    $none = $this->actingAs($this->staff, 'sanctum')
+        ->getJson('/api/v1/purchase-orders/evaluations?status=rejected')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 0);
+
+    expect($approved->json('data.0.status'))->toBe('approved')
+        ->and($drafts->json('data.0.status'))->toBe('draft')
+        ->and($none->json('data'))->toBeEmpty();
+});
+
+it('rejects an unknown status filter with a 422 envelope', function () {
+    $response = $this->actingAs($this->staff, 'sanctum')
+        ->getJson('/api/v1/purchase-orders/evaluations?status=unknown')
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
+
+    expect($response->json('errors'))->toHaveKey('status');
+});
+
+it('cannot be modified once an approval has frozen it', function (string $status) {
+    $id = storeEvaluation()->json('data.id');
+    Evaluation::query()->whereKey($id)->update(['status' => $status]);
+
+    $response = $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/purchase-orders/evaluations/{$id}", evaluationPayload())
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422);
+
+    expect($response->json('errors.status.0'))
+        ->toBe("An evaluation with status '{$status}' cannot be modified.")
+        ->and(Evaluation::query()->find($id)->status)->toBe($status);
+})->with(['in_review', 'approved', 'rejected']);
 
 it('never returns other entities evaluations', function () {
     $foreignAdmin = User::factory()->create(['entity_id' => $this->otherEntity->getKey()]);

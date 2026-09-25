@@ -3,6 +3,8 @@
 namespace Modules\PurchaseOrders\Providers;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use Modules\Approvals\Events\ApprovalStatusChanged;
+use Modules\PurchaseOrders\Listeners\SyncEvaluationApprovalStatus;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -11,7 +13,11 @@ class EventServiceProvider extends ServiceProvider
      *
      * @var array<string, array<int, string>>
      */
-    protected $listen = [];
+    protected $listen = [
+        ApprovalStatusChanged::class => [
+            SyncEvaluationApprovalStatus::class,
+        ],
+    ];
 
     /**
      * Indicates if events should be discovered.

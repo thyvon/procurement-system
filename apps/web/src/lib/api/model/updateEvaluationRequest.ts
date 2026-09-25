@@ -8,8 +8,7 @@ import type { UpdateEvaluationRequestItemsItem } from './updateEvaluationRequest
 import type { UpdateEvaluationRequestQuotationsItem } from './updateEvaluationRequestQuotationsItem';
 
 export interface UpdateEvaluationRequest {
-  /** @nullable */
-  recommendation_basis?: string | null;
+  recommendation_basis: string;
   /** @minItems 1 */
   items: UpdateEvaluationRequestItemsItem[];
   /** @minItems 2 */

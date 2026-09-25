@@ -80,6 +80,8 @@ class EvaluationController extends Controller
     {
         $this->authorize('delete', $evaluation);
 
+        $this->service->ensureDeletable($evaluation);
+
         $this->repo->delete($evaluation);
 
         return ApiResponse::success(['deleted' => true]);

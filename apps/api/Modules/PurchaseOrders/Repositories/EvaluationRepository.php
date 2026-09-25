@@ -29,6 +29,10 @@ class EvaluationRepository extends BaseRepository implements EvaluationRepositor
             });
         }
 
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
         return $query
             ->orderByDesc('code')
             ->paginate($perPage, ['*'], 'page', $page);

@@ -4,12 +4,17 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
+import type { PurchaseOrdersEvaluationsIndexStatus } from './purchaseOrdersEvaluationsIndexStatus';
 
 export type PurchaseOrdersEvaluationsIndexParams = {
 /**
  * @maxLength 255
  */
 search?: string;
+/**
+ * @nullable
+ */
+status?: PurchaseOrdersEvaluationsIndexStatus;
 /**
  * @minimum 1
  * @maximum 100

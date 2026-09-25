@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RequiredMark } from "@/components/required-mark";
 import { ItemPicker, type CatalogItem } from "./item-picker";
 import { SupplierPicker, type SupplierRow } from "./supplier-picker";
 
@@ -36,6 +37,7 @@ type QuotationCriteria = {
   leadTime: string;
   warranty: string;
   paymentTerms: string;
+  otherRemarks: string;
 };
 
 type QuotationPanel = {
@@ -64,6 +66,7 @@ const CRITERIA_KEYS = [
   "leadTime",
   "warranty",
   "paymentTerms",
+  "otherRemarks",
 ] as const;
 
 const money = new Intl.NumberFormat("en-US", {
@@ -126,6 +129,7 @@ export function createEmptyQuotation(): QuotationPanel {
       leadTime: "",
       warranty: "",
       paymentTerms: "",
+      otherRemarks: "",
     },
   };
 }
@@ -289,6 +293,20 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
     });
   };
 
+  const removeItem = (uid: string) => {
+    if (items.length <= 1) return;
+    const nextItems = items.filter((item) => item.uid !== uid);
+    onChange({
+      items: nextItems,
+      quotations: quotations.map((panel) => {
+        const pricing = { ...panel.pricing };
+        delete pricing[uid];
+        const next = { ...panel, pricing };
+        return { ...next, ...recalcVat(next, nextItems) };
+      }),
+    });
+  };
+
   const removeQuotation = (index: number) => {
     if (index < 2 || quotations.length <= 2) return;
     onChange({
@@ -310,20 +328,20 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
         <table className="w-full min-w-[1400px] border-collapse text-xs">
           <thead>
             <tr>
-              <th className={`${headCell} w-10`} rowSpan={3}>
+              <th className={`${headCell} w-16`} rowSpan={3}>
                 {t("no")}
               </th>
               <th className={`${headCell} w-[50px]`} rowSpan={3}>
-                {t("itemCode")}
+                {t("itemCode")} <RequiredMark />
               </th>
               <th className={`${headCell} w-[250px]`} rowSpan={3}>
-                {t("description")}
+                {t("description")} <RequiredMark />
               </th>
               <th className={`${headCell} w-15`} rowSpan={3}>
-                {t("qty")}
+                {t("qty")} <RequiredMark />
               </th>
               <th className={`${headCell} w-15`} rowSpan={3}>
-                {t("uom")}
+                {t("uom")} <RequiredMark />
               </th>
               {quotations.map((_, index) => (
                 <th
@@ -356,30 +374,51 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                   className={`${bodyCell} bg-muted/40`}
                   colSpan={3}
                 >
-                  <div className="space-y-1">
-                    <SupplierPicker
-                      value={panel.supplierCode}
-                      supplierName={panel.supplierName}
-                      onSelect={(row) => selectSupplier(index, row)}
-                      placeholder={t("supplierPlaceholder")}
-                      emptyMessage={t("selectSupplier")}
-                      ariaLabel={`${t("quotation", { n: quoteLabel(index) })} ${t("supplierName")}`}
-                    />
-                    <Textarea
-                      value={panel.address}
-                      readOnly
-                      placeholder={t("addressPlaceholder")}
-                      rows={2}
-                      className="min-h-10 resize-none border-0 bg-background px-1.5 font-normal text-xs shadow-none placeholder:text-xs md:text-xs"
-                      aria-label={`${t("quotation", { n: quoteLabel(index) })} ${t("address")}`}
-                    />
-                    <Input
-                      value={panel.phone}
-                      readOnly
-                      placeholder={t("phonePlaceholder")}
-                      className="h-7 border-0 bg-background px-1.5 font-normal text-xs shadow-none placeholder:text-xs md:text-xs"
-                      aria-label={`${t("quotation", { n: quoteLabel(index) })} ${t("phone")}`}
-                    />
+                  <div className="grid grid-cols-[max-content_1fr] items-center gap-x-1.5 gap-y-1 text-left">
+                    <span className="text-xs text-muted-foreground">
+                      {t("supplierName")} <RequiredMark />
+                    </span>
+                    <div className="min-w-0">
+                      <SupplierPicker
+                        value={panel.supplierCode}
+                        supplierName={panel.supplierName}
+                        onSelect={(row) => selectSupplier(index, row)}
+                        placeholder={t("supplierPlaceholder")}
+                        emptyMessage={t("selectSupplier")}
+                        ariaLabel={`${t("quotation", { n: quoteLabel(index) })} ${t("supplierName")}`}
+                      />
+                    </div>
+
+                    <span className="self-start pt-1.5 text-xs text-muted-foreground">
+                      {t("address")} <RequiredMark />
+                    </span>
+                    <div className="min-w-0">
+                      <Textarea
+                        value={panel.address}
+                        onChange={(e) =>
+                          patchQuotation(index, { address: e.target.value })
+                        }
+                        placeholder={t("addressPlaceholder")}
+                        rows={2}
+                        className="min-h-10 resize-none border-0 bg-background px-1.5 font-normal text-xs shadow-none placeholder:text-xs md:text-xs"
+                        aria-label={`${t("quotation", { n: quoteLabel(index) })} ${t("address")}`}
+                      />
+                    </div>
+
+                    <span className="text-xs text-muted-foreground">
+                      {t("phone")} <RequiredMark />
+                    </span>
+                    <div className="min-w-0">
+                      <Input
+                        value={panel.phone}
+                        onChange={(e) =>
+                          patchQuotation(index, { phone: e.target.value })
+                        }
+                        placeholder={t("phonePlaceholder")}
+                        className="h-7 border-0 bg-background px-1.5 font-normal text-xs shadow-none placeholder:text-xs md:text-xs"
+                        aria-label={`${t("quotation", { n: quoteLabel(index) })} ${t("phone")}`}
+                      />
+                    </div>
                   </div>
                 </th>
               ))}
@@ -387,9 +426,13 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
             <tr>
               {quotations.map((_, index) => (
                 <Fragment key={`q-cols-${index}`}>
-                  <th className={`${headCell} w-12 text-center`}>{t("winner")}</th>
+                  <th className={`${headCell} w-12 text-center`}>
+                    {t("winner")} <RequiredMark />
+                  </th>
                   <th className={`${headCell} w-[140px]`}>{t("brand")}</th>
-                  <th className={`${headCell} w-[80px] text-right`}>{t("unitCost")}</th>
+                  <th className={`${headCell} w-[80px] text-right`}>
+                    {t("unitCost")} <RequiredMark />
+                  </th>
                 </Fragment>
               ))}
             </tr>
@@ -398,7 +441,21 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
             {items.map((item, itemIndex) => (
               <tr key={item.uid} className="border-b border-border hover:bg-muted/30">
                 <td className={`${bodyCell} text-center text-xs text-muted-foreground`}>
-                  {itemIndex + 1}
+                  <div className="flex items-center justify-center gap-0.5">
+                    <span>{itemIndex + 1}</span>
+                    {items.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => removeItem(item.uid)}
+                        aria-label={`${t("removeItem")} ${item.itemCode || itemIndex + 1}`}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="size-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </td>
                 <td className={bodyCell}>
                   <ItemPicker
@@ -486,7 +543,22 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                 className={key === "grandTotal" ? "border-t-2 border-border" : undefined}
               >
                 <td className={`${bodyCell} bg-muted/20`} colSpan={5}>
-                  <div className="flex justify-end pr-2 text-xs font-medium">{t(key)}</div>
+                  <div className="flex items-center justify-between gap-2 pr-2 text-xs font-medium">
+                    {key === "subTotal" ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="xs"
+                        onClick={addItem}
+                      >
+                        <Plus className="size-3" />
+                        {t("addItem")}
+                      </Button>
+                    ) : (
+                      <span />
+                    )}
+                    <span>{t(key)}</span>
+                  </div>
                 </td>
                 {quotations.map((panel, qIndex) => {
                   if (readonly) {
@@ -532,12 +604,16 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                 </td>
                 {quotations.map((panel, qIndex) => (
                   <td key={`${key}-${qIndex}`} className={bodyCell} colSpan={3}>
-                    {key === "warranty" || key === "leadTime" ? (
+                    {key === "warranty" ||
+                    key === "leadTime" ||
+                    key === "otherRemarks" ? (
                       <Textarea
                         value={panel.criteria[key]}
                         onChange={(e) => patchCriteria(qIndex, { [key]: e.target.value })}
                         placeholder={t("criteriaPlaceholder")}
-                        rows={key === "warranty" ? 3 : 1}
+                        rows={
+                          key === "warranty" ? 3 : key === "otherRemarks" ? 2 : 1
+                        }
                         className="min-h-[28px] resize-none border-0 bg-background px-1.5 text-center text-xs shadow-none placeholder:text-xs md:text-xs"
                       />
                     ) : (
@@ -554,13 +630,6 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
             ))}
           </tbody>
         </table>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="xs" onClick={addItem}>
-          <Plus className="size-3" />
-          {t("addItem")}
-        </Button>
       </div>
     </div>
   );

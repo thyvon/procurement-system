@@ -2,6 +2,7 @@
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
@@ -11,7 +12,9 @@ import {
   purchaseOrdersEvaluationsIndex,
 } from "@/lib/api/evaluation/evaluation";
 import type { EvaluationResource } from "@/lib/api/model/evaluationResource";
+import type { PurchaseOrdersEvaluationsIndexStatus } from "@/lib/api/model/purchaseOrdersEvaluationsIndexStatus";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton";
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
@@ -33,7 +36,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
-import { EvaluationForm } from "./evaluation-form";
 
 type EvaluationRow = {
   id: string;
@@ -55,6 +57,25 @@ const money = new Intl.NumberFormat("en-US", {
   currency: "USD",
   minimumFractionDigits: 2,
 });
+
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  draft: "draft",
+  in_review: "inReview",
+  approved: "approved",
+  rejected: "rejected",
+  returned: "returned",
+};
+
+const STATUS_VARIANTS: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
+  draft: "outline",
+  in_review: "secondary",
+  approved: "default",
+  rejected: "destructive",
+  returned: "outline",
+};
 
 function toRow(resource: EvaluationResource): EvaluationRow {
   return {
@@ -126,9 +147,17 @@ function useEvaluationColumns({
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={tc("status")} />
       ),
-      cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.getValue("status") ?? "—"}</span>
-      ),
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string | null;
+        if (!status) return <span className="text-muted-foreground">—</span>;
+
+        const key = STATUS_LABEL_KEYS[status];
+        return (
+          <Badge variant={STATUS_VARIANTS[status] ?? "secondary"}>
+            {key ? tt(key) : status}
+          </Badge>
+        );
+      },
     }),
     columnHelper.accessor("createdBy", {
       header: ({ column }) => (
@@ -184,9 +213,8 @@ function useEvaluationColumns({
 export function EvaluationsTab() {
   const t = useTranslations("purchaseOrders.evaluations");
   const tt = useTranslations("purchaseOrders.table");
+  const router = useRouter();
   const qc = useQueryClient();
-  const [creating, setCreating] = useState(false);
-  const [editing, setEditing] = useState<EvaluationRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EvaluationRow | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -206,16 +234,21 @@ export function EvaluationsTab() {
   });
 
   const columns = useEvaluationColumns({
-    onEditRequest: setEditing,
+    onEditRequest: (evaluation) =>
+      router.push(`/purchase-orders/evaluations/${evaluation.id}`),
     onDeleteRequest: setDeleteTarget,
   });
 
   const query = useQuery({
-    queryKey: ["evaluations", debouncedSearch, page, perPage],
+    queryKey: ["evaluations", debouncedSearch, statusFilter, page, perPage],
     queryFn: async (): Promise<EvaluationsPage> => {
       const response = await purchaseOrdersEvaluationsIndex(
         {
           search: debouncedSearch || undefined,
+          status:
+            statusFilter === "all"
+              ? undefined
+              : (statusFilter as PurchaseOrdersEvaluationsIndexStatus),
           page: page + 1,
           per_page: perPage,
         },
@@ -233,20 +266,6 @@ export function EvaluationsTab() {
     },
     placeholderData: keepPreviousData,
   });
-
-  if (creating || editing) {
-    return (
-      <div className="min-w-0">
-        <EvaluationForm
-          evaluationId={editing?.id}
-          onBack={() => {
-            setCreating(false);
-            setEditing(null);
-          }}
-        />
-      </div>
-    );
-  }
 
   if (query.isPending) {
     return <DataTableSkeleton columns={6} actions={2} />;
@@ -282,12 +301,18 @@ export function EvaluationsTab() {
         onFilterChange={setStatusFilter}
         filterOptions={[
           { label: tt("draft"), value: "draft" },
+          { label: tt("inReview"), value: "in_review" },
           { label: tt("approved"), value: "approved" },
+          { label: tt("rejected"), value: "rejected" },
+          { label: tt("returned"), value: "returned" },
         ]}
         filterPlaceholder={tt("allStatuses")}
         searchPlaceholder={tt("searchPlaceholder")}
         toolbar={
-          <Button type="button" onClick={() => setCreating(true)}>
+          <Button
+            type="button"
+            onClick={() => router.push("/purchase-orders/evaluations/new")}
+          >
             <Plus className="mr-2 size-4" />
             {t("newTitle")}
           </Button>

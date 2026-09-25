@@ -18,7 +18,7 @@ trait ValidatesEvaluationPayload
     protected function evaluationRules(): array
     {
         return [
-            'recommendation_basis' => ['nullable', 'string'],
+            'recommendation_basis' => ['required', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.item_code' => ['required', 'string', 'max:64'],
             'items.*.description' => ['required', 'string'],
@@ -27,8 +27,8 @@ trait ValidatesEvaluationPayload
             'quotations' => ['required', 'array', 'min:2'],
             'quotations.*.supplier_code' => ['required', 'string', 'max:64'],
             'quotations.*.supplier_name' => ['required', 'string', 'max:255'],
-            'quotations.*.supplier_phone' => ['nullable', 'string', 'max:255'],
-            'quotations.*.supplier_address' => ['nullable', 'string', 'max:255'],
+            'quotations.*.supplier_phone' => ['required', 'string', 'max:255'],
+            'quotations.*.supplier_address' => ['required', 'string', 'max:255'],
             'quotations.*.discount' => ['nullable', 'numeric', 'min:0'],
             'quotations.*.vat' => ['nullable', 'numeric', 'min:0'],
             'quotations.*.price' => ['nullable', 'string', 'max:255'],
@@ -36,6 +36,7 @@ trait ValidatesEvaluationPayload
             'quotations.*.lead_time' => ['nullable', 'string'],
             'quotations.*.warranty' => ['nullable', 'string'],
             'quotations.*.payment_terms' => ['nullable', 'string'],
+            'quotations.*.other_remarks' => ['nullable', 'string'],
             'quotations.*.lines' => ['required', 'array', 'min:1'],
             'quotations.*.lines.*.item_index' => ['required', 'integer', 'min:0'],
             'quotations.*.lines.*.brand' => ['nullable', 'string', 'max:255'],

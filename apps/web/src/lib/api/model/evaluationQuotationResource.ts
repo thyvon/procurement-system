@@ -28,6 +28,8 @@ export interface EvaluationQuotationResource {
   warranty: string | null;
   /** @nullable */
   paymentTerms: string | null;
+  /** @nullable */
+  otherRemarks: string | null;
   position: number;
   lines?: EvaluationQuotationItemResource[];
 }

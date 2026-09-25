@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'lead_time',
     'warranty',
     'payment_terms',
+    'other_remarks',
     'position',
 ])]
 class EvaluationQuotation extends Model

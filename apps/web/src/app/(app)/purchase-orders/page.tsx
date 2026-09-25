@@ -1,5 +1,5 @@
-import { PurchaseOrderManagementPage } from "@/features/purchase-orders/purchase-order-management-page";
+import { redirect } from "next/navigation";
 
 export default function PurchaseOrdersRoute() {
-  return <PurchaseOrderManagementPage />;
+  redirect("/purchase-orders/list");
 }

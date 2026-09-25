@@ -32,6 +32,7 @@ class EvaluationQuotationResource extends JsonResource
             'leadTime' => $this->lead_time,
             'warranty' => $this->warranty,
             'paymentTerms' => $this->payment_terms,
+            'otherRemarks' => $this->other_remarks,
             'position' => $this->position,
             'lines' => $this->relationLoaded('lines')
                 ? EvaluationQuotationItemResource::collection($this->lines)

@@ -40,6 +40,8 @@ class PermissionSeeder extends Seeder
         'variations.manage',
         'evaluations.view',
         'evaluations.manage',
+        'approvals.view',
+        'approvals.manage',
     ];
 
     public function run(): void

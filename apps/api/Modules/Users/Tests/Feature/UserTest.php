@@ -38,9 +38,12 @@ it('lists only users within the authenticated entity', function () {
 });
 
 it('prevents an admin from reading a user of another entity', function () {
+    // Cross-entity records are invisible: entity scoping is applied while the
+    // route model is resolved, so the record is simply not found (404) rather
+    // than found and refused (403).
     $this->actingAs($this->adminA, 'sanctum')
         ->getJson("/api/v1/users/{$this->staffB->getKey()}")
-        ->assertStatus(403);
+        ->assertStatus(404);
 });
 
 it('creates a user in the actor entity with the staff role by default', function () {

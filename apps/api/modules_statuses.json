@@ -5,5 +5,7 @@
     "Users": true,
     "Products": true,
     "EPurchase": true,
-    "PurchaseOrders": true
+    "PurchaseOrders": true,
+    "Approvals": true,
+    "Notifications": true
 }

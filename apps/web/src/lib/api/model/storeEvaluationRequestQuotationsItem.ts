@@ -11,16 +11,10 @@ export type StoreEvaluationRequestQuotationsItem = {
   supplier_code: string;
   /** @maxLength 255 */
   supplier_name: string;
-  /**
-     * @maxLength 255
-     * @nullable
-     */
-  supplier_phone?: string | null;
-  /**
-     * @maxLength 255
-     * @nullable
-     */
-  supplier_address?: string | null;
+  /** @maxLength 255 */
+  supplier_phone: string;
+  /** @maxLength 255 */
+  supplier_address: string;
   /**
      * @minimum 0
      * @nullable
@@ -47,6 +41,8 @@ export type StoreEvaluationRequestQuotationsItem = {
   warranty?: string | null;
   /** @nullable */
   payment_terms?: string | null;
+  /** @nullable */
+  other_remarks?: string | null;
   /** @minItems 1 */
   lines: StoreEvaluationRequestQuotationsItemLinesItem[];
 };

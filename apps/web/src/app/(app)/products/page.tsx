@@ -1,5 +1,5 @@
-import { ProductManagementPage } from "@/features/products/product-management-page";
+import { ProductsTab } from "@/features/products/products-tab";
 
 export default function ProductsRoute() {
-  return <ProductManagementPage />;
+  return <ProductsTab />;
 }
