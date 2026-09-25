@@ -22,12 +22,28 @@ class ApprovalService
      * Resolves the flow a document would use and returns everything the
      * submit dialog needs: ordered steps + TOCA-filtered candidates.
      *
+     * `$subjectId` may be null for a document that has not been created yet —
+     * the flow is then resolved purely from the draft `$amountOverride`, which
+     * is why an amount is required in that case.
+     * `$amountOverride` only affects this preview — submit always re-reads the
+     * amount from the subject record.
+     *
      * @return array<string, mixed>
      */
-    public function preview(string $subjectType, string $subjectId): array
+    public function preview(string $subjectType, ?string $subjectId, ?float $amountOverride = null): array
     {
-        $subject = $this->subjects->find($subjectType, $subjectId);
-        $amount = $this->subjects->amount($subjectType, $subject);
+        $subject = $subjectId !== null ? $this->subjects->find($subjectType, $subjectId) : null;
+
+        if ($subject !== null) {
+            $amount = $amountOverride ?? $this->subjects->amount($subjectType, $subject);
+        } elseif ($amountOverride !== null) {
+            $amount = $amountOverride;
+        } else {
+            throw ValidationException::withMessages([
+                'amount' => 'An amount is required to preview a document that has not been saved yet.',
+            ]);
+        }
+
         [$setting, $flow] = $this->resolveFlow($subjectType, $amount);
 
         $steps = $flow->steps()->get();
@@ -37,8 +53,8 @@ class ApprovalService
 
         return [
             'subjectType' => $subjectType,
-            'subjectId' => (string) $subject->getKey(),
-            'documentCode' => $this->subjects->code($subjectType, $subject),
+            'subjectId' => $subject !== null ? (string) $subject->getKey() : null,
+            'documentCode' => $subject !== null ? $this->subjects->code($subjectType, $subject) : null,
             'amount' => number_format($amount, 2, '.', ''),
             'flow' => $this->flowPayload($flow),
             'steps' => $steps->map(function (ApprovalStep $step) use ($candidates): array {

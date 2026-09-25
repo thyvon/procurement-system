@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'min_amount',
     'max_amount',
     'is_active',
+    'created_by',
+    'updated_by',
 ])]
 class ApprovalFlow extends Model
 {

@@ -324,11 +324,11 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
 
   return (
     <div className="min-w-0 space-y-3">
-      <div className="w-full max-w-full overflow-x-auto rounded-lg border border-border">
+      <div className="w-full max-w-full overflow-x-auto border border-border">
         <table className="w-full min-w-[1400px] border-collapse text-xs">
           <thead>
             <tr>
-              <th className={`${headCell} w-16`} rowSpan={3}>
+              <th className={`${headCell} w-5`} rowSpan={3}>
                 {t("no")}
               </th>
               <th className={`${headCell} w-[50px]`} rowSpan={3}>

@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'label',
     'action_mode',
     'allowed_actions',
+    'created_by',
+    'updated_by',
 ])]
 class ApprovalStep extends Model
 {

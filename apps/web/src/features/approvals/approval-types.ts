@@ -22,7 +22,7 @@ export type ApprovalPreviewStep = {
 
 export type ApprovalPreview = {
   subjectType: string;
-  subjectId: string;
+  subjectId: string | null;
   documentCode: string | null;
   amount: string;
   flow: ApprovalFlowView;

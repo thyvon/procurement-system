@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { MoreHorizontal, Eye, XIcon } from "lucide-react";
+import { MoreHorizontal, Eye, XIcon, Settings2 } from "lucide-react";
 import {
   approvalsInbox,
   approvalsOutbox,
@@ -305,9 +305,18 @@ export function RequestsTab() {
 
   return (
     <div className="mt-1 min-w-0 space-y-3">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("description")}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">{t("title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("description")}</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => router.push("/approvals/settings")}
+        >
+          <Settings2 className="mr-2 size-4" />
+          {t("configure")}
+        </Button>
       </div>
 
       <Tabs value={scope} onValueChange={handleScopeChange}>

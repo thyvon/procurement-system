@@ -82,6 +82,17 @@ class ApprovalSubjectRegistry
     }
 
     /**
+     * Subject types the approval engine understands — the vocabulary the
+     * configuration screens offer (settings, flows, TOCA authority rows).
+     *
+     * @return array<int, string>
+     */
+    public static function types(): array
+    {
+        return array_keys(self::SUBJECTS);
+    }
+
+    /**
      * Users whose TOCA rows cover the given amount for this subject type.
      *
      * @return Collection<int, User>

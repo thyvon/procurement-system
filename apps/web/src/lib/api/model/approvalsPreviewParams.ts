@@ -12,6 +12,12 @@ export type ApprovalsPreviewParams = {
 subject_type: string;
 /**
  * @maxLength 26
+ * @nullable
  */
-subject_id: string;
+subject_id?: string | null;
+/**
+ * @minimum 0
+ * @nullable
+ */
+amount?: number | null;
 };

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Check, Plus, RotateCcw, Save, Send, X } from "lucide-react";
+import { ArrowLeft, Check, Plus, RotateCcw, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton";
 import {
@@ -37,7 +37,7 @@ import {
 } from "@/features/approvals/approval-types";
 import { ApprovalTimeline } from "@/features/approvals/components/approval-timeline";
 import { ApprovalActionDialog } from "@/features/approvals/components/approval-action-dialog";
-import { SubmitApprovalDialog } from "@/features/approvals/components/submit-approval-dialog";
+import { SubmitApprovalPanel } from "@/features/approvals/components/submit-approval-panel";
 import {
   EvaluationMatrix,
   SEED_QUOTATION_COUNT,
@@ -181,6 +181,52 @@ function findWinnerGap(value: EvaluationMatrixValue): string | null {
   return null;
 }
 
+function round(value: number, decimals: number): number {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+/**
+ * Mirrors the server's awarded_total: sum of round(qty x unitCost, 4) over
+ * the winning lines, rounded to 2 decimals (EvaluationService).
+ */
+function computeAwardedTotal(value: EvaluationMatrixValue): number {
+  let awarded = 0;
+
+  for (const item of value.items) {
+    const qty = Number.parseFloat(item.qty);
+    if (!Number.isFinite(qty)) continue;
+
+    for (const panel of value.quotations) {
+      const pricing = panel.pricing[item.uid];
+      if (!pricing?.selected) continue;
+      const unitCost = Number.parseFloat(pricing.unitCost);
+      if (!Number.isFinite(unitCost)) continue;
+      awarded += round(qty * unitCost, 4);
+    }
+  }
+
+  return round(awarded, 2);
+}
+
+function serializeForm(
+  value: EvaluationMatrixValue,
+  basis: string
+): string {
+  return JSON.stringify({ value, basis });
+}
+
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+
+  return debounced;
+}
+
 interface EvaluationFormProps {
   onBack: () => void;
   evaluationId?: string;
@@ -197,7 +243,9 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
   const [value, setValue] = useState<EvaluationMatrixValue>(createEmptyValue);
   const [basis, setBasis] = useState("");
   const [hydratedId, setHydratedId] = useState<string | null>(null);
-  const [submitOpen, setSubmitOpen] = useState(false);
+  const [baseline, setBaseline] = useState<string | null>(null);
+  const pendingSaveRef = useRef("");
+  const skipNavRef = useRef(false);
   const [action, setAction] = useState<ApprovalAction | null>(null);
 
   const showQuery = useQuery({
@@ -223,13 +271,16 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
   });
 
   if (isEdit && showQuery.data && hydratedId !== showQuery.data.id) {
+    const nextValue = fromEvaluation(showQuery.data);
+    const nextBasis = showQuery.data.recommendationBasis ?? "";
     setHydratedId(showQuery.data.id);
-    setValue(fromEvaluation(showQuery.data));
-    setBasis(showQuery.data.recommendationBasis ?? "");
+    setValue(nextValue);
+    setBasis(nextBasis);
+    setBaseline(serializeForm(nextValue, nextBasis));
   }
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<EvaluationResource> => {
       const payload = toPayload(value, basis);
       if (isEdit) {
         return unwrap(
@@ -242,10 +293,23 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
       }
       return unwrap(await purchaseOrdersEvaluationsStore(payload, withAuth()));
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      setBaseline(pendingSaveRef.current);
       qc.invalidateQueries({ queryKey: ["evaluations"] });
+      qc.invalidateQueries({ queryKey: ["approvals", "preview"] });
+      if (skipNavRef.current) {
+        // Save chained into a submit — the panel owns the toast + navigation.
+        return;
+      }
       toast.success(isEdit ? tf("updated") : tf("created"));
-      onBack();
+      if (!isEdit) {
+        const id = result?.id;
+        if (id) {
+          router.push(`/purchase-orders/evaluations/${id}`);
+        } else {
+          onBack();
+        }
+      }
     },
   });
 
@@ -261,6 +325,17 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
     approvalRequest?.steps.find((step) => step.position === currentStep?.position)
       ?.allowedActions ?? [];
 
+  const currentSnapshot = useMemo(
+    () => serializeForm(value, basis),
+    [value, basis]
+  );
+  const isDirty = isEdit && baseline !== null && currentSnapshot !== baseline;
+  const awardedTotal = useMemo(
+    () => (isEdit && !hydratedId ? null : computeAwardedTotal(value)),
+    [isEdit, hydratedId, value]
+  );
+  const draftAmount = useDebouncedValue(awardedTotal, 500);
+
   const addQuotation = () => {
     const pricing = Object.fromEntries(
       value.items.map((item) => [item.uid, emptyPricing()])
@@ -271,21 +346,21 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
     });
   };
 
-  const handleSave = () => {
+  const validateForm = (): boolean => {
     const missingSuppliers = value.quotations.some((q) => !q.supplierCode.trim());
     if (missingSuppliers) {
       toast.error(tf("missingSupplier"));
-      return;
+      return false;
     }
     const missingAddresses = value.quotations.some((q) => !q.address.trim());
     if (missingAddresses) {
       toast.error(tf("missingAddress"));
-      return;
+      return false;
     }
     const missingPhones = value.quotations.some((q) => !q.phone.trim());
     if (missingPhones) {
       toast.error(tf("missingPhone"));
-      return;
+      return false;
     }
     const missingItems = value.items.some(
       (item) =>
@@ -297,18 +372,43 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
     );
     if (missingItems) {
       toast.error(tf("missingItem"));
-      return;
+      return false;
     }
     if (!basis.trim()) {
       toast.error(tf("missingBasis"));
-      return;
+      return false;
     }
     const gap = findWinnerGap(value);
     if (gap) {
       toast.error(tf("noWinner", { item: gap }));
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const handleSave = () => {
+    if (!validateForm()) return;
+    pendingSaveRef.current = serializeForm(value, basis);
     saveMutation.mutate();
+  };
+
+  /**
+   * Create mode: validates + saves and returns the new id so the approval
+   * panel can chain straight into submitting. Returns null when the form
+   * fails validation (toasts already explain why) or the save errors.
+   */
+  const prepareDocument = async (): Promise<string | null> => {
+    if (isEdit) return evaluationId ?? null;
+    if (!validateForm()) return null;
+
+    pendingSaveRef.current = serializeForm(value, basis);
+    skipNavRef.current = true;
+    try {
+      const created = await saveMutation.mutateAsync();
+      return created?.id ?? null;
+    } finally {
+      skipNavRef.current = false;
+    }
   };
 
   if (isEdit && showQuery.isPending) {
@@ -327,7 +427,7 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
   }
 
   return (
-    <div className="mt-1 min-w-0 space-y-3">
+    <div className="mt-1 min-w-0 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button
@@ -363,12 +463,12 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
         </div>
       ) : null}
 
-      <fieldset disabled={inReview} className="m-0 min-w-0 border-0 p-0">
+      <fieldset disabled={inReview} className="mx-0 min-w-0 border-0 p-0">
         <Card size="sm" className="min-w-0 text-xs">
           <CardHeader>
             <CardTitle className="text-xs">{tf("title")}</CardTitle>
             <CardAction>
-              <Button type="button" size="sm" onClick={addQuotation}>
+              <Button type="button" onClick={addQuotation}>
                 <Plus className="mr-1.5 size-3.5" />
                 {tf("addQuotation")}
               </Button>
@@ -397,12 +497,11 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
       </fieldset>
 
       {approvalRequest ? (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-medium">{ta("reviewTitle")}</h2>
             <Button
               variant="outline"
-              size="sm"
               onClick={() => router.push(`/approvals/${approvalRequest.id}`)}
             >
               {ta("viewRequest")}
@@ -440,34 +539,21 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
       ) : null}
 
       {inReview ? null : (
-        <div className="flex items-center justify-end gap-2">
-          {isEdit ? (
-            <Button
-              variant="outline"
-              onClick={() => setSubmitOpen(true)}
-              disabled={
-                saveMutation.isPending || approvalRequest?.status === "pending"
-              }
-            >
-              <Send />
-              <span>{ta("submitForApproval")}</span>
-            </Button>
-          ) : null}
-          <Button onClick={handleSave} disabled={saveMutation.isPending}>
-            <Save />
-            <span>{saveMutation.isPending ? tf("saving") : tf("save")}</span>
-          </Button>
-        </div>
-      )}
-
-      {isEdit && evaluationId ? (
-        <SubmitApprovalDialog
+        <SubmitApprovalPanel
           subjectType={EVALUATION_SUBJECT}
-          subjectId={evaluationId}
-          open={submitOpen}
-          onOpenChange={setSubmitOpen}
+          subjectId={evaluationId ?? null}
+          amount={draftAmount}
+          dirty={isDirty}
+          disabled={saveMutation.isPending}
+          prepareDocument={prepareDocument}
+          actions={
+            <Button onClick={handleSave} disabled={saveMutation.isPending}>
+              <Save />
+              <span>{saveMutation.isPending ? tf("saving") : tf("save")}</span>
+            </Button>
+          }
         />
-      ) : null}
+      )}
 
       {approvalRequest && action ? (
         <ApprovalActionDialog

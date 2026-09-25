@@ -30,7 +30,8 @@ class ApprovalRequestController extends Controller
         return ApiResponse::success(
             $this->service->preview(
                 $request->string('subject_type')->toString(),
-                $request->string('subject_id')->toString(),
+                $request->filled('subject_id') ? $request->string('subject_id')->toString() : null,
+                $request->filled('amount') ? (float) $request->input('amount') : null,
             ),
         );
     }

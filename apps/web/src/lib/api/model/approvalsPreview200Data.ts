@@ -8,7 +8,8 @@ import type { ApprovalsPreview200DataFlow } from './approvalsPreview200DataFlow'
 
 export type ApprovalsPreview200Data = {
   subjectType: string;
-  subjectId: string;
+  /** @nullable */
+  subjectId: string | null;
   /** @nullable */
   documentCode: string | null;
   amount: string;

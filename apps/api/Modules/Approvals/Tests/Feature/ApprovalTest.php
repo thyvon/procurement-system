@@ -211,7 +211,9 @@ it('rejects a preview with an unknown subject type or an unknown record', functi
         ->getJson('/api/v1/approvals/preview')
         ->assertStatus(422);
 
-    expect($missing->json('errors'))->toHaveKeys(['subject_type', 'subject_id']);
+    // subject_id is optional (draft previews) — a missing request now needs
+    // an amount instead of a subject_id.
+    expect($missing->json('errors'))->toHaveKeys(['subject_type', 'amount']);
 });
 
 it('never previews another entity evaluation', function () {
@@ -221,6 +223,101 @@ it('never previews another entity evaluation', function () {
         ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$foreign->getKey()}")
         ->assertStatus(422)
         ->assertJsonPath('errors.subjectId.0', 'Record not found.');
+});
+
+it('previews a draft amount override without writing the subject record', function () {
+    $evaluation = approvalsEvaluation();
+
+    $response = $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$evaluation->getKey()}&amount=1500")
+        ->assertOk()
+        ->assertJsonPath('data.amount', '1500.00')
+        ->assertJsonPath('data.flow.id', $this->flow->getKey())
+        ->assertJsonCount(3, 'data.steps');
+
+    expect((float) $evaluation->fresh()->awarded_total)->toBe(44.0);
+
+    $candidateIds = collect($response->json('data.steps.1.candidates'))->pluck('id')->all();
+
+    expect($candidateIds)
+        ->toContain($this->secondApprover->getKey())
+        ->not->toContain($this->firstApprover->getKey());
+});
+
+it('resolves a different flow when the draft amount crosses the band', function () {
+    $evaluation = approvalsEvaluation();
+
+    $this->flow->update(['max_amount' => 1000]);
+
+    $highValue = ApprovalFlow::create([
+        'entity_id' => $this->entity->getKey(),
+        'approval_setting_id' => $this->setting->getKey(),
+        'code' => 'evaluation-high',
+        'name' => 'High value flow',
+        'min_amount' => 1001,
+        'max_amount' => null,
+        'is_active' => true,
+    ]);
+
+    ApprovalStep::create([
+        'entity_id' => $this->entity->getKey(),
+        'approval_flow_id' => $highValue->getKey(),
+        'position' => 1,
+        'key' => 'executive',
+        'label' => 'Executive Approval',
+        'action_mode' => ApprovalStep::MODE_DECIDE,
+        'allowed_actions' => ['approve', 'reject', 'return'],
+    ]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$evaluation->getKey()}&amount=1000")
+        ->assertOk()
+        ->assertJsonPath('data.amount', '1000.00')
+        ->assertJsonPath('data.flow.id', $this->flow->getKey());
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$evaluation->getKey()}&amount=1001")
+        ->assertOk()
+        ->assertJsonPath('data.amount', '1001.00')
+        ->assertJsonPath('data.flow.id', $highValue->getKey())
+        ->assertJsonCount(1, 'data.steps')
+        ->assertJsonPath('data.steps.0.key', 'executive');
+});
+
+it('rejects a draft amount that is not a non-negative number', function () {
+    $evaluation = approvalsEvaluation();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$evaluation->getKey()}&amount=-1")
+        ->assertStatus(422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
+});
+
+it('previews a draft document that has not been saved yet from its amount alone', function () {
+    $response = $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/preview?subject_type=evaluation&amount=1500')
+        ->assertOk()
+        ->assertJsonPath('data.subjectType', 'evaluation')
+        ->assertJsonPath('data.subjectId', null)
+        ->assertJsonPath('data.documentCode', null)
+        ->assertJsonPath('data.amount', '1500.00')
+        ->assertJsonPath('data.flow.id', $this->flow->getKey())
+        ->assertJsonCount(3, 'data.steps');
+
+    $candidateIds = collect($response->json('data.steps.1.candidates'))->pluck('id')->all();
+
+    expect($candidateIds)
+        ->toContain($this->secondApprover->getKey())
+        ->not->toContain($this->firstApprover->getKey());
+});
+
+it('requires an amount for a draft preview that references no document', function () {
+    $response = $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/preview?subject_type=evaluation')
+        ->assertStatus(422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
+
+    expect($response->json('errors'))->toHaveKey('amount');
 });
 
 it('submits an evaluation, stamps the record step and parks on the first decide step', function () {
