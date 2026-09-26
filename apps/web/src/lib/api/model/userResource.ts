@@ -10,6 +10,8 @@ export interface UserResource {
   name: string;
   email: string;
   /** @nullable */
+  position: string | null;
+  /** @nullable */
   avatar: string | null;
   /** @nullable */
   entityId: string | null;

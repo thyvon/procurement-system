@@ -72,6 +72,7 @@ class ApprovalRequestFactory extends Factory
                         'allowedActions' => [],
                         'assigneeId' => null,
                         'assigneeName' => null,
+                        'assigneePosition' => null,
                     ],
                     [
                         'position' => 2,
@@ -81,6 +82,7 @@ class ApprovalRequestFactory extends Factory
                         'allowedActions' => ['approve', 'reject', 'return'],
                         'assigneeId' => null,
                         'assigneeName' => null,
+                        'assigneePosition' => null,
                     ],
                 ],
             ],

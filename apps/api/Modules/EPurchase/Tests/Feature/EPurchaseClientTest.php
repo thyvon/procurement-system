@@ -31,7 +31,9 @@ function epurchaseClientSuccessPayload(array $overrides = []): array
 }
 
 it('maps a successful company login response to a result object', function () {
-    Http::fake(['*' => Http::response(epurchaseClientSuccessPayload())]);
+    Http::fake(['*' => Http::response(epurchaseClientSuccessPayload([
+        'user' => ['real_position' => '  Procurement Officer  '],
+    ]))]);
 
     $result = app(EPurchaseClient::class)->login('3665', 'secret-company-password');
 
@@ -39,6 +41,7 @@ it('maps a successful company login response to a result object', function () {
         ->and($result->name)->toBe('Vun Thy')
         ->and($result->jwt)->toBe('company-session-jwt')
         ->and($result->formToken)->toBe('form-token-abc')
+        ->and($result->position)->toBe('Procurement Officer')
         ->and($result->userPhoto)->toBe('data:image/jpeg;base64,'.base64_encode('fake-jpeg-bytes'));
 
     Http::assertSent(function (Request $request): bool {
@@ -46,6 +49,18 @@ it('maps a successful company login response to a result object', function () {
             && $request['employee_id'] === '3665'
             && $request['password'] === 'secret-company-password';
     });
+});
+
+it('maps an absent or empty real_position to null', function () {
+    Http::fake(['*' => Http::response(epurchaseClientSuccessPayload(['user' => ['real_position' => '   ']]))]);
+
+    expect(app(EPurchaseClient::class)->login('3665', 'secret-company-password')->position)->toBeNull();
+
+    $payload = epurchaseClientSuccessPayload();
+    unset($payload['user']['real_position']);
+    Http::fake(['*' => Http::response($payload)]);
+
+    expect(app(EPurchaseClient::class)->login('3665', 'secret-company-password')->position)->toBeNull();
 });
 
 it('maps an absent formToken to null', function () {

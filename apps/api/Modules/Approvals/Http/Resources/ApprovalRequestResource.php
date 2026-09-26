@@ -32,6 +32,7 @@ class ApprovalRequestResource extends JsonResource
                 'label' => $currentStep['label'],
                 'assigneeId' => $currentStep['assigneeId'] ?? null,
                 'assigneeName' => $currentStep['assigneeName'] ?? null,
+                'assigneePosition' => $currentStep['assigneePosition'] ?? null,
             ],
             'steps' => $steps,
             'submittedBy' => $this->creator?->name,

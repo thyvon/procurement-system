@@ -39,6 +39,7 @@ export type ApprovalStepSnapshot = {
   allowedActions: string[];
   assigneeId: number | null;
   assigneeName: string | null;
+  assigneePosition?: string | null;
 };
 
 export type ApprovalCurrentStep = {
@@ -47,6 +48,7 @@ export type ApprovalCurrentStep = {
   label: string;
   assigneeId: number | null;
   assigneeName: string | null;
+  assigneePosition?: string | null;
 };
 
 export type ApprovalActionView = {
@@ -140,6 +142,8 @@ export function parseApprovalRequest(raw: unknown): ApprovalRequestView {
           label: String(currentStep.label ?? ""),
           assigneeId: toNullableNumber(currentStep.assigneeId),
           assigneeName: (currentStep.assigneeName as string | null) ?? null,
+          assigneePosition:
+            (currentStep.assigneePosition as string | null) ?? null,
         }
       : null,
     steps: steps.map((step) => {
@@ -156,6 +160,8 @@ export function parseApprovalRequest(raw: unknown): ApprovalRequestView {
           : [],
         assigneeId: toNullableNumber(snapshot.assigneeId),
         assigneeName: (snapshot.assigneeName as string | null) ?? null,
+        assigneePosition:
+          (snapshot.assigneePosition as string | null) ?? null,
       };
     }),
     submittedBy: (record.submittedBy as string | null) ?? null,

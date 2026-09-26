@@ -157,6 +157,7 @@ class ApprovalService
                     'allowedActions' => $step->isDecide() ? ($step->allowed_actions ?? []) : [],
                     'assigneeId' => $assignedTo > 0 ? $assignedTo : null,
                     'assigneeName' => null,
+                    'assigneePosition' => null,
                 ];
             }
 
@@ -166,13 +167,29 @@ class ApprovalService
 
             $assigneeIds = array_values(array_filter(array_column($snapshotSteps, 'assigneeId')));
 
-            if ($assigneeIds !== []) {
-                $names = User::query()->whereIn('id', $assigneeIds)->pluck('name', 'id');
+            $assignees = collect();
 
-                foreach ($snapshotSteps as $index => $step) {
-                    if ($step['assigneeId'] !== null) {
-                        $snapshotSteps[$index]['assigneeName'] = $names[$step['assigneeId']] ?? null;
-                    }
+            if ($assigneeIds !== []) {
+                $assignees = User::query()
+                    ->whereIn('id', $assigneeIds)
+                    ->get(['id', 'name', 'position'])
+                    ->keyBy('id');
+            }
+
+            // The acting user instance may carry a partial attribute set (strict
+            // mode); read the submitter's frozen identity from a fresh row.
+            $submitter = User::query()
+                ->select(['id', 'name', 'position'])
+                ->findOrFail($user->getKey());
+
+            foreach ($snapshotSteps as $index => $step) {
+                if ($step['assigneeId'] !== null) {
+                    $assignee = $assignees->get($step['assigneeId']);
+                    $snapshotSteps[$index]['assigneeName'] = $assignee?->name;
+                    $snapshotSteps[$index]['assigneePosition'] = $assignee?->position;
+                } elseif ($step['actionMode'] === ApprovalStep::MODE_RECORD) {
+                    $snapshotSteps[$index]['assigneeName'] = $submitter->name;
+                    $snapshotSteps[$index]['assigneePosition'] = $submitter->position;
                 }
             }
 

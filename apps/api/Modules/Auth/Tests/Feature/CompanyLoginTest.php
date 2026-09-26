@@ -37,6 +37,7 @@ function companyLoginSuccessPayload(array $overrides = []): array
             'name' => 'Vun Thy',
             'username' => '3665',
             'email' => 'vun.thy@mjqeducation.edu.kh',
+            'real_position' => 'Procurement Officer',
         ],
     ], $overrides);
 }
@@ -201,4 +202,41 @@ it('skips the company photo silently when userPhoto is absent', function () {
     postCompanyLogin()->assertOk();
 
     expect(User::query()->where('email', 'vun.thy@mjqeducation.edu.kh')->first()->avatar_path)->toBeNull();
+});
+
+it('stores the company real_position on the user and exposes it through the auth endpoints', function () {
+    Http::fake(['*' => Http::response(companyLoginSuccessPayload())]);
+
+    $data = postCompanyLogin()->assertOk()->json('data');
+
+    expect($data['user']['position'])->toBe('Procurement Officer');
+
+    $user = User::query()->where('email', 'vun.thy@mjqeducation.edu.kh')->firstOrFail();
+
+    expect($user->position)->toBe('Procurement Officer');
+
+    $this->withToken($data['access_token'])
+        ->getJson('/api/v1/auth/me')
+        ->assertOk()
+        ->assertJsonPath('data.position', 'Procurement Officer');
+});
+
+it('refreshes the stored position on later logins and keeps it when the company omits real_position', function () {
+    Http::fake([
+        '*' => Http::sequence()
+            ->push(companyLoginSuccessPayload(['user' => ['real_position' => 'Procurement Officer']]))
+            ->push(companyLoginSuccessPayload(['user' => ['real_position' => 'Head of Procurement']]))
+            ->push(companyLoginSuccessPayload(['user' => ['real_position' => null]])),
+    ]);
+
+    $first = postCompanyLogin()->assertOk()->json('data.user.position');
+    $second = postCompanyLogin()->assertOk()->json('data.user.position');
+    $third = postCompanyLogin()->assertOk()->json('data.user.position');
+
+    $user = User::query()->where('email', 'vun.thy@mjqeducation.edu.kh')->firstOrFail();
+
+    expect($first)->toBe('Procurement Officer')
+        ->and($second)->toBe('Head of Procurement')
+        ->and($third)->toBe('Head of Procurement')
+        ->and($user->position)->toBe('Head of Procurement');
 });

@@ -60,6 +60,7 @@ class EPurchaseClient
         $companyUser = $body['user'] ?? null;
         $email = is_array($companyUser) ? ($companyUser['email'] ?? null) : null;
         $name = is_array($companyUser) ? ($companyUser['name'] ?? null) : null;
+        $position = is_array($companyUser) ? ($companyUser['real_position'] ?? null) : null;
         $jwt = $body['data'] ?? null;
         $userPhoto = $body['userPhoto'] ?? null;
         $formToken = $body['formToken'] ?? null;
@@ -74,6 +75,7 @@ class EPurchaseClient
             email: $email,
             userPhoto: is_string($userPhoto) && $userPhoto !== '' ? $userPhoto : null,
             formToken: is_string($formToken) && $formToken !== '' ? $formToken : null,
+            position: is_string($position) && trim($position) !== '' ? trim($position) : null,
             cookies: $this->cookiePairs($response),
         );
     }

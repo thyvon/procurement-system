@@ -73,6 +73,7 @@ class CompanyLoginService
                     'email' => $result->email,
                     'password' => Str::password(32),
                     'entity_id' => $this->defaultEntityId(),
+                    'position' => $result->position,
                 ]);
 
                 $user->assignRole(Role::findOrCreate('staff', 'sanctum'));
@@ -80,8 +81,20 @@ class CompanyLoginService
                 return $user;
             }
 
+            $changes = [];
+
             if ($user->name !== $result->name) {
-                $user->update(['name' => $result->name]);
+                $changes['name'] = $result->name;
+            }
+
+            // The company system is the source of truth for the position, but a
+            // login payload without one must never wipe what we already store.
+            if ($result->position !== null && $user->position !== $result->position) {
+                $changes['position'] = $result->position;
+            }
+
+            if ($changes !== []) {
+                $user->update($changes);
             }
 
             return $user;

@@ -479,6 +479,8 @@ it('requires an amount for a draft preview that references no document', functio
 
 it('submits an evaluation, stamps the record step and parks on the first decide step', function () {
     $evaluation = approvalsEvaluation();
+    $this->admin->update(['position' => 'Procurement Manager']);
+    $this->firstApprover->update(['position' => 'Finance Manager']);
 
     $response = approvalsSubmit($evaluation, approvalsAssignees())
         ->assertStatus(201)
@@ -488,6 +490,7 @@ it('submits an evaluation, stamps the record step and parks on the first decide 
         ->assertJsonPath('data.currentStep.key', 'checked')
         ->assertJsonPath('data.currentStep.assigneeId', $this->firstApprover->getKey())
         ->assertJsonPath('data.currentStep.assigneeName', $this->firstApprover->name)
+        ->assertJsonPath('data.currentStep.assigneePosition', 'Finance Manager')
         ->assertJsonPath('data.flow.code', 'evaluation-test')
         ->assertJsonCount(3, 'data.steps')
         ->assertJsonPath('data.submittedBy', $this->admin->name);
@@ -495,8 +498,12 @@ it('submits an evaluation, stamps the record step and parks on the first decide 
     $request = ApprovalRequest::query()->findOrFail($response->json('data.id'));
 
     expect($request->snapshot['steps'])->toHaveCount(3)
+        ->and($request->snapshot['steps'][0]['assigneeName'])->toBe($this->admin->name)
+        ->and($request->snapshot['steps'][0]['assigneePosition'])->toBe('Procurement Manager')
         ->and($request->snapshot['steps'][1]['assigneeName'])->toBe($this->firstApprover->name)
+        ->and($request->snapshot['steps'][1]['assigneePosition'])->toBe('Finance Manager')
         ->and($request->snapshot['steps'][2]['assigneeName'])->toBe($this->secondApprover->name)
+        ->and($request->snapshot['steps'][2]['assigneePosition'])->toBeNull()
         ->and($request->actions()->count())->toBe(1)
         ->and($request->actions()->first()->action)->toBe('record')
         ->and($request->actions()->first()->step_key)->toBe('prepared')

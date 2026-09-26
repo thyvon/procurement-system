@@ -10,6 +10,7 @@ final readonly class EPurchaseLoginResult
         public string $email,
         public ?string $userPhoto = null,
         public ?string $formToken = null,
+        public ?string $position = null,
         /** @var array<int, string> Cookie name=value pairs from the login Set-Cookie headers. */
         public array $cookies = [],
     ) {}
