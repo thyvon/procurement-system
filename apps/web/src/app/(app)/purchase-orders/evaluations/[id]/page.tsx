@@ -1,11 +1,11 @@
-import { EvaluationFormPage } from "@/features/purchase-orders/evaluation-form-page";
+import { EvaluationDetail } from "@/features/purchase-orders/evaluation-detail";
 
-export default async function EvaluationRoute({
+export default async function EvaluationDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
 
-  return <EvaluationFormPage evaluationId={id} />;
+  return <EvaluationDetail evaluationId={id} />;
 }

@@ -41,6 +41,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RequiredMark } from "@/components/required-mark"
 import { Switch } from "@/components/ui/switch"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { unwrap, withAuth } from "@/lib/api-client"
 import { useMe } from "@/hooks/use-me"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
@@ -59,8 +67,17 @@ type UserRow = {
 type AuthorityEntryRow = {
   id: string
   name: string
+  subjectType: string
+  minAmount: string
+  maxAmount: string | null
   users: { id: number; name: string }[]
 }
+
+const money = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+})
 
 const columnHelper = createColumnHelper<DataTableFeatures, UserRow>()
 
@@ -197,6 +214,11 @@ const EMPTY_FORM = {
 export function UsersTab() {
   const t = useTranslations("users.users")
   const tt = useTranslations("users.table")
+  const tCol = useTranslations("approvals.settings.columns")
+  const tAppr = useTranslations("approvals.settings.table")
+  const ts = useTranslations("approvals.subjects")
+  const subjectLabel = (subjectType: string) =>
+    subjectType === "evaluation" ? ts("evaluation") : subjectType
   const qc = useQueryClient()
   const meQuery = useMe()
   const permissions = (meQuery.data?.permissions ?? []) as string[]
@@ -234,6 +256,19 @@ export function UsersTab() {
   const derivedTocaIds = (tocaQuery.data ?? [])
     .filter((entry) => entry.users.some((user) => user.id === editing?.id))
     .map((entry) => entry.id)
+
+  const groupedEntries = (tocaQuery.data ?? []).reduce(
+    (groups, entry) => {
+      const group = groups.get(entry.subjectType)
+      if (group) {
+        group.push(entry)
+      } else {
+        groups.set(entry.subjectType, [entry])
+      }
+      return groups
+    },
+    new Map<string, AuthorityEntryRow[]>()
+  )
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -362,7 +397,7 @@ export function UsersTab() {
 
       {/* Create / Edit dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editing ? t("editTitle") : t("newTitle")}</DialogTitle>
             <DialogDescription>
@@ -405,7 +440,7 @@ export function UsersTab() {
             {canManageUsers && (
               <div className="flex items-start gap-3">
                 <span className="w-28 shrink-0 pt-1.5 text-left after:ml-1 after:content-[':']">{t("roles")}</span>
-                <div className="flex flex-1 flex-col gap-2">
+                <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-2">
                   {(rolesQuery.data ?? []).map((role) => (
                     <label
                       key={role.id}
@@ -436,27 +471,51 @@ export function UsersTab() {
             {canManageApprovals && (
               <div className="flex items-start gap-3">
                 <span className="w-28 shrink-0 pt-1.5 text-left after:ml-1 after:content-[':']">{t("authoritySets")}</span>
-                <div className="flex flex-1 flex-col gap-2">
-                  {(tocaQuery.data ?? []).map((entry) => {
+                <div className="flex flex-1 flex-col gap-4">
+                  {[...groupedEntries].map(([subjectType, entries]) => {
                     const assigned = form.tocaEntryIds ?? derivedTocaIds
                     return (
-                      <label
-                        key={entry.id}
-                        className="flex items-center gap-2 text-sm leading-none"
-                      >
-                        <Checkbox
-                          checked={assigned.includes(entry.id)}
-                          onCheckedChange={(checked) =>
-                            setForm((f) => ({
-                              ...f,
-                              tocaEntryIds: checked
-                                ? [...assigned, entry.id]
-                                : assigned.filter((id) => id !== entry.id),
-                            }))
-                          }
-                        />
-                        {entry.name}
-                      </label>
+                      <div key={subjectType} className="space-y-1.5">
+                        <div className="text-sm font-medium">
+                          {subjectLabel(subjectType)}:
+                        </div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>{tCol("name")}</TableHead>
+                              <TableHead>{tCol("band")}</TableHead>
+                              <TableHead className="w-12" />
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {entries.map((entry) => (
+                              <TableRow key={entry.id}>
+                                <TableCell>{entry.name}</TableCell>
+                                <TableCell className="tabular-nums">
+                                  {money.format(Number(entry.minAmount))} –{" "}
+                                  {entry.maxAmount
+                                    ? money.format(Number(entry.maxAmount))
+                                    : tAppr("noUpperLimit")}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Checkbox
+                                    aria-label={entry.name}
+                                    checked={assigned.includes(entry.id)}
+                                    onCheckedChange={(checked) =>
+                                      setForm((f) => ({
+                                        ...f,
+                                        tocaEntryIds: checked
+                                          ? [...assigned, entry.id]
+                                          : assigned.filter((id) => id !== entry.id),
+                                      }))
+                                    }
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     )
                   })}
                   {tocaQuery.isPending && formOpen && (

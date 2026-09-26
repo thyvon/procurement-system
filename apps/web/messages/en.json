@@ -97,7 +97,7 @@
       "returned": "Returned"
     },
     "subjects": {
-      "evaluation": "Evaluation"
+      "evaluation": "Supplier Evaluation"
     },
     "detail": {
       "back": "Back to approvals",
@@ -142,6 +142,9 @@
       "amount": "Amount",
       "flow": "Flow",
       "assignee": "Responsible user",
+      "document": "Document",
+      "auto": "Auto",
+      "selectFor": "Select an assignee for: {steps}",
       "selectAssignee": "Select a user",
       "autoRecorded": "Recorded automatically",
       "noCandidates": "No eligible users cover this amount.",
@@ -409,6 +412,11 @@
       "removeQuotation": "Remove quotation",
       "removeItem": "Remove item",
       "basis": "Basis of supplier recommend",
+      "currency": "Currency",
+      "currencyUsd": "US Dollar (USD)",
+      "currencyKhr": "Cambodian Riel (KHR)",
+      "exchangeRate": "Exchange Rate",
+      "exchangeRateHint": "per 1 USD",
       "supplierPlaceholder": "Supplier name",
       "addressPlaceholder": "Address",
       "phonePlaceholder": "Phone",
@@ -421,6 +429,9 @@
       "discountPlaceholder": "0.00",
       "vatPlaceholder": "0.00",
       "criteriaPlaceholder": "—"
+    },
+    "detail": {
+      "subtitle": "Price evaluation"
     }
   },
   "profile": {

@@ -2,7 +2,9 @@
 
 namespace Modules\PurchaseOrders\Http\Requests\Concerns;
 
+use App\Support\Currency;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Validation\Rule;
 
 /**
  * Shared evaluation payload rules for Store/Update evaluation requests.
@@ -18,6 +20,13 @@ trait ValidatesEvaluationPayload
     protected function evaluationRules(): array
     {
         return [
+            'currency' => ['sometimes', 'string', Rule::in(Currency::CODES)],
+            'exchange_rate' => [
+                'nullable',
+                'required_if:currency,'.Currency::KHR,
+                'numeric',
+                'gt:0',
+            ],
             'recommendation_basis' => ['required', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.item_code' => ['required', 'string', 'max:64'],
@@ -147,6 +156,8 @@ trait ValidatesEvaluationPayload
     public function evaluationData(): array
     {
         return [
+            'currency' => $this->validated('currency'),
+            'exchange_rate' => $this->validated('exchange_rate'),
             'recommendation_basis' => $this->validated('recommendation_basis'),
             'items' => array_values($this->validated('items', [])),
             'quotations' => array_values($this->validated('quotations', [])),

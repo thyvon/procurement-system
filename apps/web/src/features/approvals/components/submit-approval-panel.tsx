@@ -5,7 +5,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { Combobox as ComboboxNS } from "@base-ui/react/combobox";
 import {
   approvalsPreview,
@@ -13,8 +13,16 @@ import {
 } from "@/lib/api/approval-request/approval-request";
 import type { StoreApprovalRequest } from "@/lib/api/model/storeApprovalRequest";
 import { unwrap, withAuth } from "@/lib/api-client";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Combobox,
   ComboboxContent,
@@ -26,7 +34,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { RequiredMark } from "@/components/required-mark";
 import { useMe } from "@/hooks/use-me";
-import type { ApprovalPreview } from "../approval-types";
+import type { ApprovalPreview, ApprovalPreviewStep } from "../approval-types";
 
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -83,13 +91,23 @@ export function SubmitApprovalPanel({
 
   const preview = previewQuery.data;
 
+  // Explicit pick wins; a sole candidate is pre-filled as a UX-only default.
+  const resolveAssignee = (step: ApprovalPreviewStep): string | null => {
+    const explicit = assignees[step.position];
+    if (explicit !== undefined) return explicit;
+    const candidates = step.candidates ?? [];
+    return candidates.length === 1 ? String(candidates[0].id) : null;
+  };
+
   const decideSteps = (preview?.steps ?? []).filter(
     (step) => step.actionMode === "decide"
   );
 
-  const missingAssignee = decideSteps.some(
-    (step) => !assignees[step.position]
+  const missingSteps = decideSteps.filter(
+    (step) => resolveAssignee(step) === null
   );
+
+  const missingAssignee = missingSteps.length > 0;
 
   const submitMutation = useMutation({
     mutationFn: async (vars: { subjectId: string; created: boolean }) => {
@@ -99,7 +117,7 @@ export function SubmitApprovalPanel({
         assignees: Object.fromEntries(
           decideSteps.map((step) => [
             step.position,
-            Number(assignees[step.position]),
+            Number(resolveAssignee(step)),
           ])
         ),
       } as unknown as StoreApprovalRequest;
@@ -144,15 +162,16 @@ export function SubmitApprovalPanel({
     <Card size="sm" className="min-w-0">
       <CardHeader>
         <CardTitle className="text-xs">{t("title")}</CardTitle>
+        <CardDescription className="text-xs">{t("description")}</CardDescription>
       </CardHeader>
       <CardContent className="min-w-0 space-y-3">
-          {previewQuery.isPending ? (
-            <p className="text-sm text-muted-foreground">{t("loading")}</p>
-          ) : previewQuery.isError || !preview ? (
-            <p className="text-sm text-destructive">
-              {(previewQuery.error as Error | null)?.message ?? t("loadFailed")}
-            </p>
-          ) : (
+        {previewQuery.isPending ? (
+          <p className="text-sm text-muted-foreground">{t("loading")}</p>
+        ) : previewQuery.isError || !preview ? (
+          <p className="text-sm text-destructive">
+            {(previewQuery.error as Error | null)?.message ?? t("loadFailed")}
+          </p>
+        ) : (
           <div className="space-y-3">
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
               <span className="text-muted-foreground">
@@ -167,56 +186,20 @@ export function SubmitApprovalPanel({
                   {money.format(Number(preview.amount))}
                 </span>
               </span>
+              {preview.documentCode ? (
+                <span className="text-muted-foreground">
+                  {t("document")}
+                  <span className="ml-1.5 font-medium text-foreground">
+                    {preview.documentCode}
+                  </span>
+                </span>
+              ) : null}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(preview.steps ?? []).map((step) => {
-                if (step.actionMode === "record") {
-                  const recorder = me.data ?? null;
-                  const recordItems = ComboboxNS.createItems(
-                    recorder
-                      ? [{ value: String(recorder.id), label: recorder.name }]
-                      : [],
-                    {
-                      getValue: (record) => record.value,
-                      getLabel: (record) => record.label,
-                    }
-                  );
-
-                  return (
-                    <div key={step.position} className="space-y-1">
-                      <Label className="text-left text-xs after:ml-1 after:content-[':']">
-                        {step.label}
-                      </Label>
-                      <Combobox
-                        items={recordItems}
-                        value={recorder ? String(recorder.id) : null}
-                      >
-                        <ComboboxInput
-                          disabled
-                          className="min-w-0 w-full"
-                          placeholder={t("autoRecorded")}
-                        />
-                        <ComboboxContent>
-                          <ComboboxList>
-                            {(record) => (
-                              <ComboboxItem
-                                key={record.value}
-                                value={record.value}
-                                className="text-xs"
-                              >
-                                {record.label}
-                              </ComboboxItem>
-                            )}
-                          </ComboboxList>
-                        </ComboboxContent>
-                      </Combobox>
-                    </div>
-                  );
-                }
-
-                const candidates = step.candidates ?? [];
-
+            <ol>
+              {(preview.steps ?? []).map((step, index, all) => {
+                const candidates =
+                  step.actionMode === "decide" ? step.candidates ?? [] : [];
                 const items = ComboboxNS.createItems(
                   candidates.map((candidate) => ({
                     value: String(candidate.id),
@@ -229,52 +212,95 @@ export function SubmitApprovalPanel({
                 );
 
                 return (
-                  <div key={step.position} className="space-y-1">
-                    <Label className="text-left text-xs after:ml-1 after:content-[':']">
-                      {step.label} <RequiredMark />
-                    </Label>
-                    <Combobox
-                      items={items}
-                      value={assignees[step.position] ?? null}
-                      onValueChange={(next) => {
-                        if (next === null || next === undefined) return;
-                        setAssignees((previous) => ({
-                          ...previous,
-                          [step.position]: String(next),
-                        }));
-                      }}
-                    >
-                      <ComboboxInput
-                        className="min-w-0 w-full"
-                        placeholder={
-                          candidates.length === 0
-                            ? t("noCandidates")
-                            : t("selectAssignee")
-                        }
+                  <li
+                    key={step.position}
+                    className="relative flex gap-3 pb-4 last:pb-0"
+                  >
+                    {index < all.length - 1 ? (
+                      <span
+                        aria-hidden
+                        className="absolute left-[11px] top-6 h-[calc(100%_-_1.5rem)] w-px bg-border"
                       />
-                      <ComboboxContent>
-                        <ComboboxEmpty className="text-xs">
-                          {candidates.length === 0
-                            ? t("noCandidates")
-                            : t("noMatch")}
-                        </ComboboxEmpty>
-                        <ComboboxList>
-                          {(item) => (
-                            <ComboboxItem
-                              key={item.value}
-                              value={item.value}
-                              className="text-xs"
-                            >
-                              {item.label}
-                            </ComboboxItem>
-                          )}
-                        </ComboboxList>
-                      </ComboboxContent>
-                    </Combobox>
-                  </div>
+                    ) : null}
+                    <span className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full border bg-background text-xs font-medium tabular-nums">
+                      {index + 1}
+                    </span>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium">
+                          {step.label}
+                          {step.actionMode === "decide" ? (
+                            <>
+                              {" "}
+                              <RequiredMark />
+                            </>
+                          ) : null}
+                        </Label>
+                        {step.actionMode === "record" ? (
+                          <Badge
+                            variant="secondary"
+                            className="px-1.5 text-[10px] font-normal"
+                          >
+                            {t("auto")}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      {step.actionMode === "record" ? (
+                        <p className="truncate text-sm text-muted-foreground">
+                          {(me.data ?? null)?.name ?? t("autoRecorded")}
+                        </p>
+                      ) : (
+                        <div className="space-y-1">
+                          <Combobox
+                            items={items}
+                            value={resolveAssignee(step)}
+                            onValueChange={(next) => {
+                              if (next === null || next === undefined) return;
+                              setAssignees((previous) => ({
+                                ...previous,
+                                [step.position]: String(next),
+                              }));
+                            }}
+                          >
+                            <ComboboxInput
+                              className="min-w-0 w-full"
+                              placeholder={
+                                candidates.length === 0
+                                  ? t("noCandidates")
+                                  : t("selectAssignee")
+                              }
+                            />
+                            <ComboboxContent>
+                              <ComboboxEmpty className="text-xs">
+                                {candidates.length === 0
+                                  ? t("noCandidates")
+                                  : t("noMatch")}
+                              </ComboboxEmpty>
+                              <ComboboxList>
+                                {(item) => (
+                                  <ComboboxItem
+                                    key={item.value}
+                                    value={item.value}
+                                    className="text-xs"
+                                  >
+                                    {item.label}
+                                  </ComboboxItem>
+                                )}
+                              </ComboboxList>
+                            </ComboboxContent>
+                          </Combobox>
+                          {candidates.length === 0 ? (
+                            <p className="text-xs text-destructive">
+                              {t("noCandidates")}
+                            </p>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  </li>
                 );
               })}
-            </div>
+            </ol>
           </div>
         )}
       </CardContent>
@@ -282,6 +308,12 @@ export function SubmitApprovalPanel({
       <CardFooter className="gap-2">
         {dirty ? (
           <p className="text-xs text-muted-foreground">{t("saveFirst")}</p>
+        ) : missingSteps.length > 0 && preview ? (
+          <p className="text-xs text-destructive">
+            {t("selectFor", {
+              steps: missingSteps.map((step) => step.label).join(", "),
+            })}
+          </p>
         ) : null}
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <Button
@@ -289,7 +321,11 @@ export function SubmitApprovalPanel({
             onClick={() => void handleSubmit()}
             disabled={busy || decideSteps.length === 0 || missingAssignee}
           >
-            <Send />
+            {preparing || submitMutation.isPending ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Send />
+            )}
             <span>
               {preparing || submitMutation.isPending
                 ? t("submitting")

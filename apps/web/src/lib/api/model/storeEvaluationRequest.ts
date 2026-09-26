@@ -4,10 +4,14 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
+import type { StoreEvaluationRequestCurrency } from './storeEvaluationRequestCurrency';
 import type { StoreEvaluationRequestItemsItem } from './storeEvaluationRequestItemsItem';
 import type { StoreEvaluationRequestQuotationsItem } from './storeEvaluationRequestQuotationsItem';
 
 export interface StoreEvaluationRequest {
+  currency?: StoreEvaluationRequestCurrency;
+  /** @nullable */
+  exchange_rate?: number | null;
   recommendation_basis: string;
   /** @minItems 1 */
   items: StoreEvaluationRequestItemsItem[];

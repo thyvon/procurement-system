@@ -16,7 +16,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { RequiredMark } from "@/components/required-mark";
 import {
   purchaseOrdersEvaluationsShow,
@@ -43,8 +51,8 @@ import {
   SEED_QUOTATION_COUNT,
   createEmptyQuotation,
   emptyPricing,
+  fromEvaluation,
   type EvaluationMatrixValue,
-  type QuotationPanel,
 } from "./components/evaluation-matrix";
 
 function createEmptyValue(): EvaluationMatrixValue {
@@ -60,68 +68,6 @@ function createEmptyValue(): EvaluationMatrixValue {
   };
 }
 
-function fromEvaluation(evaluation: EvaluationResource): EvaluationMatrixValue {
-  const items = (evaluation.items ?? []).map((item) => ({
-    uid: item.id,
-    itemCode: item.itemCode,
-    description: item.description,
-    qty: String(item.qty),
-    uom: item.uom,
-  }));
-
-  const quotations: QuotationPanel[] = (evaluation.quotations ?? []).map((quote) => {
-    const pricing: QuotationPanel["pricing"] = {};
-    for (const item of items) {
-      pricing[item.uid] = emptyPricing();
-    }
-    for (const line of quote.lines ?? []) {
-      const item = items.find((i) => i.uid === line.itemId);
-      if (!item) continue;
-      pricing[item.uid] = {
-        brand: line.brand ?? "",
-        unitCost: String(line.unitCost),
-        selected: line.isSelected,
-      };
-    }
-    return {
-      supplierCode: quote.supplierCode,
-      supplierName: quote.supplierName,
-      address: quote.supplierAddress ?? "",
-      phone: quote.supplierPhone ?? "",
-      vatPercentage: "",
-      pricing,
-      totals: {
-        discount: quote.discount ? String(quote.discount) : "",
-        vat: quote.vat ? String(quote.vat) : "",
-      },
-      criteria: {
-        price: quote.price ?? "",
-        quality: quote.quality ?? "",
-        leadTime: quote.leadTime ?? "",
-        warranty: quote.warranty ?? "",
-        paymentTerms: quote.paymentTerms ?? "",
-        otherRemarks: quote.otherRemarks ?? "",
-      },
-    };
-  });
-
-  // Keep only the first winner per item (legacy rows may have multiple).
-  const seenWinners = new Set<string>();
-  for (const panel of quotations) {
-    for (const item of items) {
-      const line = panel.pricing[item.uid];
-      if (!line?.selected) continue;
-      if (seenWinners.has(item.uid)) {
-        panel.pricing[item.uid] = { ...line, selected: false };
-      } else {
-        seenWinners.add(item.uid);
-      }
-    }
-  }
-
-  return { items, quotations };
-}
-
 function optionalNumber(value: string): number | null {
   if (value.trim() === "") return null;
   const n = Number.parseFloat(value);
@@ -135,9 +81,13 @@ function optionalText(value: string): string | null {
 
 function toPayload(
   value: EvaluationMatrixValue,
-  basis: string
+  basis: string,
+  currency: string,
+  exchangeRate: string
 ): StoreEvaluationRequest {
   return {
+    currency: currency as StoreEvaluationRequest["currency"],
+    exchange_rate: Number.parseFloat(exchangeRate) || 1,
     recommendation_basis: basis.trim(),
     items: value.items.map((item) => ({
       item_code: item.itemCode.trim(),
@@ -187,23 +137,33 @@ function round(value: number, decimals: number): number {
 }
 
 /**
- * Mirrors the server's awarded_total: sum of round(qty x unitCost, 4) over
- * the winning lines, rounded to 2 decimals (EvaluationService).
+ * Mirrors the server's awarded_total (EvaluationService::syncMatrix): each
+ * quotation contributes its winning-line subtotal plus its pro-rated share of
+ * that quotation's discount and VAT — a sole winner's contribution equals its
+ * grand total.
  */
 function computeAwardedTotal(value: EvaluationMatrixValue): number {
   let awarded = 0;
 
-  for (const item of value.items) {
-    const qty = Number.parseFloat(item.qty);
-    if (!Number.isFinite(qty)) continue;
+  for (const panel of value.quotations) {
+    let subtotal = 0;
+    let winning = 0;
 
-    for (const panel of value.quotations) {
+    for (const item of value.items) {
+      const qty = Number.parseFloat(item.qty);
       const pricing = panel.pricing[item.uid];
-      if (!pricing?.selected) continue;
-      const unitCost = Number.parseFloat(pricing.unitCost);
-      if (!Number.isFinite(unitCost)) continue;
-      awarded += round(qty * unitCost, 4);
+      const unitCost = Number.parseFloat(pricing?.unitCost ?? "");
+      if (!Number.isFinite(qty) || !Number.isFinite(unitCost)) continue;
+
+      const line = round(qty * unitCost, 4);
+      subtotal += line;
+      if (pricing?.selected) winning += line;
     }
+
+    const discount = Number.parseFloat(panel.totals.discount) || 0;
+    const vat = Number.parseFloat(panel.totals.vat) || 0;
+    const share = subtotal > 0 ? winning / subtotal : 0;
+    awarded += round(winning - discount * share + vat * share, 2);
   }
 
   return round(awarded, 2);
@@ -211,9 +171,23 @@ function computeAwardedTotal(value: EvaluationMatrixValue): number {
 
 function serializeForm(
   value: EvaluationMatrixValue,
-  basis: string
+  basis: string,
+  currency: string,
+  exchangeRate: string
 ): string {
-  return JSON.stringify({ value, basis });
+  return JSON.stringify({ value, basis, currency, exchangeRate });
+}
+
+/**
+ * Draft preview mirror of the server-side USD conversion
+ * (App\Support\Currency::toUsd) — the approval engine re-reads the
+ * authoritative amount on submit.
+ */
+function toUsdDraft(amount: number, currency: string, exchangeRate: string): number {
+  if (currency !== "KHR") return amount;
+  const rate = Number.parseFloat(exchangeRate);
+  if (!Number.isFinite(rate) || rate <= 0) return amount;
+  return round(amount / rate, 2);
 }
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
@@ -242,6 +216,8 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
   const me = useMe();
   const [value, setValue] = useState<EvaluationMatrixValue>(createEmptyValue);
   const [basis, setBasis] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [exchangeRate, setExchangeRate] = useState("1");
   const [hydratedId, setHydratedId] = useState<string | null>(null);
   const [baseline, setBaseline] = useState<string | null>(null);
   const pendingSaveRef = useRef("");
@@ -273,15 +249,21 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
   if (isEdit && showQuery.data && hydratedId !== showQuery.data.id) {
     const nextValue = fromEvaluation(showQuery.data);
     const nextBasis = showQuery.data.recommendationBasis ?? "";
+    const nextCurrency = showQuery.data.currency ?? "USD";
+    const nextExchangeRate = String(showQuery.data.exchangeRate ?? 1);
     setHydratedId(showQuery.data.id);
     setValue(nextValue);
     setBasis(nextBasis);
-    setBaseline(serializeForm(nextValue, nextBasis));
+    setCurrency(nextCurrency);
+    setExchangeRate(nextExchangeRate);
+    setBaseline(
+      serializeForm(nextValue, nextBasis, nextCurrency, nextExchangeRate)
+    );
   }
 
   const saveMutation = useMutation({
     mutationFn: async (): Promise<EvaluationResource> => {
-      const payload = toPayload(value, basis);
+      const payload = toPayload(value, basis, currency, exchangeRate);
       if (isEdit) {
         return unwrap(
           await purchaseOrdersEvaluationsUpdate(
@@ -305,7 +287,7 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
       if (!isEdit) {
         const id = result?.id;
         if (id) {
-          router.push(`/purchase-orders/evaluations/${id}`);
+          router.push(`/purchase-orders/evaluations/${id}/edit`);
         } else {
           onBack();
         }
@@ -326,15 +308,20 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
       ?.allowedActions ?? [];
 
   const currentSnapshot = useMemo(
-    () => serializeForm(value, basis),
-    [value, basis]
+    () => serializeForm(value, basis, currency, exchangeRate),
+    [value, basis, currency, exchangeRate]
   );
   const isDirty = isEdit && baseline !== null && currentSnapshot !== baseline;
   const awardedTotal = useMemo(
     () => (isEdit && !hydratedId ? null : computeAwardedTotal(value)),
     [isEdit, hydratedId, value]
   );
-  const draftAmount = useDebouncedValue(awardedTotal, 500);
+  const draftAmount = useDebouncedValue(
+    awardedTotal === null
+      ? null
+      : toUsdDraft(awardedTotal, currency, exchangeRate),
+    500
+  );
 
   const addQuotation = () => {
     const pricing = Object.fromEntries(
@@ -388,8 +375,18 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
 
   const handleSave = () => {
     if (!validateForm()) return;
-    pendingSaveRef.current = serializeForm(value, basis);
+    pendingSaveRef.current = serializeForm(value, basis, currency, exchangeRate);
     saveMutation.mutate();
+  };
+
+  const handleCurrencyChange = (next: string | null) => {
+    if (!next) return;
+    setCurrency(next);
+    if (next === "KHR") {
+      if (!(Number.parseFloat(exchangeRate) > 1)) setExchangeRate("4100");
+    } else {
+      setExchangeRate("1");
+    }
   };
 
   /**
@@ -401,7 +398,7 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
     if (isEdit) return evaluationId ?? null;
     if (!validateForm()) return null;
 
-    pendingSaveRef.current = serializeForm(value, basis);
+    pendingSaveRef.current = serializeForm(value, basis, currency, exchangeRate);
     skipNavRef.current = true;
     try {
       const created = await saveMutation.mutateAsync();
@@ -475,7 +472,55 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
             </CardAction>
           </CardHeader>
           <CardContent className="min-w-0 space-y-3">
-            <EvaluationMatrix value={value} onChange={setValue} />
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <Label
+                  htmlFor="evaluation-currency"
+                  className="text-left text-xs after:ml-1 after:content-[':']"
+                >
+                  {tf("currency")}
+                </Label>
+                <Select value={currency} onValueChange={handleCurrencyChange}>
+                  <SelectTrigger
+                    id="evaluation-currency"
+                    className="h-8 w-44 text-xs"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">{tf("currencyUsd")}</SelectItem>
+                    <SelectItem value="KHR">{tf("currencyKhr")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label
+                  htmlFor="evaluation-exchange-rate"
+                  className="text-left text-xs after:ml-1 after:content-[':']"
+                >
+                  {tf("exchangeRate")}
+                </Label>
+                <Input
+                  id="evaluation-exchange-rate"
+                  value={exchangeRate}
+                  onChange={(e) => setExchangeRate(e.target.value)}
+                  disabled={currency === "USD"}
+                  inputMode="decimal"
+                  className="h-8 w-32 text-right text-xs md:text-xs"
+                />
+                {currency === "KHR" ? (
+                  <span className="text-xs text-muted-foreground">
+                    {tf("exchangeRateHint")}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+
+            <EvaluationMatrix
+              value={value}
+              currency={currency}
+              onChange={setValue}
+            />
 
             <div className="space-y-2 border-t border-border pt-3">
               <Label

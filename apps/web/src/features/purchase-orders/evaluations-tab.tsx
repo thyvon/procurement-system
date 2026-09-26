@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   purchaseOrdersEvaluationsDestroy,
   purchaseOrdersEvaluationsIndex,
@@ -14,7 +14,6 @@ import {
 import type { EvaluationResource } from "@/lib/api/model/evaluationResource";
 import type { PurchaseOrdersEvaluationsIndexStatus } from "@/lib/api/model/purchaseOrdersEvaluationsIndexStatus";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton";
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header";
@@ -36,12 +35,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
+import { EvaluationStatusBadge } from "./components/evaluation-status-badge";
+import { formatMoney } from "./components/evaluation-matrix";
 
 type EvaluationRow = {
   id: string;
   code: string;
   suppliers: string;
   total: number;
+  currency: string;
   status: string | null;
   updatedAt: string | null;
   createdBy: string | null;
@@ -50,31 +52,6 @@ type EvaluationRow = {
 type EvaluationsPage = {
   data: EvaluationRow[];
   meta?: { page: number; perPage: number; total: number };
-};
-
-const money = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  minimumFractionDigits: 2,
-});
-
-const STATUS_LABEL_KEYS: Record<string, string> = {
-  draft: "draft",
-  in_review: "inReview",
-  approved: "approved",
-  rejected: "rejected",
-  returned: "returned",
-};
-
-const STATUS_VARIANTS: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  draft: "outline",
-  in_review: "secondary",
-  approved: "default",
-  rejected: "destructive",
-  returned: "outline",
 };
 
 function toRow(resource: EvaluationResource): EvaluationRow {
@@ -86,6 +63,7 @@ function toRow(resource: EvaluationResource): EvaluationRow {
       .filter(Boolean)
       .join(", "),
     total: resource.awardedTotal,
+    currency: resource.currency,
     status: resource.status,
     updatedAt: resource.updatedAt,
     createdBy: resource.createdBy ?? null,
@@ -106,9 +84,11 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 const columnHelper = createColumnHelper<DataTableFeatures, EvaluationRow>();
 
 function useEvaluationColumns({
+  onViewRequest,
   onEditRequest,
   onDeleteRequest,
 }: {
+  onViewRequest: (evaluation: EvaluationRow) => void;
   onEditRequest: (evaluation: EvaluationRow) => void;
   onDeleteRequest: (evaluation: EvaluationRow) => void;
 }): ColumnDef<DataTableFeatures, EvaluationRow>[] {
@@ -139,7 +119,7 @@ function useEvaluationColumns({
       ),
       cell: ({ row }) => (
         <span className="tabular-nums">
-          {money.format(Number(row.getValue("total")))}
+          {formatMoney(Number(row.getValue("total")), row.original.currency)}
         </span>
       ),
     }),
@@ -147,17 +127,11 @@ function useEvaluationColumns({
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={tc("status")} />
       ),
-      cell: ({ row }) => {
-        const status = row.getValue("status") as string | null;
-        if (!status) return <span className="text-muted-foreground">—</span>;
-
-        const key = STATUS_LABEL_KEYS[status];
-        return (
-          <Badge variant={STATUS_VARIANTS[status] ?? "secondary"}>
-            {key ? tt(key) : status}
-          </Badge>
-        );
-      },
+      cell: ({ row }) => (
+        <EvaluationStatusBadge
+          status={row.getValue("status") as string | null}
+        />
+      ),
     }),
     columnHelper.accessor("createdBy", {
       header: ({ column }) => (
@@ -189,6 +163,10 @@ function useEvaluationColumns({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => onViewRequest(evaluation)}>
+                  <Eye className="mr-2 size-4" />
+                  {tt("view")}
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEditRequest(evaluation)}>
                   <Pencil className="mr-2 size-4" />
                   {tt("edit")}
@@ -234,8 +212,10 @@ export function EvaluationsTab() {
   });
 
   const columns = useEvaluationColumns({
-    onEditRequest: (evaluation) =>
+    onViewRequest: (evaluation) =>
       router.push(`/purchase-orders/evaluations/${evaluation.id}`),
+    onEditRequest: (evaluation) =>
+      router.push(`/purchase-orders/evaluations/${evaluation.id}/edit`),
     onDeleteRequest: setDeleteTarget,
   });
 

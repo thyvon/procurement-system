@@ -3,6 +3,7 @@
 namespace Modules\PurchaseOrders\Services;
 
 use App\Models\User;
+use App\Support\Currency;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Products\Services\CodeGenerationService;
@@ -25,6 +26,8 @@ class EvaluationService
                 'entity_id' => $user->entity_id,
                 'code' => $this->codes->next('EVAL', Evaluation::class, $user->entity_id),
                 'status' => 'draft',
+                'currency' => $data['currency'] ?? Currency::USD,
+                'exchange_rate' => $data['exchange_rate'] ?? 1,
                 'recommendation_basis' => $data['recommendation_basis'] ?? null,
                 'awarded_total' => 0,
                 'created_by' => $user->getKey(),
@@ -46,6 +49,8 @@ class EvaluationService
 
         return DB::transaction(function () use ($evaluation, $data, $user): Evaluation {
             $evaluation->update([
+                'currency' => $data['currency'] ?? $evaluation->currency,
+                'exchange_rate' => $data['exchange_rate'] ?? $evaluation->exchange_rate,
                 'recommendation_basis' => $data['recommendation_basis'] ?? null,
                 'updated_by' => $user->getKey(),
             ]);
@@ -130,6 +135,7 @@ class EvaluationService
             ]);
 
             $subtotal = 0.0;
+            $winningSubtotal = 0.0;
 
             foreach ($quotationData['lines'] as $line) {
                 $item = $items[(int) $line['item_index']];
@@ -138,7 +144,7 @@ class EvaluationService
                 $subtotal += $lineTotal;
 
                 if ($selected) {
-                    $awarded += $lineTotal;
+                    $winningSubtotal += $lineTotal;
                 }
 
                 EvaluationQuotationItem::create([
@@ -155,6 +161,14 @@ class EvaluationService
 
             $discount = (float) ($quotationData['discount'] ?? 0);
             $vat = (float) ($quotationData['vat'] ?? 0);
+
+            // Pro-rate this quotation's discount/VAT onto the lines it actually
+            // wins. A sole winner covers the whole subtotal (share = 1), so its
+            // contribution equals the quotation's grand total; split awards only
+            // carry the share of discount/VAT belonging to the goods they win.
+            $share = $subtotal > 0 ? $winningSubtotal / $subtotal : 0.0;
+            $awarded += round($winningSubtotal - $discount * $share + $vat * $share, 2);
+
             $quotation->update([
                 'subtotal' => round($subtotal, 2),
                 'grand_total' => round($subtotal - $discount + $vat, 2),

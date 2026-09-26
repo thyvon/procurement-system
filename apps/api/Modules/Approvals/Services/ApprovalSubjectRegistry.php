@@ -3,6 +3,7 @@
 namespace Modules\Approvals\Services;
 
 use App\Models\User;
+use App\Support\Currency;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +19,12 @@ use Modules\PurchaseOrders\Models\Evaluation;
 class ApprovalSubjectRegistry
 {
     /**
-     * @var array<string, array{model: class-string<Model>, amount_column: string, code_column: string, permission: string}>
+     * `currency_column`/`exchange_rate_column` mark subjects recorded in a
+     * non-USD currency (Cambodia runs USD + KHR); their amount converts to
+     * USD at the registry boundary because approval bands are USD-scale.
+     * Subjects without those columns keep their raw amount.
+     *
+     * @var array<string, array{model: class-string<Model>, amount_column: string, code_column: string, permission: string, currency_column?: string, exchange_rate_column?: string}>
      */
     private const SUBJECTS = [
         'evaluation' => [
@@ -26,11 +32,13 @@ class ApprovalSubjectRegistry
             'amount_column' => 'awarded_total',
             'code_column' => 'code',
             'permission' => 'evaluations.manage',
+            'currency_column' => 'currency',
+            'exchange_rate_column' => 'exchange_rate',
         ],
     ];
 
     /**
-     * @return array{model: class-string<Model>, amount_column: string, code_column: string, permission: string}
+     * @return array{model: class-string<Model>, amount_column: string, code_column: string, permission: string, currency_column?: string, exchange_rate_column?: string}
      */
     public function definition(string $subjectType): array
     {
@@ -64,7 +72,18 @@ class ApprovalSubjectRegistry
     {
         $definition = $this->definition($subjectType);
 
-        return (float) $subject->getAttribute($definition['amount_column']);
+        $amount = (float) $subject->getAttribute($definition['amount_column']);
+
+        $currencyColumn = $definition['currency_column'] ?? null;
+        if ($currencyColumn === null) {
+            return $amount;
+        }
+
+        return Currency::toUsd(
+            $amount,
+            (string) $subject->getAttribute($currencyColumn),
+            (float) $subject->getAttribute($definition['exchange_rate_column']),
+        );
     }
 
     public function code(string $subjectType, Model $subject): ?string

@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RequiredMark } from "@/components/required-mark";
+import type { EvaluationResource } from "@/lib/api/model/evaluationResource";
 import { ItemPicker, type CatalogItem } from "./item-picker";
 import { SupplierPicker, type SupplierRow } from "./supplier-picker";
 
@@ -60,7 +61,7 @@ export type { ItemRow, QuotationPricing, QuotationPanel };
 
 export const SEED_QUOTATION_COUNT = 2;
 
-const CRITERIA_KEYS = [
+export const CRITERIA_KEYS = [
   "price",
   "quality",
   "leadTime",
@@ -69,27 +70,33 @@ const CRITERIA_KEYS = [
   "otherRemarks",
 ] as const;
 
-const money = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  minimumFractionDigits: 2,
-});
+export function formatMoney(amount: number, currency: string = "USD"): string {
+  const code = currency === "KHR" ? "KHR" : "USD";
+  const digits = code === "KHR" ? 0 : 2;
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: code,
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(amount);
+}
 
 function parseMoney(value: string): number {
   const n = Number.parseFloat(value);
   return Number.isFinite(n) ? n : 0;
 }
 
-function lineTotal(item: ItemRow, pricing: QuotationPricing | undefined): number {
+export function lineTotal(item: ItemRow, pricing: QuotationPricing | undefined): number {
   if (!pricing) return 0;
   return parseMoney(item.qty) * parseMoney(pricing.unitCost);
 }
 
-function subTotal(items: ItemRow[], panel: QuotationPanel): number {
+export function subTotal(items: ItemRow[], panel: QuotationPanel): number {
   return items.reduce((sum, item) => sum + lineTotal(item, panel.pricing[item.uid]), 0);
 }
 
-function grandTotal(items: ItemRow[], panel: QuotationPanel): number {
+export function grandTotal(items: ItemRow[], panel: QuotationPanel): number {
   return (
     subTotal(items, panel) -
     parseMoney(panel.totals.discount) +
@@ -138,18 +145,82 @@ export function emptyPricing(): QuotationPricing {
   return { brand: "", unitCost: "", selected: false };
 }
 
-function quoteLabel(index: number): string {
+export function quoteLabel(index: number): string {
   return ["I", "II", "III"][index] ?? String(index + 1);
 }
 
-const headCell =
+export const headCell =
   "border border-border bg-muted/60 px-2 py-1 text-left text-xs font-medium";
-const bodyCell = "border border-border p-1 align-top text-xs";
-const criteriaLabelCell =
+export const bodyCell = "border border-border p-1 align-top text-xs";
+export const criteriaLabelCell =
   "border-y border-border bg-muted/40 px-2 py-1 text-left text-xs font-medium";
+
+/** Maps a saved evaluation onto the matrix value shape (form + detail share it). */
+export function fromEvaluation(evaluation: EvaluationResource): EvaluationMatrixValue {
+  const items = (evaluation.items ?? []).map((item) => ({
+    uid: item.id,
+    itemCode: item.itemCode,
+    description: item.description,
+    qty: String(item.qty),
+    uom: item.uom,
+  }));
+
+  const quotations: QuotationPanel[] = (evaluation.quotations ?? []).map((quote) => {
+    const pricing: QuotationPanel["pricing"] = {};
+    for (const item of items) {
+      pricing[item.uid] = emptyPricing();
+    }
+    for (const line of quote.lines ?? []) {
+      const item = items.find((i) => i.uid === line.itemId);
+      if (!item) continue;
+      pricing[item.uid] = {
+        brand: line.brand ?? "",
+        unitCost: String(line.unitCost),
+        selected: line.isSelected,
+      };
+    }
+    return {
+      supplierCode: quote.supplierCode,
+      supplierName: quote.supplierName,
+      address: quote.supplierAddress ?? "",
+      phone: quote.supplierPhone ?? "",
+      vatPercentage: "",
+      pricing,
+      totals: {
+        discount: quote.discount ? String(quote.discount) : "",
+        vat: quote.vat ? String(quote.vat) : "",
+      },
+      criteria: {
+        price: quote.price ?? "",
+        quality: quote.quality ?? "",
+        leadTime: quote.leadTime ?? "",
+        warranty: quote.warranty ?? "",
+        paymentTerms: quote.paymentTerms ?? "",
+        otherRemarks: quote.otherRemarks ?? "",
+      },
+    };
+  });
+
+  // Keep only the first winner per item (legacy rows may have multiple).
+  const seenWinners = new Set<string>();
+  for (const panel of quotations) {
+    for (const item of items) {
+      const line = panel.pricing[item.uid];
+      if (!line?.selected) continue;
+      if (seenWinners.has(item.uid)) {
+        panel.pricing[item.uid] = { ...line, selected: false };
+      } else {
+        seenWinners.add(item.uid);
+      }
+    }
+  }
+
+  return { items, quotations };
+}
 
 interface EvaluationMatrixProps {
   value: EvaluationMatrixValue;
+  currency?: string;
   onChange: (
     next:
       | EvaluationMatrixValue
@@ -157,7 +228,11 @@ interface EvaluationMatrixProps {
   ) => void;
 }
 
-export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
+export function EvaluationMatrix({
+  value,
+  currency = "USD",
+  onChange,
+}: EvaluationMatrixProps) {
   const t = useTranslations("purchaseOrders.form");
   const { items, quotations } = value;
 
@@ -570,7 +645,7 @@ export function EvaluationMatrix({ value, onChange }: EvaluationMatrixProps) {
                         <div
                           className={`flex h-7 items-center justify-end text-xs tabular-nums${strong ? " font-semibold" : ""}`}
                         >
-                          {money.format(amount)}
+                          {formatMoney(amount, currency)}
                         </div>
                       </td>
                     );

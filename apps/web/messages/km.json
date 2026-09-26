@@ -97,7 +97,7 @@
       "returned": "ត្រឡប់មកវិញ"
     },
     "subjects": {
-      "evaluation": "ការវាយតម្លៃ"
+      "evaluation": "ការវាយតម្លៃអ្នកផ្គត់ផ្គង់"
     },
     "detail": {
       "back": "ត្រឡប់ទៅការអនុម័ត",
@@ -142,6 +142,9 @@
       "amount": "ចំនួនទឹកប្រាក់",
       "flow": "លំហូរ",
       "assignee": "អ្នកទទួលខុសត្រូវ",
+      "document": "ឯកសារ",
+      "auto": "ស្វ័យប្រវត្តិ",
+      "selectFor": "ជ្រើសអ្នកទទួលខុសត្រូវសម្រាប់: {steps}",
       "selectAssignee": "ជ្រើសរើសអ្នកប្រើប្រាស់",
       "autoRecorded": "កត់ត្រាដោយស្វ័យប្រវត្តិ",
       "noCandidates": "មិនមានអ្នកសមរម្យគ្រប់គ្រាន់សម្រាប់ចំនួននេះទេ។",
@@ -409,6 +412,11 @@
       "removeQuotation": "លុបសំណើតម្លៃ",
       "removeItem": "លុបទំនិញ",
       "basis": "មូលហេតុណែនាំអ្នកផ្គត់ផ្គង់",
+      "currency": "រូបិយប័ណ្ណ",
+      "currencyUsd": "ដុល្លារអាមេរិក (USD)",
+      "currencyKhr": "រៀលកម្ពុជា (KHR)",
+      "exchangeRate": "អត្រាប្តូរប្រាក់",
+      "exchangeRateHint": "ក្នុង ១ ដុល្លារ",
       "supplierPlaceholder": "ឈ្មោះអ្នកផ្គត់ផ្គង់",
       "addressPlaceholder": "អាសយដ្ឋាន",
       "phonePlaceholder": "ទូរស័ព្ទ",
@@ -421,6 +429,9 @@
       "discountPlaceholder": "0.00",
       "vatPlaceholder": "0.00",
       "criteriaPlaceholder": "—"
+    },
+    "detail": {
+      "subtitle": "ការវាយតម្លៃតម្លៃ"
     }
   },
   "profile": {

@@ -13,6 +13,8 @@ export interface EvaluationResource {
   code: string;
   /** @nullable */
   status: string | null;
+  currency: string;
+  exchangeRate: number;
   /** @nullable */
   recommendationBasis: string | null;
   awardedTotal: number;

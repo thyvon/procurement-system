@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'entity_id',
     'code',
     'status',
+    'currency',
+    'exchange_rate',
     'recommendation_basis',
     'awarded_total',
     'created_by',
@@ -27,6 +29,7 @@ class Evaluation extends Model
     protected function casts(): array
     {
         return [
+            'exchange_rate' => 'decimal:6',
             'awarded_total' => 'decimal:2',
         ];
     }

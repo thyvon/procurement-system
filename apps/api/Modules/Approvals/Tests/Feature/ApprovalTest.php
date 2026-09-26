@@ -264,6 +264,30 @@ it('never previews another entity evaluation', function () {
         ->assertJsonPath('errors.subjectId.0', 'Record not found.');
 });
 
+it('converts a KHR evaluation to USD for band matching and the snapshot', function () {
+    $evaluation = approvalsEvaluation(4_100_000);
+    $evaluation->update(['currency' => 'KHR', 'exchange_rate' => 4100]);
+
+    // 4,100,000 KHR ÷ 4100 = 1000.00 USD. The raw figure would land outside
+    // the first approver's 0–1000 band; the converted one lands inside it.
+    $preview = $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$evaluation->getKey()}")
+        ->assertOk()
+        ->assertJsonPath('data.amount', '1000.00');
+
+    $candidateIds = collect($preview->json('data.steps.1.candidates'))->pluck('id')->all();
+
+    expect($candidateIds)
+        ->toContain($this->firstApprover->getKey())
+        ->toContain($this->secondApprover->getKey());
+
+    $response = approvalsSubmit($evaluation, approvalsAssignees());
+
+    $response->assertCreated();
+
+    expect((float) $response->json('data.amountSnapshot'))->toBe(1000.0);
+});
+
 it('previews a draft amount override without writing the subject record', function () {
     $evaluation = approvalsEvaluation();
 

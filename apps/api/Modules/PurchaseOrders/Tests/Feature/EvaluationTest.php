@@ -88,11 +88,13 @@ it('creates an evaluation with a server-generated code and recomputed totals', f
 
     $response
         ->assertJsonPath('data.status', 'draft')
+        ->assertJsonPath('data.currency', 'USD')
+        ->assertJsonPath('data.exchangeRate', 1)
         ->assertJsonPath('data.recommendationBasis', 'Best value for money.')
         ->assertJsonPath('data.createdBy', $this->admin->name)
-        // JSON drops the .0 fraction (no JSON_PRESERVE_ZERO_FRACTION) — 44.00 encodes as 44.
-        // awarded = (10 × 3.5 selected) + (2 × 4.5 selected) = 44.00
-        ->assertJsonPath('data.awardedTotal', 44)
+        // Pro-rated award: quotation 0 wins 35 of 45 → 35 − 5×(35/45) + 10×(35/45)
+        // = 38.89; quotation 1 wins 9 of 49 with no discount/VAT → 9.00 → 47.89.
+        ->assertJsonPath('data.awardedTotal', 47.89)
         ->assertJsonCount(2, 'data.items')
         ->assertJsonCount(2, 'data.quotations')
         ->assertJsonPath('data.quotations.0.supplierCode', 'SUP-00055')
@@ -113,6 +115,74 @@ it('creates an evaluation with a server-generated code and recomputed totals', f
     expect(Evaluation::query()->count())->toBe(1);
 });
 
+it('awards the sole winning quotation its grand total including discount and VAT', function () {
+    $payload = evaluationPayload();
+    // Quotation 0 wins both items; quotation 1 wins none.
+    $payload['quotations'][0]['lines'][1]['is_selected'] = true;
+    $payload['quotations'][1]['lines'][1]['is_selected'] = false;
+
+    $response = storeEvaluation($payload)->assertStatus(201);
+
+    $response
+        // Sole winner covers the full subtotal: 45 − 5 discount + 10 VAT = 50.
+        ->assertJsonPath('data.quotations.0.grandTotal', 50)
+        ->assertJsonPath('data.awardedTotal', 50);
+});
+
+it('persists a KHR evaluation with its exchange rate', function () {
+    $response = storeEvaluation([
+        'currency' => 'KHR',
+        'exchange_rate' => 4100,
+    ])->assertStatus(201);
+
+    $response
+        ->assertJsonPath('data.currency', 'KHR')
+        ->assertJsonPath('data.exchangeRate', 4100);
+
+    $evaluation = Evaluation::query()->findOrFail($response->json('data.id'));
+
+    expect($evaluation->currency)->toBe('KHR')
+        ->and((float) $evaluation->exchange_rate)->toBe(4100.0);
+});
+
+it('requires an exchange rate when the currency is KHR', function () {
+    storeEvaluation(['currency' => 'KHR'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['exchange_rate']);
+});
+
+it('rejects a non-positive exchange rate', function () {
+    storeEvaluation(['currency' => 'KHR', 'exchange_rate' => 0])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['exchange_rate']);
+});
+
+it('rejects an unknown currency code', function () {
+    storeEvaluation(['currency' => 'EUR', 'exchange_rate' => 1])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['currency']);
+});
+
+it('updates the currency and exchange rate', function () {
+    $id = storeEvaluation()->json('data.id');
+
+    $payload = evaluationPayload([
+        'currency' => 'KHR',
+        'exchange_rate' => 4105,
+    ]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/purchase-orders/evaluations/{$id}", $payload)
+        ->assertOk()
+        ->assertJsonPath('data.currency', 'KHR')
+        ->assertJsonPath('data.exchangeRate', 4105);
+
+    $evaluation = Evaluation::query()->findOrFail($id);
+
+    expect($evaluation->currency)->toBe('KHR')
+        ->and((float) $evaluation->exchange_rate)->toBe(4105.0);
+});
+
 it('forbids staff from creating evaluations', function () {
     storeEvaluation([], $this->staff)->assertStatus(403);
 
@@ -129,7 +199,7 @@ it('lets staff list evaluations with pagination meta', function () {
         ->assertJsonPath('meta.perPage', 20)
         ->assertJsonPath('meta.total', 1);
 
-    expect($response->json('data.0.awardedTotal'))->toEqual(44)
+    expect($response->json('data.0.awardedTotal'))->toEqual(47.89)
         ->and($response->json('data.0.status'))->toBe('draft');
 });
 
@@ -220,7 +290,8 @@ it('updates an evaluation by replacing the matrix and recomputing totals', funct
         ->patchJson("/api/v1/purchase-orders/evaluations/{$id}", $payload)
         ->assertOk()
         ->assertJsonPath('data.recommendationBasis', 'Updated basis.')
-        // awarded = (10 × 4) + (2 × 6) = 52.00
+        // Quotation 1 wins everything: full subtotal − 0 discount + 0 VAT = 52.00;
+        // quotation 0 wins nothing → its discount/VAT pro-rate to 0.
         ->assertJsonPath('data.awardedTotal', 52)
         ->assertJsonCount(2, 'data.items')
         ->assertJsonCount(2, 'data.quotations')
