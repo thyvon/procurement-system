@@ -18,4 +18,5 @@ export type UpdateApprovalFlowRequestStepsItem = {
   action_mode: UpdateApprovalFlowRequestStepsItemActionMode;
   /** @nullable */
   allowed_actions?: UpdateApprovalFlowRequestStepsItemAllowedActionsItem[] | null;
+  show_on_print?: boolean;
 };

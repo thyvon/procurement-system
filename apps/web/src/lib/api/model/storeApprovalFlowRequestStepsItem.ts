@@ -18,4 +18,5 @@ export type StoreApprovalFlowRequestStepsItem = {
   action_mode: StoreApprovalFlowRequestStepsItemActionMode;
   /** @nullable */
   allowed_actions?: StoreApprovalFlowRequestStepsItemAllowedActionsItem[] | null;
+  show_on_print?: boolean;
 };

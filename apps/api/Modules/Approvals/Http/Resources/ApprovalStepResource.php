@@ -23,6 +23,7 @@ class ApprovalStepResource extends JsonResource
             'label' => $this->label,
             'actionMode' => $this->action_mode,
             'allowedActions' => $this->allowed_actions,
+            'showOnPrint' => $this->show_on_print,
         ];
     }
 }

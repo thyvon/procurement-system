@@ -228,7 +228,7 @@ class ApprovalFlowService
      * one decision step.
      *
      * @param  array<int, array<string, mixed>>  $steps
-     * @return array<int, array{position: int, key: string, label: string, action_mode: string, allowed_actions: array<int, string>|null}>
+     * @return array<int, array{position: int, key: string, label: string, action_mode: string, allowed_actions: array<int, string>|null, show_on_print: bool}>
      */
     private function normalizeSteps(array $steps): array
     {
@@ -266,6 +266,7 @@ class ApprovalFlowService
                 'label' => (string) $step['label'],
                 'action_mode' => $mode,
                 'allowed_actions' => $actions,
+                'show_on_print' => (bool) ($step['show_on_print'] ?? true),
             ];
         }
 
@@ -279,7 +280,7 @@ class ApprovalFlowService
     }
 
     /**
-     * @param  array<int, array{position: int, key: string, label: string, action_mode: string, allowed_actions: array<int, string>|null}>  $steps
+     * @param  array<int, array{position: int, key: string, label: string, action_mode: string, allowed_actions: array<int, string>|null, show_on_print: bool}>  $steps
      */
     private function replaceSteps(ApprovalFlow $flow, array $steps, User $user): void
     {

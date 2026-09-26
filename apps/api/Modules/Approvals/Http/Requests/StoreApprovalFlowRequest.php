@@ -34,6 +34,7 @@ class StoreApprovalFlowRequest extends FormRequest
             'steps.*.action_mode' => ['required', 'string', Rule::in([ApprovalStep::MODE_RECORD, ApprovalStep::MODE_DECIDE])],
             'steps.*.allowed_actions' => ['nullable', 'array'],
             'steps.*.allowed_actions.*' => ['string', Rule::in(['approve', 'reject', 'return'])],
+            'steps.*.show_on_print' => ['sometimes', 'boolean'],
         ];
     }
 }

@@ -57,6 +57,7 @@ type StepRow = {
   label: string;
   actionMode: "decide" | "record";
   allowedActions: StepAction[];
+  showOnPrint: boolean;
 };
 
 type FlowForm = {
@@ -77,6 +78,7 @@ function newRow(): StepRow {
     label: "",
     actionMode: "decide",
     allowedActions: [...ALL_ACTIONS],
+    showOnPrint: true,
   };
 }
 
@@ -98,6 +100,7 @@ function toSteps(editing?: ApprovalFlowRow | null): StepRow[] {
       label: step.label,
       actionMode: (step.actionMode === "record" ? "record" : "decide") as StepRow["actionMode"],
       allowedActions: (step.allowedActions ?? []) as StepAction[],
+      showOnPrint: step.showOnPrint ?? true,
     }));
   return rows.length > 0 ? rows : [newRow()];
 }
@@ -185,6 +188,7 @@ export function FlowDialog({
         label: row.label.trim(),
         action_mode: row.actionMode,
         allowed_actions: row.actionMode === "decide" ? row.allowedActions : null,
+        show_on_print: row.showOnPrint,
       }));
       if (editing) {
         const payload: UpdateApprovalFlowRequest = {
@@ -451,9 +455,9 @@ export function FlowDialog({
                       </Button>
                     </div>
                   </div>
-                  {row.actionMode === "decide" && (
-                    <div className="flex flex-wrap items-center gap-4 pl-9">
-                      {ALL_ACTIONS.map((action) => (
+                  <div className="flex flex-wrap items-center gap-4 pl-9">
+                    {row.actionMode === "decide" &&
+                      ALL_ACTIONS.map((action) => (
                         <label
                           key={action}
                           className="flex items-center gap-1.5 text-xs text-muted-foreground"
@@ -471,8 +475,19 @@ export function FlowDialog({
                               : t("actionReturn")}
                         </label>
                       ))}
-                    </div>
-                  )}
+                    <label
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                      title={t("showOnPrintHint")}
+                    >
+                      <Checkbox
+                        checked={row.showOnPrint}
+                        onCheckedChange={(checked) =>
+                          updateStep(index, { showOnPrint: checked === true })
+                        }
+                      />
+                      {t("showOnPrint")}
+                    </label>
+                  </div>
                 </div>
               ))}
             </div>

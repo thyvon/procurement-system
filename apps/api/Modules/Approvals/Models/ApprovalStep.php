@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'label',
     'action_mode',
     'allowed_actions',
+    'show_on_print',
     'created_by',
     'updated_by',
 ])]
@@ -32,6 +33,7 @@ class ApprovalStep extends Model
     {
         return [
             'allowed_actions' => 'array',
+            'show_on_print' => 'boolean',
         ];
     }
 

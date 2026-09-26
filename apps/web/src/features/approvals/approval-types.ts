@@ -17,6 +17,7 @@ export type ApprovalPreviewStep = {
   label: string;
   actionMode: "record" | "decide";
   allowedActions: string[];
+  showOnPrint?: boolean;
   candidates: ApprovalCandidate[] | null;
 };
 
@@ -37,6 +38,8 @@ export type ApprovalStepSnapshot = {
   label: string;
   actionMode: "record" | "decide";
   allowedActions: string[];
+  /** Hidden steps still decide; only the official print sheet omits them. */
+  showOnPrint: boolean;
   assigneeId: number | null;
   assigneeName: string | null;
   assigneePosition?: string | null;
@@ -158,6 +161,8 @@ export function parseApprovalRequest(raw: unknown): ApprovalRequestView {
         allowedActions: Array.isArray(snapshot.allowedActions)
           ? (snapshot.allowedActions as string[])
           : [],
+        // Snapshots predating the flag print every step.
+        showOnPrint: snapshot.showOnPrint !== false,
         assigneeId: toNullableNumber(snapshot.assigneeId),
         assigneeName: (snapshot.assigneeName as string | null) ?? null,
         assigneePosition:

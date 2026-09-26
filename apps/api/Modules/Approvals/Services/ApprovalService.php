@@ -64,6 +64,7 @@ class ApprovalService
                     'label' => $step->label,
                     'actionMode' => $step->action_mode,
                     'allowedActions' => $step->isDecide() ? ($step->allowed_actions ?? []) : [],
+                    'showOnPrint' => $step->show_on_print,
                     'candidates' => $step->isDecide()
                         ? $this->subjects->candidates($subjectType, $amount, $step->key)
                             ->map(fn (User $user): array => ['id' => $user->getKey(), 'name' => $user->name])
@@ -155,6 +156,7 @@ class ApprovalService
                     'label' => $step->label,
                     'actionMode' => $step->action_mode,
                     'allowedActions' => $step->isDecide() ? ($step->allowed_actions ?? []) : [],
+                    'showOnPrint' => $step->show_on_print,
                     'assigneeId' => $assignedTo > 0 ? $assignedTo : null,
                     'assigneeName' => null,
                     'assigneePosition' => null,

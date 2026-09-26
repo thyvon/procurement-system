@@ -43,11 +43,17 @@ function signatureColumns(
   request: ApprovalRequestView | null,
   fallback: SignatureColumn[]
 ): SignatureColumn[] {
-  if (!request || request.steps.length === 0) {
+  if (!request) {
     return fallback;
   }
 
-  return request.steps.map((step) => {
+  const visible = request.steps.filter((step) => step.showOnPrint);
+
+  if (visible.length === 0) {
+    return fallback;
+  }
+
+  return visible.map((step) => {
     const action = actionForStep(request, step);
     const name = step.assigneeName ?? action?.actor.name ?? "";
     const date =
@@ -115,7 +121,12 @@ export function EvaluationPrint({
           {evaluation.recommendationBasis || "—"}
         </div>
 
-        <div className="print-signature mt-auto grid grid-cols-3 gap-8 pt-4">
+        <div
+          className="print-signature mt-auto grid gap-8 pt-4"
+          style={{
+            gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
+          }}
+        >
           {columns.map((column) => (
             <div key={column.key} className="flex flex-col gap-1.5">
               <div className="mb-1 text-center font-semibold">

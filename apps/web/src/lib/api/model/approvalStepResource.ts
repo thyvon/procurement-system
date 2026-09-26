@@ -13,4 +13,5 @@ export interface ApprovalStepResource {
   actionMode: string;
   /** @nullable */
   allowedActions: unknown[] | null;
+  showOnPrint: boolean;
 }

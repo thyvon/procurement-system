@@ -227,6 +227,8 @@
         "actionApprove": "អនុម័ត",
         "actionReject": "បដិសេធ",
         "actionReturn": "ត្រឡប់ក្រោយ",
+        "showOnPrint": "បង្ហាញក្នុងការបោះពុម្ព",
+        "showOnPrintHint": "ជំហានដែលលាក់នៅតែសម្រេចធម្មតា ប៉ុន្តែវាបាត់តែពីឯកសារបោះពុម្ពផ្លូវការ។",
         "moveUp": "ឡើងលើ",
         "moveDown": "ចុះក្រោម",
         "removeStep": "លុបជំហាន",

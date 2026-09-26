@@ -227,6 +227,8 @@
         "actionApprove": "Approve",
         "actionReject": "Reject",
         "actionReturn": "Return",
+        "showOnPrint": "Show on print",
+        "showOnPrintHint": "Hidden steps still decide; they only disappear from the official print sheet.",
         "moveUp": "Move up",
         "moveDown": "Move down",
         "removeStep": "Remove step",

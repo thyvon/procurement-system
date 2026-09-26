@@ -240,6 +240,30 @@ it('validates step definitions', function () {
     expect($recordWithActions->json('data.steps.1.allowedActions'))->toBe(['approve', 'return']);
 });
 
+it('stores the show-on-print flag per step, defaulting to visible', function () {
+    $created = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/approvals/flows', approvalFlowPayload([
+            'steps' => [
+                ['key' => 'prepared', 'label' => 'Prepared By', 'action_mode' => 'record', 'show_on_print' => false],
+                ['key' => 'approved', 'label' => 'Approved By', 'action_mode' => 'decide', 'allowed_actions' => ['approve']],
+            ],
+        ]))
+        ->assertStatus(201);
+
+    expect($created->json('data.steps.0.showOnPrint'))->toBeFalse();
+    expect($created->json('data.steps.1.showOnPrint'))->toBeTrue();
+
+    $invalid = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/approvals/flows', approvalFlowPayload([
+            'steps' => [
+                ['key' => 'approved', 'label' => 'Approved By', 'action_mode' => 'decide', 'allowed_actions' => ['approve'], 'show_on_print' => 'yes'],
+            ],
+        ]))
+        ->assertStatus(422);
+
+    expect($invalid->json('errors'))->toHaveKey('steps.0.show_on_print');
+});
+
 it('updates a flow and replaces its steps wholesale', function () {
     $response = $this->actingAs($this->admin, 'sanctum')
         ->putJson(approvalFlowUrl($this->flow), [

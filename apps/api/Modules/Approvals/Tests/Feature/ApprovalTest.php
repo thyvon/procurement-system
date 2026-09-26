@@ -50,11 +50,12 @@ beforeEach(function () {
         'is_active' => true,
     ]);
 
+    // The checked step ships hidden from the official print sheet.
     foreach ([
-        [1, 'prepared', 'Prepared By', ApprovalStep::MODE_RECORD, null],
-        [2, 'checked', 'Checked By', ApprovalStep::MODE_DECIDE, ['approve', 'reject', 'return']],
-        [3, 'approved', 'Approved By', ApprovalStep::MODE_DECIDE, ['approve', 'reject', 'return']],
-    ] as [$position, $key, $label, $mode, $actions]) {
+        [1, 'prepared', 'Prepared By', ApprovalStep::MODE_RECORD, null, true],
+        [2, 'checked', 'Checked By', ApprovalStep::MODE_DECIDE, ['approve', 'reject', 'return'], false],
+        [3, 'approved', 'Approved By', ApprovalStep::MODE_DECIDE, ['approve', 'reject', 'return'], true],
+    ] as [$position, $key, $label, $mode, $actions, $showOnPrint]) {
         ApprovalStep::create([
             'entity_id' => $this->entity->getKey(),
             'approval_flow_id' => $this->flow->getKey(),
@@ -63,6 +64,7 @@ beforeEach(function () {
             'label' => $label,
             'action_mode' => $mode,
             'allowed_actions' => $actions,
+            'show_on_print' => $showOnPrint,
         ]);
     }
 
@@ -170,6 +172,8 @@ it('previews the workflow with ordered steps and TOCA-filtered candidates', func
         ->assertJsonPath('data.steps.0.actionMode', 'record')
         ->assertJsonPath('data.steps.1.actionMode', 'decide')
         ->assertJsonPath('data.steps.1.allowedActions.0', 'approve')
+        ->assertJsonPath('data.steps.0.showOnPrint', true)
+        ->assertJsonPath('data.steps.1.showOnPrint', false)
         ->assertJsonPath('data.steps.0.candidates', null);
 
     $candidateIds = collect($response->json('data.steps.1.candidates'))->pluck('id')->all();
@@ -493,6 +497,8 @@ it('submits an evaluation, stamps the record step and parks on the first decide 
         ->assertJsonPath('data.currentStep.assigneePosition', 'Finance Manager')
         ->assertJsonPath('data.flow.code', 'evaluation-test')
         ->assertJsonCount(3, 'data.steps')
+        ->assertJsonPath('data.steps.0.showOnPrint', true)
+        ->assertJsonPath('data.steps.1.showOnPrint', false)
         ->assertJsonPath('data.submittedBy', $this->admin->name);
 
     $request = ApprovalRequest::query()->findOrFail($response->json('data.id'));
@@ -500,8 +506,10 @@ it('submits an evaluation, stamps the record step and parks on the first decide 
     expect($request->snapshot['steps'])->toHaveCount(3)
         ->and($request->snapshot['steps'][0]['assigneeName'])->toBe($this->admin->name)
         ->and($request->snapshot['steps'][0]['assigneePosition'])->toBe('Procurement Manager')
+        ->and($request->snapshot['steps'][0]['showOnPrint'])->toBeTrue()
         ->and($request->snapshot['steps'][1]['assigneeName'])->toBe($this->firstApprover->name)
         ->and($request->snapshot['steps'][1]['assigneePosition'])->toBe('Finance Manager')
+        ->and($request->snapshot['steps'][1]['showOnPrint'])->toBeFalse()
         ->and($request->snapshot['steps'][2]['assigneeName'])->toBe($this->secondApprover->name)
         ->and($request->snapshot['steps'][2]['assigneePosition'])->toBeNull()
         ->and($request->actions()->count())->toBe(1)
