@@ -431,7 +431,17 @@
       "criteriaPlaceholder": "—"
     },
     "detail": {
-      "subtitle": "Price evaluation"
+      "subtitle": "Price evaluation",
+      "print": "Print"
+    },
+    "print": {
+      "code": "Code",
+      "name": "Name",
+      "position": "Position",
+      "date": "Date",
+      "prepared": "Prepared by",
+      "reviewed": "Reviewed by",
+      "approved": "Approved by"
     }
   },
   "profile": {

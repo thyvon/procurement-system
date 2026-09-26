@@ -71,15 +71,18 @@ export const CRITERIA_KEYS = [
 ] as const;
 
 export function formatMoney(amount: number, currency: string = "USD"): string {
-  const code = currency === "KHR" ? "KHR" : "USD";
-  const digits = code === "KHR" ? 0 : 2;
+  const isKhr = currency === "KHR";
+  const symbol = isKhr ? "៛" : "$";
+  const digits = isKhr ? 0 : 2;
 
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: code,
+  const formatted = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(amount);
+
+  return formatted.startsWith("-")
+    ? `-${symbol}${formatted.slice(1)}`
+    : `${symbol}${formatted}`;
 }
 
 function parseMoney(value: string): number {

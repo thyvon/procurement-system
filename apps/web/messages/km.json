@@ -431,7 +431,17 @@
       "criteriaPlaceholder": "—"
     },
     "detail": {
-      "subtitle": "ការវាយតម្លៃតម្លៃ"
+      "subtitle": "ការវាយតម្លៃតម្លៃ",
+      "print": "បោះពុម្ព"
+    },
+    "print": {
+      "code": "លេខកូដ",
+      "name": "ឈ្មោះ",
+      "position": "តួនាទី",
+      "date": "កាលបរិច្ឆេទ",
+      "prepared": "រៀបចំដោយ",
+      "reviewed": "ពិនិត្យដោយ",
+      "approved": "អនុម័តដោយ"
     }
   },
   "profile": {

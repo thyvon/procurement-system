@@ -32,7 +32,7 @@ export function BreadcrumbBar() {
   }
 
   return (
-    <nav className="flex h-8 shrink-0 items-center gap-1 bg-background px-6 text-sm">
+    <nav className="flex h-8 shrink-0 items-center gap-1 bg-background px-6 text-sm print:hidden">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>

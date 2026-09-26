@@ -13,7 +13,7 @@ type Props = {
 
 export function Topbar({ user }: Props) {
   return (
-    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 print:hidden">
       <SidebarTrigger />
       <Separator orientation="vertical" className="h-5" />
 
