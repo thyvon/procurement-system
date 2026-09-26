@@ -1,8 +1,10 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
+use Modules\Approvals\Models\TocaEntry;
 use Modules\Auth\Models\RefreshToken;
 use Modules\Organization\Models\Entity;
 use Spatie\Permission\Models\Role;
@@ -158,4 +160,92 @@ it('deactivates instead of hard-deleting and revokes all tokens', function () {
         ->and(PersonalAccessToken::count())->toBe(0)
         ->and(RefreshToken::query()->where('user_id', $this->staffA->getKey())->whereNull('revoked_at')->count())->toBe(0)
         ->and(User::withTrashed()->find($this->staffA->getKey())->deleted_at)->toBeNull();
+});
+
+it('syncs the authority entries assigned to a user', function () {
+    $entry = TocaEntry::create([
+        'entity_id' => $this->entityA->getKey(),
+        'name' => 'Evaluation band',
+        'subject_type' => 'evaluation',
+        'min_amount' => 0,
+        'max_amount' => null,
+    ]);
+
+    $this->actingAs($this->adminA, 'sanctum')
+        ->patchJson("/api/v1/users/{$this->staffA->getKey()}", ['toca_entry_ids' => [$entry->getKey()]])
+        ->assertOk();
+
+    expect(DB::table('toca_entry_user')->where('user_id', $this->staffA->getKey())->pluck('toca_entry_id')->all())
+        ->toBe([$entry->getKey()]);
+
+    // Replace-all: sending an empty list clears the assignment.
+    $this->actingAs($this->adminA, 'sanctum')
+        ->patchJson("/api/v1/users/{$this->staffA->getKey()}", ['toca_entry_ids' => []])
+        ->assertOk();
+
+    expect(DB::table('toca_entry_user')->where('user_id', $this->staffA->getKey())->exists())->toBeFalse();
+});
+
+it('assigns the authority entries passed when creating a user', function () {
+    $entry = TocaEntry::create([
+        'entity_id' => $this->entityA->getKey(),
+        'name' => 'Evaluation band',
+        'subject_type' => 'evaluation',
+        'min_amount' => 0,
+        'max_amount' => null,
+    ]);
+
+    $created = $this->actingAs($this->adminA, 'sanctum')
+        ->postJson('/api/v1/users', [
+            'name' => 'New Approver',
+            'email' => 'new.approver@test.local',
+            'password' => 'long-password-123',
+            'toca_entry_ids' => [$entry->getKey()],
+        ])
+        ->assertStatus(201);
+
+    expect(DB::table('toca_entry_user')->where('user_id', $created->json('data.id'))->pluck('toca_entry_id')->all())
+        ->toBe([$entry->getKey()]);
+});
+
+it('ignores authority entries when the actor lacks approvals.manage', function () {
+    $entry = TocaEntry::create([
+        'entity_id' => $this->entityA->getKey(),
+        'name' => 'Evaluation band',
+        'subject_type' => 'evaluation',
+        'min_amount' => 0,
+        'max_amount' => null,
+    ]);
+
+    $this->actingAs($this->staffA, 'sanctum')
+        ->patchJson("/api/v1/users/{$this->staffA->getKey()}", [
+            'name' => 'Still Staff',
+            'toca_entry_ids' => [$entry->getKey()],
+        ])
+        ->assertOk();
+
+    expect(DB::table('toca_entry_user')->where('user_id', $this->staffA->getKey())->exists())->toBeFalse();
+});
+
+it('rejects authority entry ids that do not exist or belong to another entity', function () {
+    $foreign = TocaEntry::create([
+        'entity_id' => $this->entityB->getKey(),
+        'name' => 'Foreign band',
+        'subject_type' => 'evaluation',
+        'min_amount' => 0,
+        'max_amount' => null,
+    ]);
+
+    $missing = $this->actingAs($this->adminA, 'sanctum')
+        ->patchJson("/api/v1/users/{$this->staffA->getKey()}", ['toca_entry_ids' => ['01JXZZZZZZZZZZZZZZZZZZZZZZZZ']])
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422);
+
+    expect($missing->json('errors'))->toHaveKey('toca_entry_ids.0');
+
+    $crossEntity = $this->actingAs($this->adminA, 'sanctum')
+        ->patchJson("/api/v1/users/{$this->staffA->getKey()}", ['toca_entry_ids' => [$foreign->getKey()]])
+        ->assertStatus(422);
+
+    expect($crossEntity->json('errors'))->toHaveKey('toca_entry_ids.0');
 });

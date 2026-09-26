@@ -16,4 +16,5 @@ export interface StoreUserRequest {
   /** @nullable */
   entity_id?: string | null;
   roles?: string[];
+  toca_entry_ids?: string[];
 }

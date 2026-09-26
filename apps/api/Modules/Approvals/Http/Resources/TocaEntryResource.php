@@ -2,6 +2,7 @@
 
 namespace Modules\Approvals\Http\Resources;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\Approvals\Models\TocaEntry;
@@ -18,11 +19,27 @@ class TocaEntryResource extends JsonResource
     {
         return [
             'id' => $this->getKey(),
-            'userId' => $this->user_id,
-            'userName' => $this->user?->name,
+            'name' => $this->name,
             'subjectType' => $this->subject_type,
+            'stepKey' => $this->step_key,
             'minAmount' => $this->min_amount,
             'maxAmount' => $this->max_amount,
+            'users' => $this->usersPayload(),
         ];
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string}>
+     */
+    private function usersPayload(): array
+    {
+        if (! $this->relationLoaded('users')) {
+            return [];
+        }
+
+        return $this->users
+            ->map(fn (User $user): array => ['id' => $user->id, 'name' => $user->name])
+            ->values()
+            ->all();
     }
 }

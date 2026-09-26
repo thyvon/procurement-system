@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Modules\Approvals\Services\TocaEntryService;
 use Modules\Users\Http\Requests\StoreUserRequest;
 use Modules\Users\Http\Requests\UpdateAvatarRequest;
 use Modules\Users\Http\Requests\UpdateUserRequest;
@@ -21,6 +22,7 @@ class UserController extends Controller
         private readonly UserRepositoryInterface $users,
         private readonly UserRoleService $roles,
         private readonly AvatarService $avatars,
+        private readonly TocaEntryService $toca,
     ) {}
 
     public function index(): AnonymousResourceCollection
@@ -48,6 +50,10 @@ class UserController extends Controller
         $user = $this->users->create($attributes);
         $this->roles->syncRoles($user, $request->roleNames());
 
+        if ($request->has('toca_entry_ids') && $actor->can('approvals.manage', 'sanctum')) {
+            $this->toca->syncUserEntries($user, $request->input('toca_entry_ids'));
+        }
+
         return ApiResponse::success(new UserResource($user->load('roles')), 201);
     }
 
@@ -65,7 +71,7 @@ class UserController extends Controller
         /** @var User $actor */
         $actor = $request->user();
 
-        $data = collect($request->validated())->except(['roles'])->all();
+        $data = collect($request->validated())->except(['roles', 'toca_entry_ids'])->all();
 
         if ($data !== []) {
             $this->users->update($user, $data);
@@ -73,6 +79,10 @@ class UserController extends Controller
 
         if ($request->has('roles') && $actor->can('users.manage', 'sanctum')) {
             $this->roles->syncRoles($user, $request->input('roles'));
+        }
+
+        if ($request->has('toca_entry_ids') && $actor->can('approvals.manage', 'sanctum')) {
+            $this->toca->syncUserEntries($user, $request->input('toca_entry_ids'));
         }
 
         return new UserResource($user->refresh()->load('roles'));

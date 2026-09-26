@@ -174,12 +174,23 @@
         "flows": "លំហូរអនុម័ត",
         "authority": "តារាងសិទ្ធិ"
       },
+      "columns": {
+        "code": "កូដ",
+        "name": "ឈ្មោះ",
+        "band": "ដែនទឹកប្រាក់",
+        "steps": "ជំហាន",
+        "status": "ស្ថានភាព",
+        "users": "អ្នកប្រើប្រាស់",
+        "subject": "ប្រធានបទ",
+        "step": "ជំហាន"
+      },
       "table": {
         "searchPlaceholder": "តម្រៀបតាមឈ្មោះ...",
         "allStatuses": "គ្រប់ស្ថានភាព",
-        "status": "ស្ថានភាព",
         "active": "សកម្ម",
         "inactive": "អសកម្ម",
+        "noUpperLimit": "គ្មានដែនកំណត់",
+        "anyStep": "ជំហានណាមួយ",
         "openMenu": "បើកម៉ឺនុយ",
         "edit": "កែស៊ីវិល",
         "delete": "លុប",
@@ -193,11 +204,7 @@
         "editTitle": "កែលំហូរអនុម័ត",
         "newDescription": "កំណត់ដែនទឹកប្រាក់ និងជំហានអនុម័ត។",
         "editDescription": "កែដែនទឹកប្រាក់ និងជំហានអនុម័ត។",
-        "code": "កូដ",
         "name": "ឈ្មោះ",
-        "band": "ដែនទឹកប្រាក់",
-        "stepsCol": "ជំហាន",
-        "noUpperLimit": "គ្មានដែនកំណត់",
         "subject": "ប្រធានបទ",
         "subjectPlaceholder": "ជ្រើសរើសប្រធានបទ",
         "namePlaceholder": "ឈ្មោះលំហូរ",
@@ -231,11 +238,9 @@
       "authority": {
         "newTitle": "ធាតុសិទ្ធិថ្មី",
         "editTitle": "កែធាតុសិទ្ធិ",
-        "newDescription": "កំណត់អ្នកមានសិទ្ធិអនុម័ត និងដែនទឹកប្រាក់។",
-        "editDescription": "កែអ្នកមានសិទ្ធិអនុម័ត និងដែនទឹកប្រាក់។",
-        "user": "អ្នកប្រើ",
-        "userPlaceholder": "ស្វែងរកអ្នកប្រើ...",
-        "noMatch": "រកឃើញអ្នកប្រើមិនបាន។",
+        "newDescription": "កំណត់ដែនសិទ្ធិអនុម័តដែលមានឈ្មោះ។",
+        "editDescription": "កែធាតុសិទ្ធិអនុម័ត។",
+        "name": "ឈ្មោះ",
         "subject": "ប្រធានបទ",
         "subjectPlaceholder": "ជ្រើសរើសប្រធានបទ",
         "minAmount": "ទឹកប្រាក់កំណត់អប្ិបរ",
@@ -248,10 +253,8 @@
         "updated": "បានកែធាតុសិទ្ធិ។",
         "deleteTitle": "លុបធាតុសិទ្ធិ",
         "deleted": "បានលុបធាតុសិទ្ធិ។",
-        "userCol": "អ្នកប្រើ",
-        "subjectCol": "ប្រធានបទ",
-        "bandCol": "ដែនទឹកប្រាក់",
-        "noUpperLimit": "គ្មានដែនកំណត់"
+        "step": "ជំហាន",
+        "anyStep": "ជំហានណាមួយ"
       }
     }
   },
@@ -704,6 +707,8 @@
       "passwordCreatePlaceholder": "ពាក្យសម្ងាត់ (យ៉ាងតិច ១០ តួអក្ខរ)",
       "passwordKeepPlaceholder": "ទុកឲ្យនៅទំនេរដើម្បីរក្សាពាក្យសម្ងាត់បច្ចុប្បន្ន",
       "loadingRoles": "កំពុងផ្ទុកតួនាទី...",
+      "authoritySets": "សំណុំសិទ្ធិអំណាច",
+      "loadingAuthoritySets": "កំពុងផ្ទុកសំណុំសិទ្ធិអំណាច...",
       "cancel": "បោះបង់",
       "save": "រក្សាទុក",
       "saving": "កំពុងរក្សាទុក...",

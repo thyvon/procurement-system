@@ -77,27 +77,36 @@ class ApprovalsDatabaseSeeder extends Seeder
         $staff = User::query()->where('email', 'staff@procurement.local')->first();
 
         if ($admin !== null) {
-            TocaEntry::query()->firstOrCreate(
+            $adminEntry = TocaEntry::query()->firstOrCreate(
                 [
                     'entity_id' => $entity->getKey(),
-                    'user_id' => $admin->getKey(),
+                    'name' => 'Evaluation unlimited',
                     'subject_type' => 'evaluation',
                     'min_amount' => 0,
                 ],
                 ['max_amount' => null, 'created_by' => $admin->getKey(), 'updated_by' => $admin->getKey()],
             );
+
+            $adminEntry->users()->syncWithoutDetaching([$admin->getKey()]);
         }
 
+        // Demo of a step-scoped authority entry: staff may only acknowledge.
         if ($staff !== null) {
-            TocaEntry::query()->firstOrCreate(
+            $staffEntry = TocaEntry::query()->firstOrCreate(
                 [
                     'entity_id' => $entity->getKey(),
-                    'user_id' => $staff->getKey(),
+                    'name' => 'Evaluation up to 1,000',
                     'subject_type' => 'evaluation',
                     'min_amount' => 0,
                 ],
                 ['max_amount' => 1000, 'created_by' => $admin?->getKey(), 'updated_by' => $admin?->getKey()],
             );
+
+            $staffEntry->users()->syncWithoutDetaching([$staff->getKey()]);
+
+            if ($staffEntry->step_key === null) {
+                $staffEntry->update(['step_key' => 'acknowledged']);
+            }
         }
     }
 

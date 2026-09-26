@@ -65,21 +65,23 @@ beforeEach(function () {
         ]);
     }
 
-    TocaEntry::create([
+    $firstEntry = TocaEntry::create([
         'entity_id' => $this->entity->getKey(),
-        'user_id' => $this->firstApprover->getKey(),
+        'name' => 'First approver band',
         'subject_type' => 'evaluation',
         'min_amount' => 0,
         'max_amount' => 1000,
     ]);
+    $firstEntry->users()->attach($this->firstApprover);
 
-    TocaEntry::create([
+    $secondEntry = TocaEntry::create([
         'entity_id' => $this->entity->getKey(),
-        'user_id' => $this->secondApprover->getKey(),
+        'name' => 'Second approver band',
         'subject_type' => 'evaluation',
         'min_amount' => 0,
         'max_amount' => null,
     ]);
+    $secondEntry->users()->attach($this->secondApprover);
 });
 
 function approvalsEvaluation(float $amount = 44, string $code = 'EVAL-26-001', ?Entity $entity = null): Evaluation
@@ -177,16 +179,53 @@ it('previews the workflow with ordered steps and TOCA-filtered candidates', func
         ->not->toContain($this->outsider->getKey());
 });
 
-it('excludes inactive users from preview candidates', function () {
-    $retired = User::factory()->create(['entity_id' => $this->entity->getKey(), 'is_active' => false]);
+it('narrows preview candidates to the steps each user may act on', function () {
+    TocaEntry::query()
+        ->whereHas('users', fn ($query) => $query->whereKey($this->firstApprover->getKey()))
+        ->update(['step_key' => 'checked']);
+    TocaEntry::query()
+        ->whereHas('users', fn ($query) => $query->whereKey($this->secondApprover->getKey()))
+        ->update(['step_key' => 'approved']);
 
-    TocaEntry::create([
+    // An entry without a step scope still qualifies for every step.
+    $adminEntry = TocaEntry::create([
         'entity_id' => $this->entity->getKey(),
-        'user_id' => $retired->getKey(),
+        'name' => 'Admin band',
         'subject_type' => 'evaluation',
         'min_amount' => 0,
         'max_amount' => null,
     ]);
+    $adminEntry->users()->attach($this->admin);
+
+    $steps = $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/preview?subject_type=evaluation&subject_id='.approvalsEvaluation()->getKey())
+        ->assertOk()
+        ->json('data.steps');
+
+    $checked = collect($steps[1]['candidates'])->pluck('id')->all();
+    $approved = collect($steps[2]['candidates'])->pluck('id')->all();
+
+    expect($checked)
+        ->toContain($this->firstApprover->getKey())
+        ->toContain($this->admin->getKey())
+        ->not->toContain($this->secondApprover->getKey())
+        ->and($approved)
+        ->toContain($this->secondApprover->getKey())
+        ->toContain($this->admin->getKey())
+        ->not->toContain($this->firstApprover->getKey());
+});
+
+it('excludes inactive users from preview candidates', function () {
+    $retired = User::factory()->create(['entity_id' => $this->entity->getKey(), 'is_active' => false]);
+
+    $retiredEntry = TocaEntry::create([
+        'entity_id' => $this->entity->getKey(),
+        'name' => 'Retired band',
+        'subject_type' => 'evaluation',
+        'min_amount' => 0,
+        'max_amount' => null,
+    ]);
+    $retiredEntry->users()->attach($retired);
 
     $candidateIds = collect(
         $this->actingAs($this->admin, 'sanctum')
@@ -376,6 +415,20 @@ it('rejects an assignee whose commitment authority does not cover the amount', f
         ->and(ApprovalRequest::query()->count())->toBe(0);
 });
 
+it('rejects an assignee who is not scoped to that step', function () {
+    TocaEntry::query()
+        ->whereHas('users', fn ($query) => $query->whereKey($this->firstApprover->getKey()))
+        ->update(['step_key' => 'approved']);
+
+    $response = approvalsSubmit(
+        approvalsEvaluation(),
+        [2 => (int) $this->firstApprover->getKey(), 3 => (int) $this->secondApprover->getKey()],
+    )->assertStatus(422);
+
+    expect($response->json('errors'))->toHaveKey('assignees.2')
+        ->and(ApprovalRequest::query()->count())->toBe(0);
+});
+
 it('rejects a second pending request for the same document', function () {
     $evaluation = approvalsEvaluation();
     approvalsPending($evaluation);
@@ -469,6 +522,19 @@ it('forbids acting when you are not the current assignee', function () {
     approvalsAct($request, 'approve', null, $this->outsider)->assertStatus(403);
 
     expect($request->fresh()->status)->toBe('pending');
+});
+
+it('re-checks the step scope when acting', function () {
+    $request = approvalsPending(approvalsEvaluation());
+
+    TocaEntry::query()
+        ->whereHas('users', fn ($query) => $query->whereKey($this->firstApprover->getKey()))
+        ->update(['step_key' => 'approved']);
+
+    approvalsAct($request, 'approve', null, $this->firstApprover)->assertStatus(403);
+
+    expect($request->fresh()->status)->toBe('pending')
+        ->and($request->fresh()->current_position)->toBe(2);
 });
 
 it('rejects an action the current step does not allow', function () {

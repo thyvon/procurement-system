@@ -7,10 +7,12 @@
 
 export interface TocaEntryResource {
   id: unknown;
-  userId: number;
-  userName: string;
+  name: string;
   subjectType: string;
+  /** @nullable */
+  stepKey: string | null;
   minAmount: string;
   /** @nullable */
   maxAmount: string | null;
+  users: string[];
 }

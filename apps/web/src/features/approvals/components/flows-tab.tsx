@@ -52,7 +52,7 @@ function useFlowColumns({
   onEditRequest: (flow: ApprovalFlowRow) => void
   onDeleteRequest: (flow: ApprovalFlowRow) => void
 }): ColumnDef<DataTableFeatures, ApprovalFlowRow>[] {
-  const tc = useTranslations("approvals.settings.flows")
+  const tc = useTranslations("approvals.settings.columns")
   const tt = useTranslations("approvals.settings.table")
   return [
     columnHelper.accessor("code", {
@@ -78,7 +78,7 @@ function useFlowColumns({
         const from = money.format(Number(flow.minAmount))
         const to = flow.maxAmount
           ? money.format(Number(flow.maxAmount))
-          : tc("noUpperLimit")
+          : tt("noUpperLimit")
         return (
           <span className="tabular-nums">
             {from} – {to}
@@ -89,7 +89,7 @@ function useFlowColumns({
     columnHelper.display({
       id: "steps",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc("stepsCol")} />
+        <DataTableColumnHeader column={column} title={tc("steps")} />
       ),
       cell: ({ row }) => {
         const labels = row.original.steps.map((step) => step.label).join(" → ")
@@ -105,7 +105,7 @@ function useFlowColumns({
     }),
     columnHelper.accessor("isActive", {
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tt("status")} />
+        <DataTableColumnHeader column={column} title={tc("status")} />
       ),
       cell: ({ row }) => (
         <span className={row.getValue("isActive") ? "text-green-600" : "text-muted-foreground"}>

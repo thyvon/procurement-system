@@ -15,13 +15,13 @@ class TocaEntryRepository extends BaseRepository implements TocaEntryRepositoryI
     /**
      * @return array<int, TocaEntry>
      */
-    public function allWithUser(): array
+    public function allWithUsers(): array
     {
         return $this->query()
-            ->with('user')
+            ->with('users:id,name')
             ->orderBy('subject_type')
             ->orderBy('min_amount')
-            ->orderBy('user_id')
+            ->orderBy('name')
             ->get()
             ->all();
     }

@@ -52,6 +52,7 @@ export type ApprovalFlowRow = {
 type StepAction = "approve" | "reject" | "return";
 
 type StepRow = {
+  uid: string;
   key: string;
   label: string;
   actionMode: "decide" | "record";
@@ -69,25 +70,36 @@ type FlowForm = {
 
 const ALL_ACTIONS: StepAction[] = ["approve", "reject", "return"];
 
+function newRow(): StepRow {
+  return {
+    uid: `row-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    key: "",
+    label: "",
+    actionMode: "decide",
+    allowedActions: [...ALL_ACTIONS],
+  };
+}
+
 const EMPTY_FORM: FlowForm = {
   subjectType: "evaluation",
   name: "",
   minAmount: "0",
   maxAmount: "",
   isActive: true,
-  steps: [{ key: "", label: "", actionMode: "decide", allowedActions: [...ALL_ACTIONS] }],
+  steps: [],
 };
 
 function toSteps(editing?: ApprovalFlowRow | null): StepRow[] {
   const rows = [...(editing?.steps ?? [])]
     .sort((a, b) => a.position - b.position)
     .map((step) => ({
+      ...newRow(),
       key: step.key,
       label: step.label,
       actionMode: (step.actionMode === "record" ? "record" : "decide") as StepRow["actionMode"],
       allowedActions: (step.allowedActions ?? []) as StepAction[],
     }));
-  return rows.length > 0 ? rows : EMPTY_FORM.steps;
+  return rows.length > 0 ? rows : [newRow()];
 }
 
 function toForm(editing?: ApprovalFlowRow | null): FlowForm {
@@ -233,6 +245,10 @@ export function FlowDialog({
               </Label>
               <Select
                 value={form.subjectType}
+                items={(settingsQuery.data ?? []).map((setting) => ({
+                  value: setting.subjectType,
+                  label: setting.name,
+                }))}
                 onValueChange={(value) =>
                   setForm((f) => ({
                     ...f,
@@ -288,6 +304,8 @@ export function FlowDialog({
               }
               className="flex-1"
             />
+          </div>
+          <div className="flex items-center gap-3">
             <Label
               htmlFor="flow-max"
               className="w-28 shrink-0 text-left after:ml-1 after:content-[':']"
@@ -339,15 +357,7 @@ export function FlowDialog({
                 onClick={() =>
                   setForm((f) => ({
                     ...f,
-                    steps: [
-                      ...f.steps,
-                      {
-                        key: "",
-                        label: "",
-                        actionMode: "decide",
-                        allowedActions: [...ALL_ACTIONS],
-                      },
-                    ],
+                    steps: [...f.steps, newRow()],
                   }))
                 }
               >
@@ -357,16 +367,17 @@ export function FlowDialog({
             </div>
             <div className="space-y-2">
               {form.steps.map((row, index) => (
-                <div
-                  key={row.key || `step-${index}`}
-                  className="space-y-2 rounded-md border p-2"
-                >
+                <div key={row.uid} className="space-y-2 rounded-md border p-2">
                   <div className="grid grid-cols-[1.5rem_7rem_9rem_1fr_auto] items-center gap-2">
                     <span className="text-center font-mono text-xs text-muted-foreground">
                       {index + 1}
                     </span>
                     <Select
                       value={row.actionMode}
+                      items={[
+                        { value: "decide", label: t("modeDecide") },
+                        { value: "record", label: t("modeRecord") },
+                      ]}
                       onValueChange={(value) =>
                         updateStep(index, {
                           actionMode: value as StepRow["actionMode"],

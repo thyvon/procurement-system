@@ -1,19 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import { Combobox as ComboboxNS } from "@base-ui/react/combobox";
 import { Button } from "@/components/ui/button";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox";
 import {
   Dialog,
   DialogContent,
@@ -38,36 +29,38 @@ import {
   approvalsTocaEntriesUpdate,
 } from "@/lib/api/toca-entry/toca-entry";
 import { approvalsSettingsIndex } from "@/lib/api/approval-setting/approval-setting";
-import { usersUsersIndex } from "@/lib/api/user/user";
+import { approvalsFlowsIndex } from "@/lib/api/approval-flow/approval-flow";
 import type { StoreTocaEntryRequest } from "@/lib/api/model/storeTocaEntryRequest";
 import type { StoreTocaEntryRequestSubjectType } from "@/lib/api/model/storeTocaEntryRequestSubjectType";
 import type { UpdateTocaEntryRequest } from "@/lib/api/model/updateTocaEntryRequest";
 import type { ApprovalSettingResource } from "@/lib/api/model/approvalSettingResource";
+import type { ApprovalFlowRow } from "./flow-dialog";
+import { decideStepLabels } from "../approval-types";
 
 export type TocaEntryRow = {
   id: string;
-  userId: number;
-  userName: string;
+  name: string;
   subjectType: string;
+  stepKey: string | null;
   minAmount: string;
   maxAmount: string | null;
-};
-
-type UserOption = {
-  id: number;
-  name: string;
+  users: { id: number; name: string }[];
 };
 
 type TocaForm = {
-  userId: string;
+  name: string;
   subjectType: StoreTocaEntryRequestSubjectType;
+  stepKey: string;
   minAmount: string;
   maxAmount: string;
 };
 
+const ANY_STEP = "__any__";
+
 const EMPTY_FORM: TocaForm = {
-  userId: "",
+  name: "",
   subjectType: "evaluation",
+  stepKey: "",
   minAmount: "0",
   maxAmount: "",
 };
@@ -75,8 +68,9 @@ const EMPTY_FORM: TocaForm = {
 function toForm(editing?: TocaEntryRow | null): TocaForm {
   if (!editing) return { ...EMPTY_FORM };
   return {
-    userId: String(editing.userId),
+    name: editing.name,
     subjectType: editing.subjectType as StoreTocaEntryRequestSubjectType,
+    stepKey: editing.stepKey ?? "",
     minAmount: editing.minAmount,
     maxAmount: editing.maxAmount ?? "",
   };
@@ -99,12 +93,6 @@ export function AuthorityDialog({
   const qc = useQueryClient();
   const [form, setForm] = useState<TocaForm>(() => toForm(editing));
 
-  const usersQuery = useQuery({
-    queryKey: ["users"],
-    queryFn: async () =>
-      unwrap<UserOption[]>(await usersUsersIndex(withAuth())),
-  });
-
   const settingsQuery = useQuery({
     queryKey: ["approvalSettings"],
     queryFn: async () =>
@@ -113,19 +101,26 @@ export function AuthorityDialog({
       ),
   });
 
-  const userItems = ComboboxNS.createItems(
-    (usersQuery.data ?? []).map((user) => ({
-      value: String(user.id),
-      label: user.name,
-    })),
-    {
-      getValue: (user) => user.value,
-      getLabel: (user) => user.label,
+  const flowsQuery = useQuery({
+    queryKey: ["approvalFlows"],
+    queryFn: async () =>
+      unwrap<ApprovalFlowRow[]>(await approvalsFlowsIndex(withAuth())),
+  });
+
+  const stepSelectItems = useMemo(() => {
+    const labels = decideStepLabels(flowsQuery.data, form.subjectType);
+    const items = [{ value: ANY_STEP, label: t("anyStep") }];
+    for (const [value, label] of labels) {
+      items.push({ value, label });
     }
-  );
+    if (form.stepKey !== "" && !labels.has(form.stepKey)) {
+      items.push({ value: form.stepKey, label: form.stepKey });
+    }
+    return items;
+  }, [flowsQuery.data, form.subjectType, form.stepKey, t]);
 
   const canSave =
-    form.userId !== "" &&
+    form.name.trim() !== "" &&
     form.minAmount !== "" &&
     Number(form.minAmount) >= 0 &&
     (form.maxAmount === "" || Number(form.maxAmount) >= Number(form.minAmount));
@@ -133,8 +128,9 @@ export function AuthorityDialog({
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload: StoreTocaEntryRequest = {
-        user_id: Number(form.userId),
+        name: form.name.trim(),
         subject_type: form.subjectType,
+        step_key: form.stepKey === "" ? null : form.stepKey,
         min_amount: Number(form.minAmount),
         max_amount: form.maxAmount === "" ? null : Number(form.maxAmount),
       };
@@ -167,36 +163,18 @@ export function AuthorityDialog({
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">
-              {t("user")} <RequiredMark />
-            </Label>
-            <Combobox
-              items={userItems}
-              value={form.userId || null}
-              onValueChange={(next) => {
-                if (next === null || next === undefined) return;
-                setForm((f) => ({ ...f, userId: String(next) }));
-              }}
+            <Label
+              htmlFor="toca-name"
+              className="w-28 shrink-0 text-left after:ml-1 after:content-[':']"
             >
-              <ComboboxInput
-                className="h-8 min-w-0 flex-1"
-                placeholder={t("userPlaceholder")}
-              />
-              <ComboboxContent>
-                <ComboboxEmpty className="text-xs">{t("noMatch")}</ComboboxEmpty>
-                <ComboboxList>
-                  {(item) => (
-                    <ComboboxItem
-                      key={item.value}
-                      value={item.value}
-                      className="text-xs"
-                    >
-                      {item.label}
-                    </ComboboxItem>
-                  )}
-                </ComboboxList>
-              </ComboboxContent>
-            </Combobox>
+              {t("name")} <RequiredMark />
+            </Label>
+            <Input
+              id="toca-name"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              className="flex-1"
+            />
           </div>
           <div className="flex items-center gap-3">
             <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">
@@ -204,10 +182,15 @@ export function AuthorityDialog({
             </Label>
             <Select
               value={form.subjectType}
+              items={(settingsQuery.data ?? []).map((setting) => ({
+                value: setting.subjectType,
+                label: setting.name,
+              }))}
               onValueChange={(value) =>
                 setForm((f) => ({
                   ...f,
                   subjectType: value as StoreTocaEntryRequestSubjectType,
+                  stepKey: "",
                 }))
               }
             >
@@ -221,6 +204,32 @@ export function AuthorityDialog({
                     value={setting.subjectType}
                   >
                     {setting.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-3">
+            <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">
+              {t("step")}
+            </Label>
+            <Select
+              value={form.stepKey === "" ? ANY_STEP : form.stepKey}
+              items={stepSelectItems}
+              onValueChange={(value) =>
+                setForm((f) => ({
+                  ...f,
+                  stepKey: value === ANY_STEP ? "" : String(value ?? ""),
+                }))
+              }
+            >
+              <SelectTrigger className="h-8 flex-1">
+                <SelectValue placeholder={t("anyStep")} />
+              </SelectTrigger>
+              <SelectContent>
+                {stepSelectItems.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -243,6 +252,8 @@ export function AuthorityDialog({
               }
               className="flex-1"
             />
+          </div>
+          <div className="flex items-center gap-3">
             <Label
               htmlFor="toca-max"
               className="w-28 shrink-0 text-left after:ml-1 after:content-[':']"

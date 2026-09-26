@@ -174,12 +174,23 @@
         "flows": "Approval flows",
         "authority": "Authority matrix"
       },
+      "columns": {
+        "code": "Code",
+        "name": "Name",
+        "band": "Amount band",
+        "steps": "Steps",
+        "status": "Status",
+        "users": "Users",
+        "subject": "Subject",
+        "step": "Step"
+      },
       "table": {
         "searchPlaceholder": "Filter by name...",
         "allStatuses": "All statuses",
-        "status": "Status",
         "active": "Active",
         "inactive": "Inactive",
+        "noUpperLimit": "No upper limit",
+        "anyStep": "Any step",
         "openMenu": "Open menu",
         "edit": "Edit",
         "delete": "Delete",
@@ -193,11 +204,7 @@
         "editTitle": "Edit approval flow",
         "newDescription": "Define an amount band and its approval steps.",
         "editDescription": "Update the amount band and approval steps.",
-        "code": "Code",
         "name": "Name",
-        "band": "Amount band",
-        "stepsCol": "Steps",
-        "noUpperLimit": "No upper limit",
         "subject": "Subject",
         "subjectPlaceholder": "Select a subject",
         "namePlaceholder": "Flow name",
@@ -231,11 +238,9 @@
       "authority": {
         "newTitle": "New authority entry",
         "editTitle": "Edit authority entry",
-        "newDescription": "Assign approval authority for a user and amount band.",
+        "newDescription": "Define a named approval authority band.",
         "editDescription": "Update the approval authority entry.",
-        "user": "User",
-        "userPlaceholder": "Search user...",
-        "noMatch": "No user found.",
+        "name": "Name",
         "subject": "Subject",
         "subjectPlaceholder": "Select a subject",
         "minAmount": "Min amount",
@@ -248,10 +253,8 @@
         "updated": "Authority entry updated.",
         "deleteTitle": "Delete authority entry",
         "deleted": "Authority entry deleted.",
-        "userCol": "User",
-        "subjectCol": "Subject",
-        "bandCol": "Amount band",
-        "noUpperLimit": "No upper limit"
+        "step": "Step",
+        "anyStep": "Any step"
       }
     }
   },
@@ -704,6 +707,8 @@
       "passwordCreatePlaceholder": "Password (min 10 characters)",
       "passwordKeepPlaceholder": "Leave blank to keep current password",
       "loadingRoles": "Loading roles...",
+      "authoritySets": "Authority sets",
+      "loadingAuthoritySets": "Loading authority sets...",
       "cancel": "Cancel",
       "save": "Save",
       "saving": "Saving...",

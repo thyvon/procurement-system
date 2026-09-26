@@ -26,6 +26,13 @@ class UpdateUserRequest extends FormRequest
             'is_active' => ['sometimes', 'boolean'],
             'roles' => ['sometimes', 'array'],
             'roles.*' => ['string', Rule::exists('roles', 'name')->where('guard_name', 'sanctum')],
+            'toca_entry_ids' => ['sometimes', 'array'],
+            'toca_entry_ids.*' => [
+                'string',
+                Rule::exists('toca_entries', 'id')
+                    ->where('entity_id', $this->user()?->entity_id)
+                    ->whereNull('deleted_at'),
+            ],
         ];
     }
 }

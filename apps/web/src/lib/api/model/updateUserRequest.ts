@@ -14,4 +14,5 @@ export interface UpdateUserRequest {
   password?: string;
   is_active?: boolean;
   roles?: string[];
+  toca_entry_ids?: string[];
 }

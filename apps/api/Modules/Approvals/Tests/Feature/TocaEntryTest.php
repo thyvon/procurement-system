@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\User;
+use Modules\Approvals\Models\ApprovalFlow;
+use Modules\Approvals\Models\ApprovalSetting;
+use Modules\Approvals\Models\ApprovalStep;
 use Modules\Approvals\Models\TocaEntry;
 use Modules\Organization\Models\Entity;
 
@@ -20,7 +23,7 @@ beforeEach(function () {
 function tocaPayload(array $overrides = []): array
 {
     return array_merge([
-        'user_id' => test()->approver->getKey(),
+        'name' => 'Senior approver',
         'subject_type' => 'evaluation',
         'min_amount' => 0,
         'max_amount' => 1000,
@@ -32,18 +35,53 @@ function tocaEntryUrl(TocaEntry $entry): string
     return "/api/v1/approvals/toca-entries/{$entry->getKey()}";
 }
 
+function tocaFlowStepKey(): string
+{
+    $setting = ApprovalSetting::create([
+        'entity_id' => test()->entity->getKey(),
+        'subject_type' => 'evaluation',
+        'name' => 'Evaluation Approval',
+        'is_active' => true,
+    ]);
+
+    $flow = ApprovalFlow::create([
+        'entity_id' => test()->entity->getKey(),
+        'approval_setting_id' => $setting->getKey(),
+        'code' => 'evaluation-test',
+        'name' => 'Test flow',
+        'min_amount' => 0,
+        'max_amount' => null,
+        'is_active' => true,
+    ]);
+
+    foreach (['checked', 'approved'] as $index => $key) {
+        ApprovalStep::create([
+            'entity_id' => test()->entity->getKey(),
+            'approval_flow_id' => $flow->getKey(),
+            'position' => $index + 1,
+            'key' => $key,
+            'label' => $key === 'checked' ? 'Checked By' : 'Approved By',
+            'action_mode' => ApprovalStep::MODE_DECIDE,
+            'allowed_actions' => ['approve', 'reject', 'return'],
+        ]);
+    }
+
+    return 'checked';
+}
+
 it('requires authentication', function () {
     $this->getJson('/api/v1/approvals/toca-entries')->assertStatus(401);
 });
 
-it('lists authority rows with the user name for a viewer', function () {
-    TocaEntry::create([
+it('lists authority entries with their users for a viewer', function () {
+    $entry = TocaEntry::create([
         'entity_id' => $this->entity->getKey(),
-        'user_id' => $this->approver->getKey(),
+        'name' => 'Senior approver',
         'subject_type' => 'evaluation',
         'min_amount' => 0,
         'max_amount' => 1000,
     ]);
+    $entry->users()->attach($this->approver);
 
     $response = $this->actingAs($this->viewer, 'sanctum')
         ->getJson('/api/v1/approvals/toca-entries')
@@ -51,33 +89,44 @@ it('lists authority rows with the user name for a viewer', function () {
 
     $row = $response->json('data.0');
 
-    expect($row)->toHaveKeys(['id', 'userId', 'userName', 'subjectType', 'minAmount', 'maxAmount']);
-    expect($row['userName'])->toBe($this->approver->name);
+    expect($row)->toHaveKeys(['id', 'name', 'subjectType', 'stepKey', 'minAmount', 'maxAmount', 'users']);
+    expect($row['name'])->toBe('Senior approver')
+        ->and($row['users'])->toBe([
+            ['id' => $this->approver->getKey(), 'name' => $this->approver->name],
+        ]);
 });
 
-it('forbids staff from writing authority rows', function () {
+it('forbids staff from writing authority entries', function () {
     $this->actingAs($this->viewer, 'sanctum')
         ->postJson('/api/v1/approvals/toca-entries', tocaPayload())
         ->assertStatus(403);
 });
 
-it('creates an authority row', function () {
+it('creates an authority entry', function () {
     $response = $this->actingAs($this->admin, 'sanctum')
         ->postJson('/api/v1/approvals/toca-entries', tocaPayload())
         ->assertStatus(201);
 
     $row = $response->json('data');
 
-    expect($row['userId'])->toBe($this->approver->getKey());
-    expect($row['userName'])->toBe($this->approver->name);
-    expect($row['maxAmount'])->toBe('1000.00');
+    expect($row['name'])->toBe('Senior approver')
+        ->and($row['users'])->toBe([])
+        ->and($row['maxAmount'])->toBe('1000.00');
 
     $stored = TocaEntry::query()->find($row['id']);
     expect((int) $stored->created_by)->toBe((int) $this->admin->getKey());
     expect((int) $stored->updated_by)->toBe((int) $this->admin->getKey());
 });
 
-it('rejects an unknown subject type, an unknown user and an inverted band', function () {
+it('requires a name', function () {
+    $response = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/approvals/toca-entries', tocaPayload(['name' => null]))
+        ->assertStatus(422);
+
+    expect($response->json('errors'))->toHaveKey('name');
+});
+
+it('rejects an unknown subject type, a duplicate name and an inverted band', function () {
     $unknownType = $this->actingAs($this->admin, 'sanctum')
         ->postJson('/api/v1/approvals/toca-entries', tocaPayload(['subject_type' => 'contract']))
         ->assertStatus(422)
@@ -86,11 +135,19 @@ it('rejects an unknown subject type, an unknown user and an inverted band', func
 
     expect($unknownType->json('errors'))->toHaveKey('subject_type');
 
-    $unknownUser = $this->actingAs($this->admin, 'sanctum')
-        ->postJson('/api/v1/approvals/toca-entries', tocaPayload(['user_id' => 999999]))
+    TocaEntry::create([
+        'entity_id' => $this->entity->getKey(),
+        'name' => 'Senior approver',
+        'subject_type' => 'evaluation',
+        'min_amount' => 0,
+        'max_amount' => null,
+    ]);
+
+    $duplicateName = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/approvals/toca-entries', tocaPayload())
         ->assertStatus(422);
 
-    expect($unknownUser->json('errors'))->toHaveKey('user_id');
+    expect($duplicateName->json('errors'))->toHaveKey('name');
 
     $inverted = $this->actingAs($this->admin, 'sanctum')
         ->postJson('/api/v1/approvals/toca-entries', tocaPayload(['min_amount' => 500, 'max_amount' => 100]))
@@ -99,10 +156,10 @@ it('rejects an unknown subject type, an unknown user and an inverted band', func
     expect($inverted->json('errors'))->toHaveKey('max_amount');
 });
 
-it('updates an authority row', function () {
+it('updates an authority entry', function () {
     $entry = TocaEntry::create([
         'entity_id' => $this->entity->getKey(),
-        'user_id' => $this->approver->getKey(),
+        'name' => 'Mid band',
         'subject_type' => 'evaluation',
         'min_amount' => 500,
         'max_amount' => 1000,
@@ -123,14 +180,60 @@ it('updates an authority row', function () {
     expect($inverted->json('errors'))->toHaveKey('max_amount');
 });
 
-it('deletes an authority row', function () {
+it('creates an authority entry scoped to a step', function () {
+    $key = tocaFlowStepKey();
+
+    $response = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/approvals/toca-entries', tocaPayload(['step_key' => $key]))
+        ->assertStatus(201)
+        ->assertJsonPath('data.stepKey', $key);
+
+    expect(TocaEntry::query()->find($response->json('data.id'))->step_key)->toBe($key);
+});
+
+it('rejects a step key that no flow of the subject defines', function () {
+    tocaFlowStepKey();
+
+    $response = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/approvals/toca-entries', tocaPayload(['step_key' => 'typo']))
+        ->assertStatus(422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
+
+    expect($response->json('errors'))->toHaveKey('step_key')
+        ->and(TocaEntry::query()->count())->toBe(0);
+});
+
+it('scopes and clears the step key on update', function () {
+    tocaFlowStepKey();
+
     $entry = TocaEntry::create([
         'entity_id' => $this->entity->getKey(),
-        'user_id' => $this->approver->getKey(),
+        'name' => 'Step band',
+        'subject_type' => 'evaluation',
+        'min_amount' => 0,
+        'max_amount' => 1000,
+    ]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->putJson(tocaEntryUrl($entry), ['step_key' => 'checked'])
+        ->assertOk()
+        ->assertJsonPath('data.stepKey', 'checked');
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->putJson(tocaEntryUrl($entry), ['step_key' => null])
+        ->assertOk()
+        ->assertJsonPath('data.stepKey', null);
+});
+
+it('deletes an authority entry', function () {
+    $entry = TocaEntry::create([
+        'entity_id' => $this->entity->getKey(),
+        'name' => 'Doomed band',
         'subject_type' => 'evaluation',
         'min_amount' => 0,
         'max_amount' => null,
     ]);
+    $entry->users()->attach($this->approver);
 
     $this->actingAs($this->admin, 'sanctum')
         ->deleteJson(tocaEntryUrl($entry))

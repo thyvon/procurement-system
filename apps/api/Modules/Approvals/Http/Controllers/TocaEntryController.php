@@ -22,7 +22,7 @@ class TocaEntryController extends Controller
     {
         $this->authorize('viewAny', TocaEntry::class);
 
-        return ApiResponse::success(TocaEntryResource::collection($this->repo->allWithUser()));
+        return ApiResponse::success(TocaEntryResource::collection($this->repo->allWithUsers()));
     }
 
     public function store(StoreTocaEntryRequest $request): JsonResponse
@@ -38,14 +38,14 @@ class TocaEntryController extends Controller
             'updated_by' => $user->getKey(),
         ]);
 
-        return ApiResponse::success(new TocaEntryResource($entry->load('user')), 201);
+        return ApiResponse::success(new TocaEntryResource($entry->load('users:id,name')), 201);
     }
 
     public function show(TocaEntry $entry): JsonResponse
     {
         $this->authorize('view', $entry);
 
-        return ApiResponse::success(new TocaEntryResource($entry->load('user')));
+        return ApiResponse::success(new TocaEntryResource($entry->load('users:id,name')));
     }
 
     public function update(UpdateTocaEntryRequest $request, TocaEntry $entry): JsonResponse
@@ -60,7 +60,7 @@ class TocaEntryController extends Controller
             'updated_by' => $user->getKey(),
         ]);
 
-        return ApiResponse::success(new TocaEntryResource($entry->load('user')));
+        return ApiResponse::success(new TocaEntryResource($entry->load('users:id,name')));
     }
 
     public function destroy(TocaEntry $entry): JsonResponse

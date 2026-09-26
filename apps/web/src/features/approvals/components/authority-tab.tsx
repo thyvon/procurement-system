@@ -10,9 +10,11 @@ import {
   approvalsTocaEntriesDestroy,
   approvalsTocaEntriesIndex,
 } from "@/lib/api/toca-entry/toca-entry"
+import { approvalsFlowsIndex } from "@/lib/api/approval-flow/approval-flow"
 import { unwrap, withAuth } from "@/lib/api-client"
 import { useMe } from "@/hooks/use-me"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { DataTable } from "@/components/ui/data-table"
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton"
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header"
@@ -34,6 +36,8 @@ import {
 } from "@/components/ui/dialog"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
 import { AuthorityDialog, type TocaEntryRow } from "./authority-dialog"
+import type { ApprovalFlowRow } from "./flow-dialog"
+import { decideStepLabels } from "../approval-types"
 
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -52,35 +56,75 @@ function useAuthorityColumns({
   onEditRequest: (entry: TocaEntryRow) => void
   onDeleteRequest: (entry: TocaEntryRow) => void
 }): ColumnDef<DataTableFeatures, TocaEntryRow>[] {
-  const tc = useTranslations("approvals.settings.authority")
+  const tc = useTranslations("approvals.settings.columns")
   const tt = useTranslations("approvals.settings.table")
   const ts = useTranslations("approvals.subjects")
+  const flowsQuery = useQuery({
+    queryKey: ["approvalFlows"],
+    queryFn: async () =>
+      unwrap<ApprovalFlowRow[]>(await approvalsFlowsIndex(withAuth())),
+  })
+  const stepLabels = decideStepLabels(flowsQuery.data)
   return [
-    columnHelper.accessor("userName", {
+    columnHelper.accessor("name", {
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc("userCol")} />
+        <DataTableColumnHeader column={column} title={tc("name")} />
       ),
+    }),
+    columnHelper.display({
+      id: "users",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={tc("users")} />
+      ),
+      cell: ({ row }) => {
+        const users = row.original.users
+        if (users.length === 0) {
+          return <span className="text-muted-foreground">—</span>
+        }
+        return (
+          <div className="flex flex-wrap gap-1">
+            {users.map((user) => (
+              <Badge key={user.id} variant="secondary">
+                {user.name}
+              </Badge>
+            ))}
+          </div>
+        )
+      },
     }),
     columnHelper.accessor("subjectType", {
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc("subjectCol")} />
+        <DataTableColumnHeader column={column} title={tc("subject")} />
       ),
       cell: ({ row }) => {
         const subject = row.getValue("subjectType")
         return subject === "evaluation" ? ts("evaluation") : subject
       },
     }),
+    columnHelper.accessor("stepKey", {
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={tc("step")} />
+      ),
+      cell: ({ row }) => {
+        const key = row.getValue("stepKey") as string | null
+        if (!key) {
+          return <span className="text-muted-foreground">{tt("anyStep")}</span>
+        }
+        const label = stepLabels.get(key)
+        return label ?? <span className="font-mono text-xs">{key}</span>
+      },
+    }),
     columnHelper.display({
       id: "band",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc("bandCol")} />
+        <DataTableColumnHeader column={column} title={tc("band")} />
       ),
       cell: ({ row }) => {
         const entry = row.original
         const from = money.format(Number(entry.minAmount))
         const to = entry.maxAmount
           ? money.format(Number(entry.maxAmount))
-          : tc("noUpperLimit")
+          : tt("noUpperLimit")
         return (
           <span className="tabular-nums">
             {from} – {to}
@@ -161,7 +205,7 @@ export function AuthorityTab() {
   })
 
   if (query.isPending) {
-    return <DataTableSkeleton columns={4} actions={1} />
+    return <DataTableSkeleton columns={6} actions={1} />
   }
 
   return (
@@ -169,7 +213,7 @@ export function AuthorityTab() {
       <DataTable
         columns={columns}
         data={query.data ?? []}
-        searchColumn="userName"
+        searchColumn="name"
         searchPlaceholder={tt("searchPlaceholder")}
         toolbar={
           canManage ? (
@@ -206,7 +250,7 @@ export function AuthorityTab() {
             <DialogTitle>{t("deleteTitle")}</DialogTitle>
             <DialogDescription>
               {tt.rich("deleteDescription", {
-                name: deleteTarget?.userName ?? "",
+                name: deleteTarget?.name ?? "",
                 strong: (chunks) => <strong>{chunks}</strong>,
               })}
             </DialogDescription>

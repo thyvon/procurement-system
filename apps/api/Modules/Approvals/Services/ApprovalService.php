@@ -47,9 +47,6 @@ class ApprovalService
         [$setting, $flow] = $this->resolveFlow($subjectType, $amount);
 
         $steps = $flow->steps()->get();
-        $candidates = $this->subjects->candidates($subjectType, $amount)
-            ->map(fn (User $user): array => ['id' => $user->getKey(), 'name' => $user->name])
-            ->values();
 
         return [
             'subjectType' => $subjectType,
@@ -57,14 +54,19 @@ class ApprovalService
             'documentCode' => $subject !== null ? $this->subjects->code($subjectType, $subject) : null,
             'amount' => number_format($amount, 2, '.', ''),
             'flow' => $this->flowPayload($flow),
-            'steps' => $steps->map(function (ApprovalStep $step) use ($candidates): array {
+            'steps' => $steps->map(function (ApprovalStep $step) use ($subjectType, $amount): array {
                 return [
                     'position' => $step->position,
                     'key' => $step->key,
                     'label' => $step->label,
                     'actionMode' => $step->action_mode,
                     'allowedActions' => $step->isDecide() ? ($step->allowed_actions ?? []) : [],
-                    'candidates' => $step->isDecide() ? $candidates->all() : null,
+                    'candidates' => $step->isDecide()
+                        ? $this->subjects->candidates($subjectType, $amount, $step->key)
+                            ->map(fn (User $user): array => ['id' => $user->getKey(), 'name' => $user->name])
+                            ->values()
+                            ->all()
+                        : null,
                 ];
             })->values()->all(),
         ];
@@ -104,8 +106,8 @@ class ApprovalService
                 if ($step->isDecide()) {
                     if ($assignedTo <= 0) {
                         $errors["assignees.{$step->position}"] = "A responsible user is required for the {$step->label} step.";
-                    } elseif (! $this->subjects->canAct($subjectType, $assignedTo, $amount)) {
-                        $errors["assignees.{$step->position}"] = "The selected user's commitment authority does not cover this amount.";
+                    } elseif (! $this->subjects->canAct($subjectType, $assignedTo, $amount, $step->key)) {
+                        $errors["assignees.{$step->position}"] = "The selected user's commitment authority does not allow the {$step->label} step.";
                     }
                 }
 
@@ -182,12 +184,12 @@ class ApprovalService
                 abort(403, 'You are not the responsible user for the current step.');
             }
 
-            if (! $this->subjects->canAct($request->subject_type, $user->getKey(), (float) $request->amount_snapshot)) {
-                abort(403, 'Your commitment authority no longer covers this amount.');
-            }
-
             $current = collect($request->snapshot['steps'])
                 ->firstWhere('position', $request->current_position);
+
+            if (! $this->subjects->canAct($request->subject_type, $user->getKey(), (float) $request->amount_snapshot, $current['key'] ?? null)) {
+                abort(403, 'Your commitment authority no longer allows this step.');
+            }
 
             $allowed = $current['allowedActions'] ?? [];
 

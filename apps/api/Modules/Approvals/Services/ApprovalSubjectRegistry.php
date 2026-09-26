@@ -93,17 +93,22 @@ class ApprovalSubjectRegistry
     }
 
     /**
-     * Users whose TOCA rows cover the given amount for this subject type.
+     * Users whose authority entries cover the given amount for this subject
+     * type.
+     *
+     * When `$stepKey` is given, entries scoped to another step are excluded —
+     * entries without a step scope still qualify for every step.
      *
      * @return Collection<int, User>
      */
-    public function candidates(string $subjectType, float $amount): Collection
+    public function candidates(string $subjectType, float $amount, ?string $stepKey = null): Collection
     {
         $userIds = TocaEntry::query()
+            ->with('users:id')
             ->where('subject_type', $subjectType)
             ->get()
-            ->filter(fn (TocaEntry $entry): bool => $entry->coversAmount($amount))
-            ->pluck('user_id')
+            ->filter(fn (TocaEntry $entry): bool => $entry->coversAmount($amount, $stepKey))
+            ->flatMap(fn (TocaEntry $entry) => $entry->users->pluck('id'))
             ->unique();
 
         return User::query()
@@ -113,12 +118,12 @@ class ApprovalSubjectRegistry
             ->get();
     }
 
-    public function canAct(string $subjectType, int $userId, float $amount): bool
+    public function canAct(string $subjectType, int $userId, float $amount, ?string $stepKey = null): bool
     {
         return TocaEntry::query()
-            ->where('user_id', $userId)
+            ->whereHas('users', fn ($query) => $query->whereKey($userId))
             ->where('subject_type', $subjectType)
             ->get()
-            ->contains(fn (TocaEntry $entry): bool => $entry->coversAmount($amount));
+            ->contains(fn (TocaEntry $entry): bool => $entry->coversAmount($amount, $stepKey));
     }
 }

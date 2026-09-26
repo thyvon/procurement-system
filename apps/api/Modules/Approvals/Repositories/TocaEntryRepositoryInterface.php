@@ -10,5 +10,5 @@ interface TocaEntryRepositoryInterface extends RepositoryInterface
     /**
      * @return array<int, TocaEntry>
      */
-    public function allWithUser(): array;
+    public function allWithUsers(): array;
 }

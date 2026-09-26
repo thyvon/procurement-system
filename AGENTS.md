@@ -56,3 +56,4 @@ All business logic, validation, authorization, defaults/code generation, and sta
 - `products-tab.tsx`: status filter UI is wired to state but never sent to the API (`productsItemsIndex({})`); the same client-side-only status filter exists in all 6 product tabs (`DataTable` never applies it as a column filter).
 - `ProductRefController` returns raw models (snake_case); `ProductImportController` builds its own 422 without `errors`.
 - Products feature UI strings partially hardcoded English; two `cn` import sources; no Prettier despite docs mentioning it.
+- Spec quirk: Scramble types `TocaEntryResource.users` as `string[]` (actual `{id, name}[]`); features declare the row shape locally instead of importing the generated resource type.

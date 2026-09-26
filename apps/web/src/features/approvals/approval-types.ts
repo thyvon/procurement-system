@@ -79,6 +79,34 @@ export type ApprovalRequestView = {
 
 export const EVALUATION_SUBJECT = "evaluation";
 
+type FlowWithSteps = {
+  setting?: { subjectType: string };
+  steps?: { key: string; label: string; actionMode: string }[];
+};
+
+/**
+ * Decide-step key → label across flows (first label wins per key),
+ * optionally limited to one subject type. Record steps are excluded —
+ * users cannot be authority-scoped to a step they only get stamped into.
+ */
+export function decideStepLabels(
+  flows: readonly FlowWithSteps[] | undefined,
+  subjectType?: string
+): Map<string, string> {
+  const labels = new Map<string, string>();
+  for (const flow of flows ?? []) {
+    if (subjectType !== undefined && flow.setting?.subjectType !== subjectType) {
+      continue;
+    }
+    for (const step of flow.steps ?? []) {
+      if (step.actionMode === "decide" && !labels.has(step.key)) {
+        labels.set(step.key, step.label);
+      }
+    }
+  }
+  return labels;
+}
+
 function toNumber(value: unknown): number {
   return Number(value ?? 0);
 }

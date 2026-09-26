@@ -13,6 +13,7 @@ import {
   usersUsersUpdate,
 } from "@/lib/api/user/user"
 import { rolesRolesIndex } from "@/lib/api/role/role"
+import { approvalsTocaEntriesIndex } from "@/lib/api/toca-entry/toca-entry"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton"
@@ -53,6 +54,12 @@ type UserRow = {
   isActive: boolean
   roles?: string[]
   createdAt: string | null
+}
+
+type AuthorityEntryRow = {
+  id: string
+  name: string
+  users: { id: number; name: string }[]
 }
 
 const columnHelper = createColumnHelper<DataTableFeatures, UserRow>()
@@ -183,6 +190,7 @@ const EMPTY_FORM = {
   email: "",
   password: "",
   roles: [] as string[],
+  tocaEntryIds: null as string[] | null,
   isActive: true,
 }
 
@@ -193,6 +201,7 @@ export function UsersTab() {
   const meQuery = useMe()
   const permissions = (meQuery.data?.permissions ?? []) as string[]
   const canManageUsers = permissions.includes("users.manage")
+  const canManageApprovals = permissions.includes("approvals.manage")
   const meId = meQuery.data?.id ?? null
   const [statusFilter, setStatusFilter] = useState("all")
   const [editing, setEditing] = useState<UserRow | null>(null)
@@ -213,6 +222,19 @@ export function UsersTab() {
     enabled: formOpen && canManageUsers,
   })
 
+  const tocaQuery = useQuery({
+    queryKey: ["tocaEntries"],
+    queryFn: async () =>
+      unwrap<AuthorityEntryRow[]>(await approvalsTocaEntriesIndex(withAuth())),
+    enabled: formOpen && canManageApprovals,
+  })
+
+  // Current membership of the edited user, derived from the loaded entries
+  // until the user touches a checkbox (then the snapshot in the form wins).
+  const derivedTocaIds = (tocaQuery.data ?? [])
+    .filter((entry) => entry.users.some((user) => user.id === editing?.id))
+    .map((entry) => entry.id)
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (editing) {
@@ -222,6 +244,7 @@ export function UsersTab() {
           password?: string
           is_active: boolean
           roles?: string[]
+          toca_entry_ids?: string[]
         } = {
           name: form.name,
           email: form.email,
@@ -230,26 +253,38 @@ export function UsersTab() {
         if (canManageUsers) {
           payload.roles = form.roles
         }
+        if (canManageApprovals) {
+          payload.toca_entry_ids = form.tocaEntryIds ?? derivedTocaIds
+        }
         if (form.password.trim()) {
           payload.password = form.password
         }
         return unwrap(await usersUsersUpdate(editing.id, payload, withAuth()))
       }
-      return unwrap(
-        await usersUsersStore(
-          {
-            name: form.name,
-            email: form.email,
-            password: form.password,
-            is_active: form.isActive,
-            roles: form.roles,
-          },
-          withAuth()
-        )
-      )
+      const storePayload: {
+        name: string
+        email: string
+        password: string
+        is_active: boolean
+        roles: string[]
+        toca_entry_ids?: string[]
+      } = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        is_active: form.isActive,
+        roles: form.roles,
+      }
+      if (canManageApprovals) {
+        storePayload.toca_entry_ids = form.tocaEntryIds ?? []
+      }
+      return unwrap(await usersUsersStore(storePayload, withAuth()))
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users"] })
+      if (canManageApprovals) {
+        qc.invalidateQueries({ queryKey: ["tocaEntries"] })
+      }
       setFormOpen(false)
       toast.success(editing ? t("updated") : t("created"))
       setEditing(null)
@@ -275,6 +310,7 @@ export function UsersTab() {
         email: user.email,
         password: "",
         roles: user.roles ?? [],
+        tocaEntryIds: null,
         isActive: user.isActive,
       })
       setFormOpen(true)
@@ -397,6 +433,40 @@ export function UsersTab() {
                 </div>
               </div>
             )}
+            {canManageApprovals && (
+              <div className="flex items-start gap-3">
+                <span className="w-28 shrink-0 pt-1.5 text-left after:ml-1 after:content-[':']">{t("authoritySets")}</span>
+                <div className="flex flex-1 flex-col gap-2">
+                  {(tocaQuery.data ?? []).map((entry) => {
+                    const assigned = form.tocaEntryIds ?? derivedTocaIds
+                    return (
+                      <label
+                        key={entry.id}
+                        className="flex items-center gap-2 text-sm leading-none"
+                      >
+                        <Checkbox
+                          checked={assigned.includes(entry.id)}
+                          onCheckedChange={(checked) =>
+                            setForm((f) => ({
+                              ...f,
+                              tocaEntryIds: checked
+                                ? [...assigned, entry.id]
+                                : assigned.filter((id) => id !== entry.id),
+                            }))
+                          }
+                        />
+                        {entry.name}
+                      </label>
+                    )
+                  })}
+                  {tocaQuery.isPending && formOpen && (
+                    <span className="text-xs text-muted-foreground">
+                      {t("loadingAuthoritySets")}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-3">
               <Label htmlFor="user-active" className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">{t("active")}</Label>
               <Switch
@@ -416,7 +486,11 @@ export function UsersTab() {
             </Button>
             <Button
               onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending || !canSave}
+              disabled={
+                saveMutation.isPending ||
+                !canSave ||
+                (canManageApprovals && tocaQuery.isPending)
+              }
             >
               {saveMutation.isPending ? t("saving") : t("save")}
             </Button>

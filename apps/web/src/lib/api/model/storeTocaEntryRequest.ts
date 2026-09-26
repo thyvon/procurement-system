@@ -7,9 +7,15 @@
 import type { StoreTocaEntryRequestSubjectType } from './storeTocaEntryRequestSubjectType';
 
 export interface StoreTocaEntryRequest {
-  user_id: number;
+  /** @maxLength 255 */
+  name: string;
   /** @maxLength 64 */
   subject_type: StoreTocaEntryRequestSubjectType;
+  /**
+     * @maxLength 32
+     * @nullable
+     */
+  step_key?: string | null;
   /** @minimum 0 */
   min_amount: number;
   /**
