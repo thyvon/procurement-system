@@ -4,6 +4,7 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
+import type { ApprovalsPreview200DataAssignees } from './approvalsPreview200DataAssignees';
 import type { ApprovalsPreview200DataFlow } from './approvalsPreview200DataFlow';
 
 export type ApprovalsPreview200Data = {
@@ -14,5 +15,7 @@ export type ApprovalsPreview200Data = {
   documentCode: string | null;
   amount: string;
   flow: ApprovalsPreview200DataFlow;
+  /** @nullable */
+  assignees: ApprovalsPreview200DataAssignees;
   steps: string[];
 };

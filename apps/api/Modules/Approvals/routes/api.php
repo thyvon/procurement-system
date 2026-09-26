@@ -8,6 +8,7 @@ use Modules\Approvals\Http\Controllers\TocaEntryController;
 
 Route::prefix('v1/approvals')->name('approvals.')->middleware(['auth:sanctum'])->group(function () {
     Route::get('preview', [ApprovalRequestController::class, 'preview'])->name('preview');
+    Route::put('drafts', [ApprovalRequestController::class, 'draft'])->name('drafts.store');
     Route::get('inbox', [ApprovalRequestController::class, 'inbox'])->name('inbox');
     Route::get('inbox/count', [ApprovalRequestController::class, 'inboxCount'])->name('inbox.count');
     Route::get('outbox', [ApprovalRequestController::class, 'outbox'])->name('outbox');

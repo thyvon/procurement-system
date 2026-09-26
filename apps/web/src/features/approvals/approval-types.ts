@@ -26,6 +26,8 @@ export type ApprovalPreview = {
   documentCode: string | null;
   amount: string;
   flow: ApprovalFlowView;
+  /** Step position => user id, restored from the saved approval draft. */
+  assignees?: Record<string, number> | null;
   steps: ApprovalPreviewStep[];
 };
 

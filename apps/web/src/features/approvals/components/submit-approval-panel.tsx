@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -53,6 +53,8 @@ type Props = {
   disabled?: boolean;
   /** Create mode: saves the document and returns its id so submit can chain. */
   prepareDocument?: () => Promise<string | null>;
+  /** Reports the current pick per decide step so Save can persist a draft. */
+  onAssigneesChange?: (assignees: Record<number, string>) => void;
   actions?: ReactNode;
 };
 
@@ -63,6 +65,7 @@ export function SubmitApprovalPanel({
   dirty = false,
   disabled = false,
   prepareDocument,
+  onAssigneesChange,
   actions,
 }: Props) {
   const t = useTranslations("approvals.submit");
@@ -91,11 +94,42 @@ export function SubmitApprovalPanel({
 
   const preview = previewQuery.data;
 
-  // Explicit pick wins; a sole candidate is pre-filled as a UX-only default.
+  // Restore the selection stored by "Save" — same render-phase hydration
+  // pattern the evaluation form uses, and only while nothing is picked yet,
+  // so a preview refetch never clobbers the user's current choices.
+  const [seededPreview, setSeededPreview] = useState<ApprovalPreview | null>(
+    null
+  );
+  if (preview && seededPreview !== preview) {
+    const saved = preview.assignees;
+    setSeededPreview(preview);
+    if (saved && Object.keys(assignees).length === 0) {
+      setAssignees(
+        Object.fromEntries(
+          Object.entries(saved).map(([position, id]) => [
+            Number(position),
+            String(id),
+          ])
+        )
+      );
+    }
+  }
+
+  useEffect(() => {
+    onAssigneesChange?.(assignees);
+  }, [assignees, onAssigneesChange]);
+
+  // Explicit pick wins when it is still a valid candidate; a stale draft pick
+  // (authority/band changed) falls through so the user re-selects.
   const resolveAssignee = (step: ApprovalPreviewStep): string | null => {
-    const explicit = assignees[step.position];
-    if (explicit !== undefined) return explicit;
     const candidates = step.candidates ?? [];
+    const explicit = assignees[step.position];
+    if (
+      explicit !== undefined &&
+      candidates.some((candidate) => String(candidate.id) === explicit)
+    ) {
+      return explicit;
+    }
     return candidates.length === 1 ? String(candidates[0].id) : null;
   };
 

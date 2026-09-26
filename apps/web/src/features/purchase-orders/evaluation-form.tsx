@@ -31,8 +31,9 @@ import {
   purchaseOrdersEvaluationsStore,
   purchaseOrdersEvaluationsUpdate,
 } from "@/lib/api/evaluation/evaluation";
-import { approvalsRequestsIndex } from "@/lib/api/approval-request/approval-request";
+import { approvalsDraftsStore, approvalsRequestsIndex } from "@/lib/api/approval-request/approval-request";
 import type { EvaluationResource } from "@/lib/api/model/evaluationResource";
+import type { StoreApprovalDraftRequest } from "@/lib/api/model/storeApprovalDraftRequest";
 import type { StoreEvaluationRequest } from "@/lib/api/model/storeEvaluationRequest";
 import type { UpdateEvaluationRequest } from "@/lib/api/model/updateEvaluationRequest";
 import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
@@ -222,6 +223,9 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
   const [baseline, setBaseline] = useState<string | null>(null);
   const pendingSaveRef = useRef("");
   const skipNavRef = useRef(false);
+  const [approvalAssignees, setApprovalAssignees] = useState<
+    Record<number, string>
+  >({});
   const [action, setAction] = useState<ApprovalAction | null>(null);
 
   const showQuery = useQuery({
@@ -261,6 +265,27 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
     );
   }
 
+  // Persists the approver selection with "Save" — no approval request is
+  // created until the panel's Submit.
+  const draftMutation = useMutation({
+    mutationFn: async (subjectId: string) =>
+      unwrap(
+        await approvalsDraftsStore(
+          {
+            subject_type: EVALUATION_SUBJECT,
+            subject_id: subjectId,
+            assignees: Object.fromEntries(
+              Object.entries(approvalAssignees).map(([position, userId]) => [
+                position,
+                Number(userId),
+              ])
+            ),
+          } as unknown as StoreApprovalDraftRequest,
+          withAuth()
+        )
+      ),
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (): Promise<EvaluationResource> => {
       const payload = toPayload(value, basis, currency, exchangeRate);
@@ -282,6 +307,9 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
       if (skipNavRef.current) {
         // Save chained into a submit — the panel owns the toast + navigation.
         return;
+      }
+      if (result?.id && Object.keys(approvalAssignees).length > 0) {
+        draftMutation.mutate(result.id);
       }
       toast.success(isEdit ? tf("updated") : tf("created"));
       if (!isEdit) {
@@ -591,6 +619,7 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
           dirty={isDirty}
           disabled={saveMutation.isPending}
           prepareDocument={prepareDocument}
+          onAssigneesChange={setApprovalAssignees}
           actions={
             <Button onClick={handleSave} disabled={saveMutation.isPending}>
               <Save />

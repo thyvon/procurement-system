@@ -23,6 +23,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ApprovalsDraftsStore200,
   ApprovalsInbox200,
   ApprovalsInboxCount200,
   ApprovalsInboxCountParams,
@@ -40,6 +41,7 @@ import type {
   AuthorizationExceptionResponse,
   ModelNotFoundExceptionResponse,
   StoreApprovalActionRequest,
+  StoreApprovalDraftRequest,
   StoreApprovalRequest,
   ValidationExceptionResponse
 } from '../model';
@@ -243,6 +245,142 @@ export function useApprovalsPreviewSuspense<TData = Awaited<ReturnType<typeof ap
   const queryOptions = getApprovalsPreviewSuspenseQueryOptions(params,options)
 
   const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type approvalsDraftsStoreResponse200 = {
+  data: ApprovalsDraftsStore200
+  status: 200
+}
+
+export type approvalsDraftsStoreResponse401 = {
+  data: AuthenticationExceptionResponse
+  status: 401
+}
+
+export type approvalsDraftsStoreResponse403 = {
+  data: AuthorizationExceptionResponse
+  status: 403
+}
+
+export type approvalsDraftsStoreResponse422 = {
+  data: ValidationExceptionResponse
+  status: 422
+}
+
+export type approvalsDraftsStoreResponseSuccess = (approvalsDraftsStoreResponse200) & {
+  headers: Headers;
+};
+export type approvalsDraftsStoreResponseError = (approvalsDraftsStoreResponse401 | approvalsDraftsStoreResponse403 | approvalsDraftsStoreResponse422) & {
+  headers: Headers;
+};
+
+export type approvalsDraftsStoreResponse = (approvalsDraftsStoreResponseSuccess | approvalsDraftsStoreResponseError)
+
+export const getApprovalsDraftsStoreUrl = () => {
+
+
+
+
+  return `http://localhost:8000/api/v1/approvals/drafts`
+}
+
+export const approvalsDraftsStore = async (storeApprovalDraftRequest: StoreApprovalDraftRequest, options?: RequestInit): Promise<approvalsDraftsStoreResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+const res = await fetch(getApprovalsDraftsStoreUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(storeApprovalDraftRequest)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: approvalsDraftsStoreResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as approvalsDraftsStoreResponse
+}
+
+
+
+
+
+export const getApprovalsDraftsStoreQueryKey = (storeApprovalDraftRequest?: StoreApprovalDraftRequest,) => {
+    return [
+    'PUT', `http://localhost:8000/api/v1/approvals/drafts`, storeApprovalDraftRequest
+    ] as const;
+    }
+
+
+export const getApprovalsDraftsStoreQueryOptions = <TData = Awaited<ReturnType<typeof approvalsDraftsStore>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ValidationExceptionResponse>(storeApprovalDraftRequest: StoreApprovalDraftRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof approvalsDraftsStore>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getApprovalsDraftsStoreQueryKey(storeApprovalDraftRequest);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof approvalsDraftsStore>>> = ({ signal }) => approvalsDraftsStore(storeApprovalDraftRequest, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof approvalsDraftsStore>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ApprovalsDraftsStoreQueryResult = NonNullable<Awaited<ReturnType<typeof approvalsDraftsStore>>>
+export type ApprovalsDraftsStoreQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ValidationExceptionResponse
+
+
+export function useApprovalsDraftsStore<TData = Awaited<ReturnType<typeof approvalsDraftsStore>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ValidationExceptionResponse>(
+ storeApprovalDraftRequest: StoreApprovalDraftRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof approvalsDraftsStore>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof approvalsDraftsStore>>,
+          TError,
+          Awaited<ReturnType<typeof approvalsDraftsStore>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useApprovalsDraftsStore<TData = Awaited<ReturnType<typeof approvalsDraftsStore>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ValidationExceptionResponse>(
+ storeApprovalDraftRequest: StoreApprovalDraftRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof approvalsDraftsStore>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof approvalsDraftsStore>>,
+          TError,
+          Awaited<ReturnType<typeof approvalsDraftsStore>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useApprovalsDraftsStore<TData = Awaited<ReturnType<typeof approvalsDraftsStore>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ValidationExceptionResponse>(
+ storeApprovalDraftRequest: StoreApprovalDraftRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof approvalsDraftsStore>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useApprovalsDraftsStore<TData = Awaited<ReturnType<typeof approvalsDraftsStore>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ValidationExceptionResponse>(
+ storeApprovalDraftRequest: StoreApprovalDraftRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof approvalsDraftsStore>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getApprovalsDraftsStoreQueryOptions(storeApprovalDraftRequest,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }

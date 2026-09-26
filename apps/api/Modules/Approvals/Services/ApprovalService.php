@@ -3,10 +3,12 @@
 namespace Modules\Approvals\Services;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Approvals\Events\ApprovalStatusChanged;
 use Modules\Approvals\Models\ApprovalAction;
+use Modules\Approvals\Models\ApprovalDraft;
 use Modules\Approvals\Models\ApprovalFlow;
 use Modules\Approvals\Models\ApprovalRequest;
 use Modules\Approvals\Models\ApprovalSetting;
@@ -54,6 +56,7 @@ class ApprovalService
             'documentCode' => $subject !== null ? $this->subjects->code($subjectType, $subject) : null,
             'amount' => number_format($amount, 2, '.', ''),
             'flow' => $this->flowPayload($flow),
+            'assignees' => $subject !== null ? $this->draftAssignees($subjectType, $subject) : null,
             'steps' => $steps->map(function (ApprovalStep $step) use ($subjectType, $amount): array {
                 return [
                     'position' => $step->position,
@@ -75,6 +78,41 @@ class ApprovalService
     /**
      * @param  array<int|string, int|string>  $assignees  step position => user id
      */
+    /**
+     * Persists the approver selection a user made in the submit panel without
+     * creating the approval request — "Save" stores it, "Submit" consumes it.
+     *
+     * @param  array<int|string, int|string>  $assignees  step position => user id
+     * @return array<string, mixed>
+     */
+    public function saveDraft(string $subjectType, string $subjectId, array $assignees, User $user): array
+    {
+        $subject = $this->subjects->find($subjectType, $subjectId);
+
+        $normalized = [];
+        foreach ($assignees as $position => $userId) {
+            $normalized[(string) $position] = (int) $userId;
+        }
+
+        $draft = ApprovalDraft::query()->firstOrNew([
+            'entity_id' => $user->entity_id,
+            'subject_type' => $subjectType,
+            'subject_id' => (string) $subject->getKey(),
+        ]);
+        $draft->assignees = $normalized;
+        $draft->updated_by = $user->getKey();
+        if (! $draft->exists) {
+            $draft->created_by = $user->getKey();
+        }
+        $draft->save();
+
+        return [
+            'subjectType' => $subjectType,
+            'subjectId' => (string) $subject->getKey(),
+            'assignees' => $normalized,
+        ];
+    }
+
     public function submit(string $subjectType, string $subjectId, array $assignees, User $user): ApprovalRequest
     {
         return DB::transaction(function () use ($subjectType, $subjectId, $assignees, $user): ApprovalRequest {
@@ -154,6 +192,12 @@ class ApprovalService
                 'created_by' => $user->getKey(),
                 'updated_by' => $user->getKey(),
             ]);
+
+            // The saved draft has served its purpose once the request exists.
+            ApprovalDraft::query()
+                ->where('subject_type', $subjectType)
+                ->where('subject_id', (string) $subject->getKey())
+                ->delete();
 
             $this->parkOnNextStep($request, $snapshotSteps, -1, $user);
             $request->refresh();
@@ -236,6 +280,31 @@ class ApprovalService
      *
      * @param  array<int, array<string, mixed>>  $steps
      */
+    /**
+     * The approver selection saved by "Save" for this document, if any —
+     * string-keyed step position => user id.
+     *
+     * @return array<string, int>|null
+     */
+    private function draftAssignees(string $subjectType, Model $subject): ?array
+    {
+        $draft = ApprovalDraft::query()
+            ->where('subject_type', $subjectType)
+            ->where('subject_id', (string) $subject->getKey())
+            ->first();
+
+        if ($draft === null) {
+            return null;
+        }
+
+        $assignees = [];
+        foreach ((array) $draft->assignees as $position => $userId) {
+            $assignees[(string) $position] = (int) $userId;
+        }
+
+        return $assignees;
+    }
+
     private function parkOnNextStep(ApprovalRequest $request, array $steps, int $afterPosition, User $actor): void
     {
         foreach ($steps as $index => $step) {

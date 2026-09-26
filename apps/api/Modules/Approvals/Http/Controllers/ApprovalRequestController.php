@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Modules\Approvals\Http\Requests\IndexApprovalRequestsRequest;
 use Modules\Approvals\Http\Requests\PreviewApprovalRequest;
 use Modules\Approvals\Http\Requests\StoreApprovalActionRequest;
+use Modules\Approvals\Http\Requests\StoreApprovalDraftRequest;
 use Modules\Approvals\Http\Requests\StoreApprovalRequest;
 use Modules\Approvals\Http\Resources\ApprovalRequestResource;
 use Modules\Approvals\Models\ApprovalRequest;
@@ -32,6 +33,22 @@ class ApprovalRequestController extends Controller
                 $request->string('subject_type')->toString(),
                 $request->filled('subject_id') ? $request->string('subject_id')->toString() : null,
                 $request->filled('amount') ? (float) $request->input('amount') : null,
+            ),
+        );
+    }
+
+    public function draft(StoreApprovalDraftRequest $request): JsonResponse
+    {
+        $subjectType = $request->string('subject_type')->toString();
+
+        $this->authorize('submit', [ApprovalRequest::class, $subjectType]);
+
+        return ApiResponse::success(
+            $this->service->saveDraft(
+                $subjectType,
+                $request->string('subject_id')->toString(),
+                $request->validated('assignees'),
+                $request->user(),
             ),
         );
     }

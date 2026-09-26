@@ -3,6 +3,7 @@
 use App\Models\User;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Modules\Approvals\Models\ApprovalDraft;
 use Modules\Approvals\Models\ApprovalFlow;
 use Modules\Approvals\Models\ApprovalRequest;
 use Modules\Approvals\Models\ApprovalSetting;
@@ -262,6 +263,99 @@ it('never previews another entity evaluation', function () {
         ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$foreign->getKey()}")
         ->assertStatus(422)
         ->assertJsonPath('errors.subjectId.0', 'Record not found.');
+});
+
+it('stores an assignee draft and restores it in preview', function () {
+    $evaluation = approvalsEvaluation();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->putJson('/api/v1/approvals/drafts', [
+            'subject_type' => 'evaluation',
+            'subject_id' => (string) $evaluation->getKey(),
+            'assignees' => approvalsAssignees(),
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.subjectType', 'evaluation')
+        ->assertJsonPath('data.assignees.2', $this->firstApprover->getKey())
+        ->assertJsonPath('data.assignees.3', $this->secondApprover->getKey());
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$evaluation->getKey()}")
+        ->assertOk()
+        ->assertJsonPath('data.assignees.2', $this->firstApprover->getKey())
+        ->assertJsonPath('data.assignees.3', $this->secondApprover->getKey());
+
+    // The draft exists but no approval request was created yet.
+    expect(ApprovalRequest::query()->count())->toBe(0)
+        ->and(ApprovalDraft::query()->count())->toBe(1);
+});
+
+it('replaces the stored draft for the same document', function () {
+    $evaluation = approvalsEvaluation();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->putJson('/api/v1/approvals/drafts', [
+            'subject_type' => 'evaluation',
+            'subject_id' => (string) $evaluation->getKey(),
+            'assignees' => approvalsAssignees(),
+        ])
+        ->assertOk();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->putJson('/api/v1/approvals/drafts', [
+            'subject_type' => 'evaluation',
+            'subject_id' => (string) $evaluation->getKey(),
+            'assignees' => [2 => (int) $this->secondApprover->getKey()],
+        ])
+        ->assertOk();
+
+    expect(ApprovalDraft::query()->count())->toBe(1);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$evaluation->getKey()}")
+        ->assertOk()
+        ->assertJsonPath('data.assignees.2', $this->secondApprover->getKey())
+        ->assertJsonPath('data.assignees.3', null);
+});
+
+it('rejects a draft for an unknown subject', function () {
+    $this->actingAs($this->admin, 'sanctum')
+        ->putJson('/api/v1/approvals/drafts', [
+            'subject_type' => 'evaluation',
+            'subject_id' => '01JXXXXXXXXXXXXXXXXXXXXXXX',
+            'assignees' => approvalsAssignees(),
+        ])
+        ->assertStatus(422)
+        ->assertJsonPath('errors.subjectId.0', 'Record not found.');
+});
+
+it('forbids staff from saving an approval draft', function () {
+    $evaluation = approvalsEvaluation();
+
+    $this->actingAs($this->outsider, 'sanctum')
+        ->putJson('/api/v1/approvals/drafts', [
+            'subject_type' => 'evaluation',
+            'subject_id' => (string) $evaluation->getKey(),
+            'assignees' => approvalsAssignees(),
+        ])
+        ->assertStatus(403);
+});
+
+it('deletes the saved draft when the request is submitted', function () {
+    $evaluation = approvalsEvaluation();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->putJson('/api/v1/approvals/drafts', [
+            'subject_type' => 'evaluation',
+            'subject_id' => (string) $evaluation->getKey(),
+            'assignees' => approvalsAssignees(),
+        ])
+        ->assertOk();
+
+    approvalsSubmit($evaluation, approvalsAssignees())->assertCreated();
+
+    expect(ApprovalDraft::query()->count())->toBe(0)
+        ->and(ApprovalRequest::query()->count())->toBe(1);
 });
 
 it('converts a KHR evaluation to USD for band matching and the snapshot', function () {
