@@ -436,6 +436,8 @@
     },
     "print": {
       "code": "Code",
+      "version": "Version 4.1",
+      "formCode": "MJQE0055",
       "name": "Name",
       "position": "Position",
       "date": "Date",
@@ -773,5 +775,17 @@
         "evaluations": "Evaluations"
       }
     }
+  },
+  "settings": {
+    "title": "System settings",
+    "description": "Manage organization-wide settings.",
+    "logoTitle": "Logo",
+    "logoDescription": "Shown in the sidebar and on printed documents.",
+    "logoEmpty": "No logo yet",
+    "logoHint": "Shown in the sidebar header and on the printed price evaluation sheet.",
+    "uploadLabel": "Logo file",
+    "uploadHint": "JPG, PNG or WebP. Max 2 MB.",
+    "upload": "Upload",
+    "uploading": "Uploading…"
   }
 }

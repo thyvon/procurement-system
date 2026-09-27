@@ -11,6 +11,8 @@ export interface EntityResource {
   name: string;
   timezone: string;
   locale: string;
+  /** @nullable */
+  logo: string | null;
   isActive: boolean;
   /** @nullable */
   createdAt: string | null;

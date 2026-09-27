@@ -9,13 +9,18 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Modules\Organization\Http\Requests\StoreEntityRequest;
 use Modules\Organization\Http\Requests\UpdateEntityRequest;
+use Modules\Organization\Http\Requests\UpdateLogoRequest;
 use Modules\Organization\Http\Resources\EntityResource;
 use Modules\Organization\Models\Entity;
 use Modules\Organization\Repositories\EntityRepositoryInterface;
+use Modules\Organization\Services\LogoService;
 
 class EntityController extends Controller
 {
-    public function __construct(private readonly EntityRepositoryInterface $entities) {}
+    public function __construct(
+        private readonly EntityRepositoryInterface $entities,
+        private readonly LogoService $logos,
+    ) {}
 
     public function index(): AnonymousResourceCollection
     {
@@ -69,5 +74,17 @@ class EntityController extends Controller
         $this->entities->delete($entity);
 
         return ApiResponse::success(['deleted' => true]);
+    }
+
+    public function updateLogo(UpdateLogoRequest $request, Entity $entity): EntityResource
+    {
+        $this->authorize('update', $entity);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        $this->logos->replaceWithUpload($entity, $request->file('image'), $user);
+
+        return new EntityResource($entity->refresh());
     }
 }

@@ -30,9 +30,11 @@ import type {
   EntitiesEntitiesShow200,
   EntitiesEntitiesStore201,
   EntitiesEntitiesUpdate200,
+  EntitiesLogo200,
   ModelNotFoundExceptionResponse,
   StoreEntityRequest,
   UpdateEntityRequest,
+  UpdateLogoRequest,
   ValidationExceptionResponse
 } from '../model';
 
@@ -817,6 +819,150 @@ export function useEntitiesEntitiesDestroy<TData = Awaited<ReturnType<typeof ent
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getEntitiesEntitiesDestroyQueryOptions(entity,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type entitiesLogoResponse200 = {
+  data: EntitiesLogo200
+  status: 200
+}
+
+export type entitiesLogoResponse401 = {
+  data: AuthenticationExceptionResponse
+  status: 401
+}
+
+export type entitiesLogoResponse403 = {
+  data: AuthorizationExceptionResponse
+  status: 403
+}
+
+export type entitiesLogoResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
+export type entitiesLogoResponse422 = {
+  data: ValidationExceptionResponse
+  status: 422
+}
+
+export type entitiesLogoResponseSuccess = (entitiesLogoResponse200) & {
+  headers: Headers;
+};
+export type entitiesLogoResponseError = (entitiesLogoResponse401 | entitiesLogoResponse403 | entitiesLogoResponse404 | entitiesLogoResponse422) & {
+  headers: Headers;
+};
+
+export type entitiesLogoResponse = (entitiesLogoResponseSuccess | entitiesLogoResponseError)
+
+export const getEntitiesLogoUrl = (entity: string,) => {
+
+
+
+
+  return `http://localhost:8000/api/v1/entities/${entity}/logo`
+}
+
+export const entitiesLogo = async (entity: string,
+    updateLogoRequest: UpdateLogoRequest, options?: RequestInit): Promise<entitiesLogoResponse> => {
+    const formData = new FormData();
+formData.append(`image`, updateLogoRequest.image);
+
+  const res = await fetch(getEntitiesLogoUrl(entity),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: entitiesLogoResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as entitiesLogoResponse
+}
+
+
+
+
+
+export const getEntitiesLogoQueryKey = (entity: string,
+    updateLogoRequest?: UpdateLogoRequest,) => {
+    return [
+    'POST', `http://localhost:8000/api/v1/entities/${entity}/logo`, updateLogoRequest
+    ] as const;
+    }
+
+
+export const getEntitiesLogoQueryOptions = <TData = Awaited<ReturnType<typeof entitiesLogo>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(entity: string,
+    updateLogoRequest: UpdateLogoRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof entitiesLogo>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getEntitiesLogoQueryKey(entity,updateLogoRequest);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof entitiesLogo>>> = ({ signal }) => entitiesLogo(entity,updateLogoRequest, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: entity !== null && entity !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof entitiesLogo>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type EntitiesLogoQueryResult = NonNullable<Awaited<ReturnType<typeof entitiesLogo>>>
+export type EntitiesLogoQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse
+
+
+export function useEntitiesLogo<TData = Awaited<ReturnType<typeof entitiesLogo>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ entity: string,
+    updateLogoRequest: UpdateLogoRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof entitiesLogo>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof entitiesLogo>>,
+          TError,
+          Awaited<ReturnType<typeof entitiesLogo>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useEntitiesLogo<TData = Awaited<ReturnType<typeof entitiesLogo>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ entity: string,
+    updateLogoRequest: UpdateLogoRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof entitiesLogo>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof entitiesLogo>>,
+          TError,
+          Awaited<ReturnType<typeof entitiesLogo>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useEntitiesLogo<TData = Awaited<ReturnType<typeof entitiesLogo>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ entity: string,
+    updateLogoRequest: UpdateLogoRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof entitiesLogo>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useEntitiesLogo<TData = Awaited<ReturnType<typeof entitiesLogo>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ entity: string,
+    updateLogoRequest: UpdateLogoRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof entitiesLogo>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getEntitiesLogoQueryOptions(entity,updateLogoRequest,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

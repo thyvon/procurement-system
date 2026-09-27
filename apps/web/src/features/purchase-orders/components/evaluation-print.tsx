@@ -7,6 +7,7 @@ import type {
   ApprovalRequestView,
   ApprovalStepSnapshot,
 } from "@/features/approvals/approval-types";
+import { useEntity } from "@/hooks/use-entity";
 import { EvaluationMatrixReadOnly } from "./evaluation-matrix-readonly";
 import type { EvaluationMatrixValue } from "./evaluation-matrix";
 
@@ -97,6 +98,8 @@ export function EvaluationPrint({
 }: EvaluationPrintProps) {
   const tf = useTranslations("purchaseOrders.form");
   const tp = useTranslations("purchaseOrders.print");
+  const entity = useEntity();
+  const logo = entity.data?.logo ?? null;
 
   const columns = signatureColumns(approvalRequest, [
     { key: "prepared", title: tp("prepared"), name: "", position: "", date: "" },
@@ -108,12 +111,23 @@ export function EvaluationPrint({
     <div className="print-area hidden print:block">
       <div className="flex min-h-[186mm] flex-col gap-3 text-xs text-foreground">
         <div className="flex items-start justify-between gap-4">
-          <div aria-hidden className="h-14 w-28 shrink-0" />
+          {logo ? (
+            <img
+              src={logo}
+              alt=""
+              className="h-14 w-28 shrink-0 object-contain"
+            />
+          ) : (
+            <div aria-hidden className="h-14 w-28 shrink-0" />
+          )}
           <h1 className="text-center text-lg font-bold tracking-tight">
             {tf("title")}
           </h1>
-          <div className="shrink-0 text-right leading-relaxed">
-            {tp("code")}: {evaluation.code}
+          <div className="shrink-0 text-left leading-relaxed">
+            <div>
+              {tp("code")}: {tp("formCode")}
+            </div>
+            <div>{tp("version")}</div>
           </div>
         </div>
 

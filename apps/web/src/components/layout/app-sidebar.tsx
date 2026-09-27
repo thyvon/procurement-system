@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { approvalsInboxCount } from "@/lib/api/approval-request/approval-request";
 import { unwrap, withAuth } from "@/lib/api-client";
+import { useEntity } from "@/hooks/use-entity";
 import {
   Sidebar,
   SidebarContent,
@@ -101,7 +102,7 @@ const navItems: NavItem[] = [
   { key: "requisitions", href: "#", icon: ClipboardList, enabled: false },
   { key: "approvals", href: "/approvals", icon: FileCheck2, enabled: true },
   { key: "reports", href: "#", icon: BarChart3, enabled: false },
-  { key: "settings", href: "#", icon: Settings, enabled: false },
+  { key: "settings", href: "/settings", icon: Settings, enabled: true },
 ];
 
 function useApprovalsInboxCount(): number | null {
@@ -259,6 +260,8 @@ function NavLinkItem({
 
 export function AppSidebar() {
   const approvalsCount = useApprovalsInboxCount();
+  const entity = useEntity();
+  const logo = entity.data?.logo ?? null;
 
   return (
     <Sidebar collapsible="icon">
@@ -269,12 +272,20 @@ export function AppSidebar() {
               size="lg"
               tooltip="Procurement"
               render={<Link href="/" />}
-              className="group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2!"
+              className="h-14! gap-3! group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2!"
             >
-              <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground group-data-[collapsible=icon]:rounded-none group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:text-sidebar-foreground">
-                <ClipboardList className="size-4" />
-              </div>
-              <span className="group-data-[collapsible=icon]:hidden">Procurement</span>
+              {logo ? (
+                <div className="flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-background group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:rounded-none">
+                  <img src={logo} alt="" className="size-full object-contain" />
+                </div>
+              ) : (
+                <div className="flex h-10 w-16 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:rounded-none group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:text-sidebar-foreground">
+                  <ClipboardList className="size-6! group-data-[collapsible=icon]:size-4!" />
+                </div>
+              )}
+              <span className="text-lg! font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
+                Procurement
+              </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

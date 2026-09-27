@@ -10,4 +10,5 @@ Route::prefix('v1/entities')
         Route::apiResource('/', EntityController::class)
             ->parameters(['' => 'entity'])
             ->names('entities');
+        Route::post('/{entity}/logo', [EntityController::class, 'updateLogo'])->name('logo');
     });
