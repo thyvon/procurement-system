@@ -39,6 +39,7 @@ import { Label } from "@/components/ui/label"
 import { RequiredMark } from "@/components/required-mark"
 import { unwrap, withAuth } from "@/lib/api-client"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
+import { useMe } from "@/hooks/use-me"
 
 type RoleRow = {
   id: number
@@ -65,9 +66,11 @@ const PERMISSION_MODULES = [
 const columnHelper = createColumnHelper<DataTableFeatures, RoleRow>()
 
 function useRoleColumns({
+  canManage,
   onEditRequest,
   onDeleteRequest,
 }: {
+  canManage: boolean
   onEditRequest: (role: RoleRow) => void
   onDeleteRequest: (role: RoleRow) => void
 }): ColumnDef<DataTableFeatures, RoleRow>[] {
@@ -95,6 +98,7 @@ function useRoleColumns({
       enableSorting: false,
       enableHiding: false,
       cell: ({ row }) => {
+        if (!canManage) return null
         const role = row.original
         return (
           <DropdownMenu>
@@ -135,6 +139,9 @@ export function RolesTab() {
   const tp = useTranslations("users.permissions")
   const tt = useTranslations("users.table")
   const qc = useQueryClient()
+  const meQuery = useMe()
+  const permissions = (meQuery.data?.permissions ?? []) as string[]
+  const canManage = permissions.includes("roles.manage")
   const [editing, setEditing] = useState<RoleRow | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<RoleRow | null>(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -202,6 +209,7 @@ export function RolesTab() {
     }))
 
   const columns = useRoleColumns({
+    canManage,
     onEditRequest: (role) => {
       setEditing(role)
       setForm({ name: role.name, permissions: role.permissions ?? [] })
@@ -222,16 +230,18 @@ export function RolesTab() {
         searchColumn="name"
         searchPlaceholder={tt("searchPlaceholder")}
         toolbar={
-          <Button
-            onClick={() => {
-              setEditing(null)
-              setForm({ ...EMPTY_FORM })
-              setFormOpen(true)
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            {t("newTitle")}
-          </Button>
+          canManage ? (
+            <Button
+              onClick={() => {
+                setEditing(null)
+                setForm({ ...EMPTY_FORM })
+                setFormOpen(true)
+              }}
+            >
+              <Plus className="mr-2 size-4" />
+              {t("newTitle")}
+            </Button>
+          ) : null
         }
       />
 

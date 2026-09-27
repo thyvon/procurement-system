@@ -34,6 +34,7 @@ import {
 import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client"
 import { ImportDialog } from "./import-dialog"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
+import { useMe } from "@/hooks/use-me"
 
 type Product = {
   id: string
@@ -63,8 +64,10 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 }
 
 function useProductColumns({
+  canManage,
   onDeleteRequest,
 }: {
+  canManage: boolean
   onDeleteRequest: (product: Product) => void
 }): ColumnDef<DataTableFeatures, Product>[] {
   const router = useRouter()
@@ -132,20 +135,26 @@ function useProductColumns({
                   <Eye className="mr-2 size-4" />
                   {tt("view")}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => router.push(`/products/${product.id}/edit`)}
-                >
-                  <Pencil className="mr-2 size-4" />
-                  {tt("edit")}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => onDeleteRequest(product)}
-                >
-                  <Trash2 className="mr-2 size-4" />
-                  {tt("delete")}
-                </DropdownMenuItem>
+                {canManage ? (
+                  <DropdownMenuItem
+                    onClick={() => router.push(`/products/${product.id}/edit`)}
+                  >
+                    <Pencil className="mr-2 size-4" />
+                    {tt("edit")}
+                  </DropdownMenuItem>
+                ) : null}
+                {canManage ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => onDeleteRequest(product)}
+                    >
+                      <Trash2 className="mr-2 size-4" />
+                      {tt("delete")}
+                    </DropdownMenuItem>
+                  </>
+                ) : null}
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -160,6 +169,9 @@ export function ProductsTab() {
   const t = useTranslations("products.products")
   const tt = useTranslations("products.table")
   const qc = useQueryClient()
+  const meQuery = useMe()
+  const permissions = (meQuery.data?.permissions ?? []) as string[]
+  const canManage = permissions.includes("products.manage")
   const [importOpen, setImportOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -180,6 +192,7 @@ export function ProductsTab() {
   })
 
   const columns = useProductColumns({
+    canManage,
     onDeleteRequest: setDeleteTarget,
   })
 
@@ -241,16 +254,18 @@ export function ProductsTab() {
         filterPlaceholder={tt("allStatuses")}
         searchPlaceholder={tt("searchPlaceholder")}
         toolbar={
-          <>
-            <Button variant="outline" onClick={() => setImportOpen(true)}>
-              <Upload className="mr-2 size-4" />
-              {t("import")}
-            </Button>
-            <Button onClick={() => router.push("/products/create")}>
-              <Plus className="mr-2 size-4" />
-              {t("newTitle")}
-            </Button>
-          </>
+          canManage ? (
+            <>
+              <Button variant="outline" onClick={() => setImportOpen(true)}>
+                <Upload className="mr-2 size-4" />
+                {t("import")}
+              </Button>
+              <Button onClick={() => router.push("/products/create")}>
+                <Plus className="mr-2 size-4" />
+                {t("newTitle")}
+              </Button>
+            </>
+          ) : null
         }
       />
 

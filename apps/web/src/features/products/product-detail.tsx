@@ -10,6 +10,7 @@ import type { ProductsItemsShow200Data } from "@/lib/api/model/productsItemsShow
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useMe } from "@/hooks/use-me";
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -25,6 +26,9 @@ export function ProductDetail({ productId }: { productId: string }) {
   const t = useTranslations("products.detail");
   const tt = useTranslations("products.table");
   const tc = useTranslations("products.columns");
+  const meQuery = useMe();
+  const permissions = (meQuery.data?.permissions ?? []) as string[];
+  const canManage = permissions.includes("products.manage");
 
   const query = useQuery({
     queryKey: ["products", productId],
@@ -79,10 +83,12 @@ export function ProductDetail({ productId }: { productId: string }) {
             </p>
           </div>
         </div>
-        <Button onClick={() => router.push(`/products/${product.id}/edit`)}>
-          <Pencil />
-          {t("edit")}
-        </Button>
+        {canManage ? (
+          <Button onClick={() => router.push(`/products/${product.id}/edit`)}>
+            <Pencil />
+            {t("edit")}
+          </Button>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

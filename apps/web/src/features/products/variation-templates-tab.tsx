@@ -34,14 +34,17 @@ import {
 } from "@/components/ui/dialog"
 import { unwrap, withAuth } from "@/lib/api-client"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
+import { useMe } from "@/hooks/use-me"
 import { VariationTemplateDialog } from "./components/variation-template-dialog"
 
 const columnHelper = createColumnHelper<DataTableFeatures, VariationTemplateResource>()
 
 function useTemplateColumns({
+  canManage,
   onEditRequest,
   onDeleteRequest,
 }: {
+  canManage: boolean
   onEditRequest: (template: VariationTemplateResource) => void
   onDeleteRequest: (template: VariationTemplateResource) => void
 }): ColumnDef<DataTableFeatures, VariationTemplateResource>[] {
@@ -88,6 +91,7 @@ function useTemplateColumns({
       enableSorting: false,
       enableHiding: false,
       cell: ({ row }) => {
+        if (!canManage) return null
         const template = row.original
         return (
           <DropdownMenu>
@@ -122,6 +126,9 @@ export function VariationTemplatesTab() {
   const t = useTranslations("products.variationTemplates")
   const tt = useTranslations("products.table")
   const qc = useQueryClient()
+  const meQuery = useMe()
+  const permissions = (meQuery.data?.permissions ?? []) as string[]
+  const canManage = permissions.includes("variations.manage")
   const [statusFilter, setStatusFilter] = useState("all")
   const [editing, setEditing] = useState<VariationTemplateResource | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<VariationTemplateResource | null>(null)
@@ -146,6 +153,7 @@ export function VariationTemplatesTab() {
   })
 
   const columns = useTemplateColumns({
+    canManage,
     onEditRequest: (template) => {
       setEditing(template)
       setFormOpen(true)
@@ -173,15 +181,17 @@ export function VariationTemplatesTab() {
         ]}
         filterPlaceholder={tt("allStatuses")}
         toolbar={
-          <Button
-            onClick={() => {
-              setEditing(null)
-              setFormOpen(true)
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            {t("newTitle")}
-          </Button>
+          canManage ? (
+            <Button
+              onClick={() => {
+                setEditing(null)
+                setFormOpen(true)
+              }}
+            >
+              <Plus className="mr-2 size-4" />
+              {t("newTitle")}
+            </Button>
+          ) : null
         }
       />
 

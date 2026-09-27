@@ -32,14 +32,17 @@ import {
 } from "@/components/ui/dialog"
 import { unwrap, withAuth } from "@/lib/api-client"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
+import { useMe } from "@/hooks/use-me"
 import { CategoryDialog, type Category } from "./components/category-dialog"
 
 const columnHelper = createColumnHelper<DataTableFeatures, Category>()
 
 function useCategoryColumns({
+  canManage,
   onEditRequest,
   onDeleteRequest,
 }: {
+  canManage: boolean
   onEditRequest: (category: Category) => void
   onDeleteRequest: (category: Category) => void
 }): ColumnDef<DataTableFeatures, Category>[] {
@@ -96,6 +99,7 @@ function useCategoryColumns({
       enableSorting: false,
       enableHiding: false,
       cell: ({ row }) => {
+        if (!canManage) return null
         const category = row.original
         return (
           <DropdownMenu>
@@ -130,6 +134,9 @@ export function CategoriesTab() {
   const t = useTranslations("products.categories")
   const tt = useTranslations("products.table")
   const qc = useQueryClient()
+  const meQuery = useMe()
+  const permissions = (meQuery.data?.permissions ?? []) as string[]
+  const canManage = permissions.includes("categories.manage")
   const [statusFilter, setStatusFilter] = useState("all")
   const [editing, setEditing] = useState<Category | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null)
@@ -151,6 +158,7 @@ export function CategoriesTab() {
   })
 
   const columns = useCategoryColumns({
+    canManage,
     onEditRequest: (cat) => {
       setEditing(cat)
       setFormOpen(true)
@@ -178,15 +186,17 @@ export function CategoriesTab() {
         ]}
         filterPlaceholder={tt("allStatuses")}
         toolbar={
-          <Button
-            onClick={() => {
-              setEditing(null)
-              setFormOpen(true)
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            {t("newTitle")}
-          </Button>
+          canManage ? (
+            <Button
+              onClick={() => {
+                setEditing(null)
+                setFormOpen(true)
+              }}
+            >
+              <Plus className="mr-2 size-4" />
+              {t("newTitle")}
+            </Button>
+          ) : null
         }
       />
 

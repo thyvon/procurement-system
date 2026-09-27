@@ -319,7 +319,17 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
 
   const evaluationStatus = showQuery.data?.status ?? null;
   const inReview = evaluationStatus === "in_review";
+  const permissions = (me.data?.permissions ?? []) as string[];
+  const canManage = permissions.includes("evaluations.manage");
+  const isOwner =
+    !isEdit ||
+    (showQuery.data != null &&
+      me.data != null &&
+      showQuery.data.createdById === me.data.id);
+  // Mirrors the API: evaluations.manage AND owner, only while editable.
   const locked =
+    !canManage ||
+    !isOwner ||
     evaluationStatus === "in_review" ||
     evaluationStatus === "approved" ||
     evaluationStatus === "rejected";

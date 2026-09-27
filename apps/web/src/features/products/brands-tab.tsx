@@ -32,14 +32,17 @@ import {
 } from "@/components/ui/dialog"
 import { unwrap, withAuth } from "@/lib/api-client"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
+import { useMe } from "@/hooks/use-me"
 import { BrandDialog, type Brand } from "./components/brand-dialog"
 
 const columnHelper = createColumnHelper<DataTableFeatures, Brand>()
 
 function useBrandColumns({
+  canManage,
   onEditRequest,
   onDeleteRequest,
 }: {
+  canManage: boolean
   onEditRequest: (brand: Brand) => void
   onDeleteRequest: (brand: Brand) => void
 }): ColumnDef<DataTableFeatures, Brand>[] {
@@ -80,6 +83,7 @@ function useBrandColumns({
       enableSorting: false,
       enableHiding: false,
       cell: ({ row }) => {
+        if (!canManage) return null
         const brand = row.original
         return (
           <DropdownMenu>
@@ -114,6 +118,9 @@ export function BrandsTab() {
   const t = useTranslations("products.brands")
   const tt = useTranslations("products.table")
   const qc = useQueryClient()
+  const meQuery = useMe()
+  const permissions = (meQuery.data?.permissions ?? []) as string[]
+  const canManage = permissions.includes("brands.manage")
   const [statusFilter, setStatusFilter] = useState("all")
   const [editing, setEditing] = useState<Brand | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Brand | null>(null)
@@ -135,6 +142,7 @@ export function BrandsTab() {
   })
 
   const columns = useBrandColumns({
+    canManage,
     onEditRequest: (brand) => {
       setEditing(brand)
       setFormOpen(true)
@@ -162,15 +170,17 @@ export function BrandsTab() {
         ]}
         filterPlaceholder={tt("allStatuses")}
         toolbar={
-          <Button
-            onClick={() => {
-              setEditing(null)
-              setFormOpen(true)
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            {t("newTitle")}
-          </Button>
+          canManage ? (
+            <Button
+              onClick={() => {
+                setEditing(null)
+                setFormOpen(true)
+              }}
+            >
+              <Plus className="mr-2 size-4" />
+              {t("newTitle")}
+            </Button>
+          ) : null
         }
       />
 

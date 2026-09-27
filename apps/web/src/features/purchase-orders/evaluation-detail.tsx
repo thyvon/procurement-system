@@ -26,6 +26,7 @@ import { EvaluationMatrixReadOnly } from "./components/evaluation-matrix-readonl
 import { EvaluationPrint } from "./components/evaluation-print";
 import { EvaluationStatusBadge } from "./components/evaluation-status-badge";
 import { fromEvaluation } from "./components/evaluation-matrix";
+import { useMe } from "@/hooks/use-me";
 
 interface EvaluationDetailProps {
   evaluationId: string;
@@ -41,6 +42,7 @@ export function EvaluationDetail({
   const tt = useTranslations("purchaseOrders.table");
   const td = useTranslations("purchaseOrders.detail");
   const ta = useTranslations("approvals.form");
+  const meQuery = useMe();
 
   const showQuery = useQuery({
     queryKey: ["evaluations", "detail", evaluationId],
@@ -86,7 +88,17 @@ export function EvaluationDetail({
   const rounds = roundsQuery.data ?? [];
   const approvalRequest = rounds[0] ?? null;
   const status = evaluation.status;
-  const frozen = status === "approved" || status === "rejected";
+  const permissions = (meQuery.data?.permissions ?? []) as string[];
+  const canManage = permissions.includes("evaluations.manage");
+  const isOwner =
+    evaluation.createdById != null &&
+    meQuery.data != null &&
+    evaluation.createdById === meQuery.data.id;
+  // Mirrors the API: evaluations.manage AND owner, only while editable.
+  const canEdit =
+    canManage &&
+    isOwner &&
+    (status === "draft" || status === "returned");
 
   const handlePrint = () => {
     const originalTitle = document.title;
@@ -215,7 +227,7 @@ export function EvaluationDetail({
               <Printer />
               {td("print")}
             </Button>
-            {frozen ? null : (
+            {canEdit ? (
               <Button
                 onClick={() =>
                   router.push(
@@ -226,7 +238,7 @@ export function EvaluationDetail({
                 <Pencil />
                 {tt("edit")}
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
 

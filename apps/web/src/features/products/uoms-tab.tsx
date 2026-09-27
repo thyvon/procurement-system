@@ -32,14 +32,17 @@ import {
 } from "@/components/ui/dialog"
 import { unwrap, withAuth } from "@/lib/api-client"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
+import { useMe } from "@/hooks/use-me"
 import { UomDialog, type Uom } from "./components/uom-dialog"
 
 const columnHelper = createColumnHelper<DataTableFeatures, Uom>()
 
 function useUomColumns({
+  canManage,
   onEditRequest,
   onDeleteRequest,
 }: {
+  canManage: boolean
   onEditRequest: (uom: Uom) => void
   onDeleteRequest: (uom: Uom) => void
 }): ColumnDef<DataTableFeatures, Uom>[] {
@@ -106,6 +109,7 @@ function useUomColumns({
       enableSorting: false,
       enableHiding: false,
       cell: ({ row }) => {
+        if (!canManage) return null
         const uom = row.original
         return (
           <DropdownMenu>
@@ -140,6 +144,9 @@ export function UomsTab() {
   const t = useTranslations("products.uoms")
   const tt = useTranslations("products.table")
   const qc = useQueryClient()
+  const meQuery = useMe()
+  const permissions = (meQuery.data?.permissions ?? []) as string[]
+  const canManage = permissions.includes("uoms.manage")
   const [statusFilter, setStatusFilter] = useState("all")
   const [editing, setEditing] = useState<Uom | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Uom | null>(null)
@@ -161,6 +168,7 @@ export function UomsTab() {
   })
 
   const columns = useUomColumns({
+    canManage,
     onEditRequest: (uom) => {
       setEditing(uom)
       setFormOpen(true)
@@ -188,15 +196,17 @@ export function UomsTab() {
         ]}
         filterPlaceholder={tt("allStatuses")}
         toolbar={
-          <Button
-            onClick={() => {
-              setEditing(null)
-              setFormOpen(true)
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            {t("newTitle")}
-          </Button>
+          canManage ? (
+            <Button
+              onClick={() => {
+                setEditing(null)
+                setFormOpen(true)
+              }}
+            >
+              <Plus className="mr-2 size-4" />
+              {t("newTitle")}
+            </Button>
+          ) : null
         }
       />
 

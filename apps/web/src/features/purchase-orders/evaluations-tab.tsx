@@ -321,13 +321,15 @@ export function EvaluationsTab() {
         filterPlaceholder={tt("allStatuses")}
         searchPlaceholder={tt("searchPlaceholder")}
         toolbar={
-          <Button
-            type="button"
-            onClick={() => router.push("/purchase-orders/evaluations/new")}
-          >
-            <Plus className="mr-2 size-4" />
-            {t("newTitle")}
-          </Button>
+          canManage ? (
+            <Button
+              type="button"
+              onClick={() => router.push("/purchase-orders/evaluations/new")}
+            >
+              <Plus className="mr-2 size-4" />
+              {t("newTitle")}
+            </Button>
+          ) : null
         }
       />
 
