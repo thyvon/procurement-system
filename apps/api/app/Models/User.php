@@ -17,8 +17,9 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $entity_id
  * @property string|null $avatar_path
  * @property string|null $position
+ * @property string|null $signature_path
  */
-#[Fillable(['name', 'email', 'password', 'avatar_path', 'entity_id', 'is_active', 'position'])]
+#[Fillable(['name', 'email', 'password', 'avatar_path', 'entity_id', 'is_active', 'position', 'signature_path'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {

@@ -3,6 +3,7 @@
 namespace Modules\Users\Services;
 
 use App\Models\User;
+use App\Support\DataUri;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -44,7 +45,7 @@ class AvatarService
      */
     public function applyCompanyPhoto(User $user, string $dataUri): void
     {
-        $bytes = $this->decodeDataUri($dataUri);
+        $bytes = DataUri::decode($dataUri, self::MAX_BYTES);
 
         if ($bytes === null) {
             return;
@@ -63,7 +64,7 @@ class AvatarService
             return;
         }
 
-        $mime = $this->sniffMime($bytes);
+        $mime = DataUri::sniffMime($bytes);
         $ext = $mime !== null ? (self::ALLOWED_MIME_EXT[$mime] ?? null) : null;
 
         if ($ext === null) {
@@ -88,46 +89,6 @@ class AvatarService
             && Storage::disk(self::DISK)->exists($previous)
             && $previous !== $path) {
             Storage::disk(self::DISK)->delete($previous);
-        }
-    }
-
-    private function decodeDataUri(string $dataUri): ?string
-    {
-        $comma = strpos($dataUri, ',');
-
-        if ($comma === false) {
-            return null;
-        }
-
-        $meta = substr($dataUri, 0, $comma);
-
-        if (! str_starts_with($meta, 'data:image/') || ! str_contains($meta, ';base64')) {
-            return null;
-        }
-
-        $bytes = base64_decode(substr($dataUri, $comma + 1), true);
-
-        if ($bytes === false || $bytes === '' || strlen($bytes) > self::MAX_BYTES) {
-            return null;
-        }
-
-        return $bytes;
-    }
-
-    private function sniffMime(string $bytes): ?string
-    {
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-
-        if ($finfo === false) {
-            return null;
-        }
-
-        try {
-            $mime = finfo_buffer($finfo, $bytes);
-
-            return is_string($mime) ? $mime : null;
-        } finally {
-            finfo_close($finfo);
         }
     }
 }

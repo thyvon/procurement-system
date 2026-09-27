@@ -23,6 +23,7 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'position' => $this->position,
             'avatar' => $this->avatarUrl(),
+            'signature' => $this->signatureUrl(),
             'entityId' => $this->entity_id,
             'isActive' => $this->is_active ?? null,
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')->values()),
@@ -49,6 +50,19 @@ class UserResource extends JsonResource
     {
         return $this->avatar_path !== null
             ? Storage::disk('public')->url($this->avatar_path)
+            : null;
+    }
+
+    /**
+     * Scramble cannot infer Storage::url()'s return type, which collapses the
+     * ternary to a null-only union; the tag pins the real contract instead.
+     *
+     * @scramble-return string|null
+     */
+    private function signatureUrl(): ?string
+    {
+        return $this->signature_path !== null
+            ? Storage::disk('public')->url($this->signature_path)
             : null;
     }
 }

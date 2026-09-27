@@ -17,6 +17,8 @@ class EPurchaseClient
      */
     private const LOGIN_PATH = '/api/default_user_access/login';
 
+    private const MY_INFO_PATH = '/api/dashboard/getMyInfo';
+
     private const ITEMS_PATH = '/items-master-list';
 
     private const SUPPLIERS_PATH = '/suppliers-master-list';
@@ -78,6 +80,47 @@ class EPurchaseClient
             position: is_string($position) && trim($position) !== '' ? trim($position) : null,
             cookies: $this->cookiePairs($response),
         );
+    }
+
+    /**
+     * Fetch the signed-in company user's profile (signature image).
+     *
+     * The login payload does not carry the signature; the company dashboard
+     * profile does. Callers decide whether a failure is fatal — login treats
+     * it as best-effort, other flows may not.
+     *
+     * @throws EPurchaseSessionExpiredException when the session is rejected upstream
+     * @throws EPurchaseUnavailableException when the company system is unreachable or malformed
+     */
+    public function getMyInfo(EPurchaseSession $session): ?string
+    {
+        $response = $this->send(
+            $session,
+            fn (PendingRequest $http) => $http->get(self::MY_INFO_PATH),
+        );
+
+        if ($response->status() === 401 || $response->status() === 419) {
+            throw new EPurchaseSessionExpiredException('Company session expired. Please log in again.');
+        }
+
+        if (! $response->successful()) {
+            throw new EPurchaseUnavailableException(
+                'E-Purchase profile request failed with status '.$response->status().'.'
+            );
+        }
+
+        $body = $response->json();
+
+        if (! is_array($body) || ($body['result'] ?? null) !== 'success') {
+            throw new EPurchaseUnavailableException('E-Purchase returned an unexpected response.');
+        }
+
+        // The profile nests everything under data: {user, signature, campus, ...}.
+        // A login-shaped fallback (data = JWT string) must yield null, not a TypeError.
+        $data = $body['data'] ?? null;
+        $signature = is_array($data) ? ($data['signature'] ?? null) : null;
+
+        return is_string($signature) && trim($signature) !== '' ? trim($signature) : null;
     }
 
     /**

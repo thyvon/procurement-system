@@ -13,7 +13,9 @@ use Modules\EPurchase\Services\EPurchaseUnavailableException;
 use Modules\EPurchase\Services\InvalidCompanyCredentialsException;
 use Modules\Organization\Models\Entity;
 use Modules\Users\Services\AvatarService;
+use Modules\Users\Services\SignatureService;
 use Spatie\Permission\Models\Role;
+use Throwable;
 
 class CompanyLoginService
 {
@@ -21,6 +23,7 @@ class CompanyLoginService
         private readonly EPurchaseClient $company,
         private readonly AuthService $auth,
         private readonly AvatarService $avatars,
+        private readonly SignatureService $signatures,
         private readonly EPurchaseSessionService $sessions,
     ) {}
 
@@ -38,23 +41,43 @@ class CompanyLoginService
     {
         $result = $this->company->login($employeeId, $password);
 
+        $session = new EPurchaseSession(
+            jwt: $result->jwt,
+            formToken: $result->formToken,
+            cookieHeader: implode('; ', $result->cookies),
+            expiresAt: time() + max(60, (int) config('epurchase.session_ttl', 1800)),
+        );
+
+        // The signature lives behind a second upstream call. Keep the HTTP
+        // round-trips outside the provisioning transaction and treat failures
+        // as best-effort: a flaky profile endpoint must never block a login.
+        $signature = $this->companySignature($session);
+
         $user = $this->provisionUser($result);
 
         if ($result->userPhoto !== null) {
             $this->avatars->applyCompanyPhoto($user, $result->userPhoto);
         }
 
-        $this->sessions->put($user->getAuthIdentifier(), new EPurchaseSession(
-            jwt: $result->jwt,
-            formToken: $result->formToken,
-            cookieHeader: implode('; ', $result->cookies),
-            expiresAt: time() + max(60, (int) config('epurchase.session_ttl', 1800)),
-        ));
+        if ($signature !== null) {
+            $this->signatures->applyCompanySignature($user, $signature);
+        }
+
+        $this->sessions->put($user->getAuthIdentifier(), $session);
 
         return [
             'user' => $user,
             'tokens' => $this->auth->issuePair($user),
         ];
+    }
+
+    private function companySignature(EPurchaseSession $session): ?string
+    {
+        try {
+            return $this->company->getMyInfo($session);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     private function provisionUser(EPurchaseLoginResult $result): User

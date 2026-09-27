@@ -18,4 +18,6 @@ export type ApprovalRequestResourceCurrentStep = {
   assigneeName: string | null;
   /** @nullable */
   assigneePosition: string | null;
+  /** @nullable */
+  assigneeSignature: string | null;
 } | null;

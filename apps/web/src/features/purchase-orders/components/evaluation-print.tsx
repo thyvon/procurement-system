@@ -23,6 +23,7 @@ type SignatureColumn = {
   name: string;
   position: string;
   date: string;
+  signature: string | null;
 };
 
 function dateOnly(value: string | null | undefined): string {
@@ -71,6 +72,7 @@ function signatureColumns(
       name,
       position: step.assigneePosition ?? "",
       date,
+      signature: step.assigneeSignature ?? null,
     };
   });
 }
@@ -102,9 +104,9 @@ export function EvaluationPrint({
   const logo = entity.data?.logo ?? null;
 
   const columns = signatureColumns(approvalRequest, [
-    { key: "prepared", title: tp("prepared"), name: "", position: "", date: "" },
-    { key: "reviewed", title: tp("reviewed"), name: "", position: "", date: "" },
-    { key: "approved", title: tp("approved"), name: "", position: "", date: "" },
+    { key: "prepared", title: tp("prepared"), name: "", position: "", date: "", signature: null },
+    { key: "reviewed", title: tp("reviewed"), name: "", position: "", date: "", signature: null },
+    { key: "approved", title: tp("approved"), name: "", position: "", date: "", signature: null },
   ]);
 
   return (
@@ -149,6 +151,15 @@ export function EvaluationPrint({
               <div className="mb-1 text-center font-semibold">
                 {column.title}
               </div>
+              {column.signature ? (
+                <div className="flex h-12 items-end justify-center">
+                  <img
+                    src={column.signature}
+                    alt=""
+                    className="max-h-12 w-auto max-w-full object-contain"
+                  />
+                </div>
+              ) : null}
               <SignLine label={tp("name")} value={column.name} />
               <SignLine label={tp("position")} value={column.position} />
               <SignLine label={tp("date")} value={column.date} />

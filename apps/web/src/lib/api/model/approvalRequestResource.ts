@@ -17,7 +17,7 @@ export interface ApprovalRequestResource {
   flow: unknown;
   /** @nullable */
   currentStep: ApprovalRequestResourceCurrentStep;
-  steps: unknown;
+  steps: unknown[];
   /** @nullable */
   submittedBy: string | null;
   /** @nullable */

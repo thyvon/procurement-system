@@ -30,6 +30,33 @@ function epurchaseClientSuccessPayload(array $overrides = []): array
     ], $overrides);
 }
 
+function epurchaseMyInfoPayload(array $overrides = []): array
+{
+    return array_replace_recursive([
+        'result' => 'success',
+        'msg' => '',
+        'data' => [
+            'user' => [
+                'id' => 1963,
+                'card_id' => '3665',
+                'name' => 'Vun Thy',
+                'real_position' => 'Senior Procurement Officer',
+            ],
+            'signature' => 'data:image/jpeg;base64,'.base64_encode('fake-signature-bytes'),
+        ],
+    ], $overrides);
+}
+
+function epurchaseMyInfoSession(): EPurchaseSession
+{
+    return new EPurchaseSession(
+        jwt: 'company-session-jwt',
+        formToken: 'form-token-abc',
+        cookieHeader: 'laravel_session=abc',
+        expiresAt: time() + 600,
+    );
+}
+
 it('maps a successful company login response to a result object', function () {
     Http::fake(['*' => Http::response(epurchaseClientSuccessPayload([
         'user' => ['real_position' => '  Procurement Officer  '],
@@ -215,4 +242,55 @@ it('throws session expired when suppliers returns 401', function () {
 
     expect(fn () => app(EPurchaseClient::class)->suppliers($session, 0, 10))
         ->toThrow(EPurchaseSessionExpiredException::class);
+});
+
+it('fetches the signature from getMyInfo with session headers', function () {
+    Http::fake(['*dashboard/getMyInfo*' => Http::response(epurchaseMyInfoPayload())]);
+
+    $signature = app(EPurchaseClient::class)->getMyInfo(epurchaseMyInfoSession());
+
+    expect($signature)->toBe('data:image/jpeg;base64,'.base64_encode('fake-signature-bytes'));
+
+    Http::assertSent(function (Request $request): bool {
+        return str_contains($request->url(), '/dashboard/getMyInfo')
+            && $request->method() === 'GET'
+            && $request->hasHeader('Authorization', 'Bearer company-session-jwt')
+            && $request->hasHeader('Cookie', 'laravel_session=abc');
+    });
+});
+
+it('maps an absent or empty signature to null', function () {
+    Http::fake(['*dashboard/getMyInfo*' => Http::response(epurchaseMyInfoPayload([
+        'data' => ['signature' => '   '],
+    ]))]);
+
+    expect(app(EPurchaseClient::class)->getMyInfo(epurchaseMyInfoSession()))->toBeNull();
+
+    $payload = epurchaseMyInfoPayload();
+    unset($payload['data']['signature']);
+    Http::fake(['*dashboard/getMyInfo*' => Http::response($payload)]);
+
+    expect(app(EPurchaseClient::class)->getMyInfo(epurchaseMyInfoSession()))->toBeNull();
+});
+
+it('maps a login-shaped getMyInfo payload to null instead of erroring', function () {
+    // A fallback '*' fake (or a misrouted response) hands back the login
+    // body, where data is the JWT string — not an array.
+    Http::fake(['*dashboard/getMyInfo*' => Http::response(epurchaseClientSuccessPayload())]);
+
+    expect(app(EPurchaseClient::class)->getMyInfo(epurchaseMyInfoSession()))->toBeNull();
+});
+
+it('reports the company system as unavailable when getMyInfo rejects the session', function () {
+    Http::fake(['*dashboard/getMyInfo*' => Http::response(['message' => 'Unauthenticated.'], 401)]);
+
+    expect(fn () => app(EPurchaseClient::class)->getMyInfo(epurchaseMyInfoSession()))
+        ->toThrow(EPurchaseSessionExpiredException::class);
+});
+
+it('reports the company system as unavailable on a malformed getMyInfo payload', function () {
+    Http::fake(['*dashboard/getMyInfo*' => Http::response(['result' => 'failed', 'msg' => 'Nope'])]);
+
+    expect(fn () => app(EPurchaseClient::class)->getMyInfo(epurchaseMyInfoSession()))
+        ->toThrow(EPurchaseUnavailableException::class);
 });

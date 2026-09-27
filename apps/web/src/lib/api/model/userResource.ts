@@ -14,6 +14,8 @@ export interface UserResource {
   /** @nullable */
   avatar: string | null;
   /** @nullable */
+  signature: string | null;
+  /** @nullable */
   entityId: string | null;
   isActive: boolean;
   roles?: unknown[];

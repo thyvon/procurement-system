@@ -48,6 +48,41 @@ function companyLoginPhotoDataUri(): string
     return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 }
 
+function companySignatureDataUri(): string
+{
+    // 1×1 gray+alpha PNG — different bytes from the photo, still a valid image.
+    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC';
+}
+
+function companyMyInfoPayload(array $overrides = []): array
+{
+    return array_replace_recursive([
+        'result' => 'success',
+        'msg' => '',
+        'data' => [
+            'user' => [
+                'id' => 1963,
+                'card_id' => '3665',
+                'name' => 'Vun Thy',
+                'real_position' => 'Senior Procurement Officer',
+            ],
+            'signature' => companySignatureDataUri(),
+        ],
+    ], $overrides);
+}
+
+/**
+ * Login makes two upstream calls now: the credential exchange and the
+ * profile fetch. Route each URL to its own fake so sequences stay aligned.
+ */
+function fakeCompanyLoginWith(mixed $login, mixed $myInfo): void
+{
+    Http::fake([
+        '*default_user_access/login*' => $login,
+        '*dashboard/getMyInfo*' => $myInfo,
+    ]);
+}
+
 function postCompanyLogin(array $payload = []): TestResponse
 {
     return test()->postJson('/api/v1/auth/company-login', array_merge([
@@ -57,6 +92,8 @@ function postCompanyLogin(array $payload = []): TestResponse
 }
 
 it('creates a new local user on first company login and returns a token pair', function () {
+    Storage::fake('public');
+
     Http::fake(['*' => Http::response(companyLoginSuccessPayload())]);
 
     $data = postCompanyLogin()
@@ -86,6 +123,8 @@ it('matches an existing local user by email without creating a duplicate', funct
         'name' => 'Old Name',
     ]);
 
+    Storage::fake('public');
+
     Http::fake(['*' => Http::response(companyLoginSuccessPayload())]);
 
     postCompanyLogin()->assertOk();
@@ -112,6 +151,8 @@ it('returns 401 when the local account has been deleted', function () {
         'email' => 'vun.thy@mjqeducation.edu.kh',
         'is_active' => false,
     ])->delete();
+
+    Storage::fake('public');
 
     Http::fake(['*' => Http::response(companyLoginSuccessPayload())]);
 
@@ -150,6 +191,8 @@ it('rate limits company login attempts', function () {
 });
 
 it('never exposes the company password or company session token in the response', function () {
+    Storage::fake('public');
+
     Http::fake(['*' => Http::response(companyLoginSuccessPayload())]);
 
     $content = postCompanyLogin()
@@ -205,6 +248,8 @@ it('skips the company photo silently when userPhoto is absent', function () {
 });
 
 it('stores the company real_position on the user and exposes it through the auth endpoints', function () {
+    Storage::fake('public');
+
     Http::fake(['*' => Http::response(companyLoginSuccessPayload())]);
 
     $data = postCompanyLogin()->assertOk()->json('data');
@@ -222,12 +267,15 @@ it('stores the company real_position on the user and exposes it through the auth
 });
 
 it('refreshes the stored position on later logins and keeps it when the company omits real_position', function () {
-    Http::fake([
-        '*' => Http::sequence()
+    Storage::fake('public');
+
+    fakeCompanyLoginWith(
+        Http::sequence()
             ->push(companyLoginSuccessPayload(['user' => ['real_position' => 'Procurement Officer']]))
             ->push(companyLoginSuccessPayload(['user' => ['real_position' => 'Head of Procurement']]))
             ->push(companyLoginSuccessPayload(['user' => ['real_position' => null]])),
-    ]);
+        Http::response(companyMyInfoPayload()),
+    );
 
     $first = postCompanyLogin()->assertOk()->json('data.user.position');
     $second = postCompanyLogin()->assertOk()->json('data.user.position');
@@ -239,4 +287,114 @@ it('refreshes the stored position on later logins and keeps it when the company 
         ->and($second)->toBe('Head of Procurement')
         ->and($third)->toBe('Head of Procurement')
         ->and($user->position)->toBe('Head of Procurement');
+});
+
+it('stores the company signature as an sso file on login and exposes it through the auth endpoints', function () {
+    Storage::fake('public');
+
+    fakeCompanyLoginWith(
+        Http::response(companyLoginSuccessPayload()),
+        Http::response(companyMyInfoPayload()),
+    );
+
+    $data = postCompanyLogin()->assertOk()->json('data');
+
+    $user = User::query()->where('email', 'vun.thy@mjqeducation.edu.kh')->firstOrFail();
+    $path = $user->signature_path;
+
+    expect($path)->toStartWith('signatures/sso_'.$user->getKey().'_')
+        ->and(Storage::disk('public')->exists($path))->toBeTrue()
+        ->and($data['user']['signature'])->toBe(Storage::disk('public')->url($path));
+
+    $this->withToken($data['access_token'])
+        ->getJson('/api/v1/auth/me')
+        ->assertOk()
+        ->assertJsonPath('data.signature', Storage::disk('public')->url($path));
+});
+
+it('refreshes the signature on later logins, keeps superseded files, and keeps it when getMyInfo omits it', function () {
+    Storage::fake('public');
+
+    $firstSignature = companyLoginPhotoDataUri();
+    $secondSignature = companySignatureDataUri();
+
+    fakeCompanyLoginWith(
+        Http::response(companyLoginSuccessPayload()),
+        Http::sequence()
+            ->push(companyMyInfoPayload(['data' => ['signature' => $firstSignature]]))
+            ->push(companyMyInfoPayload(['data' => ['signature' => $secondSignature]]))
+            ->push(companyMyInfoPayload(['data' => ['signature' => null]])),
+    );
+
+    postCompanyLogin()->assertOk();
+    $user = User::query()->where('email', 'vun.thy@mjqeducation.edu.kh')->firstOrFail();
+    $firstPath = $user->signature_path;
+
+    postCompanyLogin()->assertOk();
+    $user->refresh();
+    $secondPath = $user->signature_path;
+
+    postCompanyLogin()->assertOk();
+
+    expect($firstPath)->toStartWith('signatures/sso_')
+        ->and($secondPath)->not->toBe($firstPath)
+        // Superseded files stay on disk: approval snapshots reference them.
+        ->and(Storage::disk('public')->exists($firstPath))->toBeTrue()
+        ->and(Storage::disk('public')->exists($secondPath))->toBeTrue()
+        ->and($user->refresh()->signature_path)->toBe($secondPath);
+});
+
+it('reuses the same signature file when the signature has not changed', function () {
+    Storage::fake('public');
+
+    fakeCompanyLoginWith(
+        Http::response(companyLoginSuccessPayload()),
+        Http::response(companyMyInfoPayload()),
+    );
+
+    postCompanyLogin()->assertOk();
+    $path = User::query()->where('email', 'vun.thy@mjqeducation.edu.kh')->firstOrFail()->signature_path;
+
+    postCompanyLogin()->assertOk();
+
+    expect(User::query()->where('email', 'vun.thy@mjqeducation.edu.kh')->firstOrFail()->signature_path)
+        ->toBe($path)
+        ->and(Storage::disk('public')->allFiles('signatures'))->toBe([$path]);
+});
+
+it('logs in without a signature when getMyInfo fails', function () {
+    Storage::fake('public');
+
+    fakeCompanyLoginWith(
+        Http::response(companyLoginSuccessPayload()),
+        Http::response(['message' => 'Server Error'], 500),
+    );
+
+    $data = postCompanyLogin()->assertOk()->json('data');
+
+    expect(User::query()->where('email', 'vun.thy@mjqeducation.edu.kh')->firstOrFail()->signature_path)
+        ->toBeNull()
+        ->and($data['user']['signature'])->toBeNull();
+});
+
+it('keeps the stored signature when a later getMyInfo fails', function () {
+    Storage::fake('public');
+
+    // Stubs accumulate within a test, so the failure rides a sequence
+    // instead of re-registering the same URL pattern.
+    fakeCompanyLoginWith(
+        Http::response(companyLoginSuccessPayload()),
+        Http::sequence()
+            ->push(companyMyInfoPayload())
+            ->push(['message' => 'Server Error'], 500),
+    );
+
+    postCompanyLogin()->assertOk();
+    $path = User::query()->where('email', 'vun.thy@mjqeducation.edu.kh')->firstOrFail()->signature_path;
+
+    postCompanyLogin()->assertOk();
+
+    expect(User::query()->where('email', 'vun.thy@mjqeducation.edu.kh')->firstOrFail()->signature_path)
+        ->toBe($path)
+        ->and(Storage::disk('public')->exists($path))->toBeTrue();
 });

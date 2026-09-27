@@ -163,6 +163,7 @@ class ApprovalService
                     'assigneeId' => $assignedTo > 0 ? $assignedTo : null,
                     'assigneeName' => null,
                     'assigneePosition' => null,
+                    'assigneeSignature' => null,
                 ];
             }
 
@@ -177,14 +178,14 @@ class ApprovalService
             if ($assigneeIds !== []) {
                 $assignees = User::query()
                     ->whereIn('id', $assigneeIds)
-                    ->get(['id', 'name', 'position'])
+                    ->get(['id', 'name', 'position', 'signature_path'])
                     ->keyBy('id');
             }
 
             // The acting user instance may carry a partial attribute set (strict
             // mode); read the submitter's frozen identity from a fresh row.
             $submitter = User::query()
-                ->select(['id', 'name', 'position'])
+                ->select(['id', 'name', 'position', 'signature_path'])
                 ->findOrFail($user->getKey());
 
             foreach ($snapshotSteps as $index => $step) {
@@ -192,9 +193,11 @@ class ApprovalService
                     $assignee = $assignees->get($step['assigneeId']);
                     $snapshotSteps[$index]['assigneeName'] = $assignee?->name;
                     $snapshotSteps[$index]['assigneePosition'] = $assignee?->position;
+                    $snapshotSteps[$index]['assigneeSignature'] = $assignee?->signature_path;
                 } elseif ($step['actionMode'] === ApprovalStep::MODE_RECORD) {
                     $snapshotSteps[$index]['assigneeName'] = $submitter->name;
                     $snapshotSteps[$index]['assigneePosition'] = $submitter->position;
+                    $snapshotSteps[$index]['assigneeSignature'] = $submitter->signature_path;
                 }
             }
 

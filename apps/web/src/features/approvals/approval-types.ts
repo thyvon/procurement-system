@@ -46,6 +46,7 @@ export type ApprovalStepSnapshot = {
   assigneeId: number | null;
   assigneeName: string | null;
   assigneePosition?: string | null;
+  assigneeSignature?: string | null;
 };
 
 export type ApprovalCurrentStep = {
@@ -55,6 +56,7 @@ export type ApprovalCurrentStep = {
   assigneeId: number | null;
   assigneeName: string | null;
   assigneePosition?: string | null;
+  assigneeSignature?: string | null;
 };
 
 export type ApprovalActionView = {
@@ -169,6 +171,8 @@ export function parseApprovalRequest(raw: unknown): ApprovalRequestView {
           assigneeName: (currentStep.assigneeName as string | null) ?? null,
           assigneePosition:
             (currentStep.assigneePosition as string | null) ?? null,
+          assigneeSignature:
+            (currentStep.assigneeSignature as string | null) ?? null,
         }
       : null,
     steps: steps.map((step) => {
@@ -189,6 +193,8 @@ export function parseApprovalRequest(raw: unknown): ApprovalRequestView {
         assigneeName: (snapshot.assigneeName as string | null) ?? null,
         assigneePosition:
           (snapshot.assigneePosition as string | null) ?? null,
+        assigneeSignature:
+          (snapshot.assigneeSignature as string | null) ?? null,
       };
     }),
     submittedBy: (record.submittedBy as string | null) ?? null,

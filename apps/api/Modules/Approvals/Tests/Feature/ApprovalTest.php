@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Modules\Approvals\Models\ApprovalDraft;
@@ -483,8 +484,8 @@ it('requires an amount for a draft preview that references no document', functio
 
 it('submits an evaluation, stamps the record step and parks on the first decide step', function () {
     $evaluation = approvalsEvaluation();
-    $this->admin->update(['position' => 'Procurement Manager']);
-    $this->firstApprover->update(['position' => 'Finance Manager']);
+    $this->admin->update(['position' => 'Procurement Manager', 'signature_path' => 'signatures/sso_admin.png']);
+    $this->firstApprover->update(['position' => 'Finance Manager', 'signature_path' => 'signatures/sso_approver.png']);
 
     $response = approvalsSubmit($evaluation, approvalsAssignees())
         ->assertStatus(201)
@@ -495,9 +496,11 @@ it('submits an evaluation, stamps the record step and parks on the first decide 
         ->assertJsonPath('data.currentStep.assigneeId', $this->firstApprover->getKey())
         ->assertJsonPath('data.currentStep.assigneeName', $this->firstApprover->name)
         ->assertJsonPath('data.currentStep.assigneePosition', 'Finance Manager')
+        ->assertJsonPath('data.currentStep.assigneeSignature', Storage::disk('public')->url('signatures/sso_approver.png'))
         ->assertJsonPath('data.flow.code', 'evaluation-test')
         ->assertJsonCount(3, 'data.steps')
         ->assertJsonPath('data.steps.0.showOnPrint', true)
+        ->assertJsonPath('data.steps.0.assigneeSignature', Storage::disk('public')->url('signatures/sso_admin.png'))
         ->assertJsonPath('data.steps.1.showOnPrint', false)
         ->assertJsonPath('data.submittedBy', $this->admin->name);
 
@@ -506,12 +509,15 @@ it('submits an evaluation, stamps the record step and parks on the first decide 
     expect($request->snapshot['steps'])->toHaveCount(3)
         ->and($request->snapshot['steps'][0]['assigneeName'])->toBe($this->admin->name)
         ->and($request->snapshot['steps'][0]['assigneePosition'])->toBe('Procurement Manager')
+        ->and($request->snapshot['steps'][0]['assigneeSignature'])->toBe('signatures/sso_admin.png')
         ->and($request->snapshot['steps'][0]['showOnPrint'])->toBeTrue()
         ->and($request->snapshot['steps'][1]['assigneeName'])->toBe($this->firstApprover->name)
         ->and($request->snapshot['steps'][1]['assigneePosition'])->toBe('Finance Manager')
+        ->and($request->snapshot['steps'][1]['assigneeSignature'])->toBe('signatures/sso_approver.png')
         ->and($request->snapshot['steps'][1]['showOnPrint'])->toBeFalse()
         ->and($request->snapshot['steps'][2]['assigneeName'])->toBe($this->secondApprover->name)
         ->and($request->snapshot['steps'][2]['assigneePosition'])->toBeNull()
+        ->and($request->snapshot['steps'][2]['assigneeSignature'])->toBeNull()
         ->and($request->actions()->count())->toBe(1)
         ->and($request->actions()->first()->action)->toBe('record')
         ->and($request->actions()->first()->step_key)->toBe('prepared')
@@ -883,7 +889,7 @@ it('freezes the evaluation while its approval is pending', function () {
     $this->actingAs($this->admin, 'sanctum')
         ->deleteJson("/api/v1/purchase-orders/evaluations/{$evaluation->getKey()}")
         ->assertStatus(422)
-        ->assertJsonPath('errors.status.0', 'This evaluation is pending approval and cannot be deleted.');
+        ->assertJsonPath('errors.status.0', "Only a draft evaluation can be deleted, this one is 'in_review'.");
 
     expect($evaluation->fresh()->deleted_at)->toBeNull();
 });
