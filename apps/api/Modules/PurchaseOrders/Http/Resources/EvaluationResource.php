@@ -24,6 +24,7 @@ class EvaluationResource extends JsonResource
      *     awardedTotal: float,
      *     updatedAt: string|null,
      *     createdBy: string|null,
+     *     createdById: int|null,
      *     suppliers: list<array{code: string, name: string}>,
      *     items: MissingValue|Collection,
      *     quotations: MissingValue|Collection,
@@ -41,6 +42,7 @@ class EvaluationResource extends JsonResource
             'awardedTotal' => (float) $this->awarded_total,
             'updatedAt' => $this->updated_at?->format('Y-m-d H:i'),
             'createdBy' => $this->whenLoaded('creator', fn () => $this->creator?->name),
+            'createdById' => $this->created_by,
             'suppliers' => $this->winningSuppliers(),
             'items' => $this->relationLoaded('items')
                 ? EvaluationItemResource::collection($this->items)

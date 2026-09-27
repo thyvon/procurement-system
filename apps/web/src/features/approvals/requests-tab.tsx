@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { MoreHorizontal, Eye, XIcon, Settings2 } from "lucide-react";
+import { Eye, XIcon, Settings2 } from "lucide-react";
 import {
   approvalsInbox,
   approvalsOutbox,
@@ -27,13 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
 import {
   parseApprovalRequest,
@@ -173,24 +166,14 @@ function useRequestColumns({
       cell: ({ row }) => {
         const request = row.original;
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="ghost" className="size-8 p-0" />
-              }
-            >
-              <span className="sr-only">{tt("openMenu")}</span>
-              <MoreHorizontal className="size-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => onViewRequest(request)}>
-                  <Eye className="mr-2 size-4" />
-                  {tt("view")}
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => onViewRequest(request)}
+          >
+            <Eye className="size-3" />
+            {tt("view")}
+          </Button>
         );
       },
     }),

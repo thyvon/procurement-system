@@ -109,7 +109,11 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={handlePrint}>
+          <Button
+            variant="outline"
+            onClick={handlePrint}
+            disabled={roundsQuery.isPending}
+          >
             <Printer />
             {t("print")}
           </Button>

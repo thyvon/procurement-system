@@ -22,6 +22,8 @@ export interface EvaluationResource {
   updatedAt: string | null;
   /** @nullable */
   createdBy?: string | null;
+  /** @nullable */
+  createdById: number | null;
   suppliers: EvaluationResourceSuppliersItem[];
   items?: EvaluationItemResource[];
   quotations?: EvaluationQuotationResource[];

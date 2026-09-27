@@ -103,9 +103,10 @@ export function ApprovalTimeline({
                     {step.label}
                   </span>
                   <Badge variant="outline" className="text-[10px] font-normal">
-                    {step.actionMode === "record"
-                      ? t("autoRecorded")
-                      : step.assigneeName ?? t("assignedTo")}
+                    {step.assigneeName ??
+                      (step.actionMode === "record"
+                        ? t("autoRecorded")
+                        : t("assignedTo"))}
                   </Badge>
                   {isCurrent ? (
                     <span className="text-xs text-muted-foreground">

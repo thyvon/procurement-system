@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
+import { useMe } from "@/hooks/use-me";
 import { EvaluationStatusBadge } from "./components/evaluation-status-badge";
 import { formatMoney } from "./components/evaluation-matrix";
 
@@ -47,6 +48,7 @@ type EvaluationRow = {
   status: string | null;
   updatedAt: string | null;
   createdBy: string | null;
+  createdById: number | null;
 };
 
 type EvaluationsPage = {
@@ -67,6 +69,7 @@ function toRow(resource: EvaluationResource): EvaluationRow {
     status: resource.status,
     updatedAt: resource.updatedAt,
     createdBy: resource.createdBy ?? null,
+    createdById: resource.createdById ?? null,
   };
 }
 
@@ -84,10 +87,14 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 const columnHelper = createColumnHelper<DataTableFeatures, EvaluationRow>();
 
 function useEvaluationColumns({
+  canManage,
+  currentUserId,
   onViewRequest,
   onEditRequest,
   onDeleteRequest,
 }: {
+  canManage: boolean;
+  currentUserId: number | null;
   onViewRequest: (evaluation: EvaluationRow) => void;
   onEditRequest: (evaluation: EvaluationRow) => void;
   onDeleteRequest: (evaluation: EvaluationRow) => void;
@@ -155,6 +162,19 @@ function useEvaluationColumns({
       enableHiding: false,
       cell: ({ row }) => {
         const evaluation = row.original;
+        // Server rule: manage AND owner may write (own documents only);
+        // delete only drafts, edit only while the API still accepts edits
+        // (mirrors ensureEditable).
+        const isOwner =
+          evaluation.createdById !== null &&
+          evaluation.createdById === currentUserId;
+        const canAct = canManage && isOwner;
+        const canEdit =
+          canAct &&
+          !["in_review", "approved", "rejected"].includes(
+            evaluation.status ?? "",
+          );
+        const canDelete = canAct && evaluation.status === "draft";
         return (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="ghost" className="size-8 p-0" />}>
@@ -167,21 +187,24 @@ function useEvaluationColumns({
                   <Eye className="mr-2 size-4" />
                   {tt("view")}
                 </DropdownMenuItem>
-                {evaluation.status === "approved" ||
-                evaluation.status === "rejected" ? null : (
+                {canEdit ? (
                   <DropdownMenuItem onClick={() => onEditRequest(evaluation)}>
                     <Pencil className="mr-2 size-4" />
                     {tt("edit")}
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => onDeleteRequest(evaluation)}
-                >
-                  <Trash2 className="mr-2 size-4" />
-                  {tt("delete")}
-                </DropdownMenuItem>
+                ) : null}
+                {canDelete ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => onDeleteRequest(evaluation)}
+                    >
+                      <Trash2 className="mr-2 size-4" />
+                      {tt("delete")}
+                    </DropdownMenuItem>
+                  </>
+                ) : null}
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -196,6 +219,10 @@ export function EvaluationsTab() {
   const tt = useTranslations("purchaseOrders.table");
   const router = useRouter();
   const qc = useQueryClient();
+  const meQuery = useMe();
+  const permissions = (meQuery.data?.permissions ?? []) as string[];
+  const canManage = permissions.includes("evaluations.manage");
+  const currentUserId = meQuery.data?.id ?? null;
   const [deleteTarget, setDeleteTarget] = useState<EvaluationRow | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -215,6 +242,8 @@ export function EvaluationsTab() {
   });
 
   const columns = useEvaluationColumns({
+    canManage,
+    currentUserId,
     onViewRequest: (evaluation) =>
       router.push(`/purchase-orders/evaluations/${evaluation.id}`),
     onEditRequest: (evaluation) =>

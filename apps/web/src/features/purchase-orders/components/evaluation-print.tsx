@@ -110,7 +110,7 @@ export function EvaluationPrint({
   return (
     <div className="print-area hidden print:block">
       <div className="flex min-h-[186mm] flex-col gap-3 text-xs text-foreground">
-        <div className="flex items-start justify-between gap-4">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-4">
           {logo ? (
             <img
               src={logo}
@@ -120,10 +120,10 @@ export function EvaluationPrint({
           ) : (
             <div aria-hidden className="h-14 w-28 shrink-0" />
           )}
-          <h1 className="text-center text-lg font-bold tracking-tight">
+          <h1 className="place-self-center text-center text-lg font-bold tracking-tight">
             {tf("title")}
           </h1>
-          <div className="shrink-0 text-left leading-relaxed">
+          <div className="justify-self-end text-left leading-relaxed">
             <div>
               {tp("code")}: {tp("formCode")}
             </div>

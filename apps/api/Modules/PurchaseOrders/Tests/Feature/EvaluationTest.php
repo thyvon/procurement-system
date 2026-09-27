@@ -339,6 +339,54 @@ it('forbids staff from deleting evaluations', function () {
         ->assertStatus(403);
 });
 
+it('blocks deleting an evaluation that is no longer a draft', function (string $status) {
+    $id = storeEvaluation()->json('data.id');
+    Evaluation::query()->find($id)->update(['status' => $status]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->deleteJson("/api/v1/purchase-orders/evaluations/{$id}")
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors'])
+        ->assertJsonPath('errors.status.0', "Only a draft evaluation can be deleted, this one is '{$status}'.");
+
+    expect(Evaluation::query()->find($id))->not->toBeNull()
+        ->and(Evaluation::onlyTrashed()->find($id))->toBeNull();
+})->with(['returned', 'in_review', 'approved', 'rejected']);
+
+it('forbids the owner without the manage permission from editing or deleting their draft', function () {
+    $id = storeEvaluation()->json('data.id');
+    // Ownership alone is not enough: manage AND owner are both required.
+    Evaluation::query()->find($id)->update(['created_by' => $this->staff->getKey()]);
+
+    $this->actingAs($this->staff, 'sanctum')
+        ->patchJson("/api/v1/purchase-orders/evaluations/{$id}", evaluationPayload())
+        ->assertStatus(403);
+
+    $this->actingAs($this->staff, 'sanctum')
+        ->deleteJson("/api/v1/purchase-orders/evaluations/{$id}")
+        ->assertStatus(403);
+
+    expect(Evaluation::query()->find($id))->not->toBeNull()
+        ->and(Evaluation::onlyTrashed()->find($id))->toBeNull();
+});
+
+it('forbids a manage holder from editing or deleting a draft owned by someone else', function () {
+    $id = storeEvaluation()->json('data.id');
+    Evaluation::query()->find($id)->update(['created_by' => $this->staff->getKey()]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/purchase-orders/evaluations/{$id}", evaluationPayload())
+        ->assertStatus(403);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->deleteJson("/api/v1/purchase-orders/evaluations/{$id}")
+        ->assertStatus(403);
+
+    expect(Evaluation::query()->find($id))->not->toBeNull()
+        ->and(Evaluation::onlyTrashed()->find($id))->toBeNull();
+});
+
 it('rejects a single quotation with a 422 envelope', function () {
     $payload = evaluationPayload();
     $payload['quotations'] = [$payload['quotations'][0]];

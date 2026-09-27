@@ -279,7 +279,7 @@
 
 @page {
   size: A4 landscape;
-  margin: 10mm;
+  margin: 8mm;
 }
 
 @media print {
@@ -328,6 +328,10 @@
   .print-area td,
   .print-area th {
     padding: 1px 2px !important;
+  }
+
+  .print-area th {
+    font-weight: 700 !important;
   }
 
   .print-area td > div,

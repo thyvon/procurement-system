@@ -82,14 +82,15 @@ class EvaluationService
     }
 
     /**
-     * While an approval is in flight the document cannot disappear under the
-     * approvers' feet; decided evaluations keep their history.
+     * Only drafts may be removed: once an evaluation is (or was) part of an
+     * approval — in_review, returned, approved, rejected — it stays as the
+     * audit record approvers and finance decided on.
      */
     public function ensureDeletable(Evaluation $evaluation): void
     {
-        if ($evaluation->status === 'in_review') {
+        if ($evaluation->status !== 'draft') {
             throw ValidationException::withMessages([
-                'status' => 'This evaluation is pending approval and cannot be deleted.',
+                'status' => "Only a draft evaluation can be deleted, this one is '{$evaluation->status}'.",
             ]);
         }
     }

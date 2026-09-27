@@ -58,7 +58,6 @@ export function EvaluationDetail({
       EVALUATION_SUBJECT,
       evaluationId,
     ],
-    enabled: !embedded,
     queryFn: (): Promise<ApprovalRequestView[]> =>
       fetchApprovalRounds(EVALUATION_SUBJECT, evaluationId),
   });
@@ -166,12 +165,21 @@ export function EvaluationDetail({
 
   if (embedded) {
     // The approval page shows the in-review notice from its own pending
-    // state; keep only document-specific banners here.
+    // state; keep only document-specific banners here. The official sheet
+    // is the only part of the embedded view that prints.
     return (
-      <div className="min-w-0 space-y-4">
-        {status === "in_review" ? null : banner}
-        {matrixCard}
-      </div>
+      <>
+        <div className="min-w-0 space-y-4 print:hidden">
+          {status === "in_review" ? null : banner}
+          {matrixCard}
+        </div>
+
+        <EvaluationPrint
+          evaluation={evaluation}
+          value={value}
+          approvalRequest={approvalRequest}
+        />
+      </>
     );
   }
 
