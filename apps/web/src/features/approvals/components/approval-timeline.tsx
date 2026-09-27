@@ -1,5 +1,6 @@
+import { Fragment, useState } from "react";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, Circle, CircleDot } from "lucide-react";
+import { CheckCircle2, ChevronDown, Circle, CircleDot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ApprovalRequestView, ApprovalStatus } from "../approval-types";
@@ -37,18 +38,44 @@ function actionLabelKey(action: string): string {
   }
 }
 
-export function ApprovalTimeline({ request }: { request: ApprovalRequestView }) {
+export function ApprovalTimeline({
+  request,
+  rounds,
+}: {
+  request: ApprovalRequestView;
+  rounds?: ApprovalRequestView[];
+}) {
   const t = useTranslations("approvals.detail");
   const actions = request.actions ?? [];
   const current = request.currentStep;
+  // Steps only tell a live story while a decision is pending; once decided,
+  // the status badge + history already say it all.
+  const showSteps = request.status === "pending";
+  // All rounds of this document, oldest first → Round 1, Round 2, …
+  const historyRounds = [...(rounds?.length ? rounds : [request])].sort(
+    (a, b) => (a.submittedAt ?? "").localeCompare(b.submittedAt ?? "")
+  );
+  const historyCount = historyRounds.reduce(
+    (total, round) => total + (round.actions?.length ?? 0),
+    0
+  );
+  const [openRounds, setOpenRounds] = useState<Record<string, boolean>>({});
+  const isRoundOpen = (roundId: string, isLast: boolean) =>
+    openRounds[roundId] ?? isLast;
+  const toggleRound = (roundId: string, isLast: boolean) =>
+    setOpenRounds((current) => ({
+      ...current,
+      [roundId]: !(current[roundId] ?? isLast),
+    }));
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("steps")}</CardTitle>
+        <CardTitle>{showSteps ? t("steps") : t("history")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        <ol className="space-y-3">
+        {showSteps ? (
+          <ol className="space-y-3">
           {request.steps.map((step) => {
             const done = actions.some(
               (action) => action.stepPosition === step.position
@@ -89,38 +116,126 @@ export function ApprovalTimeline({ request }: { request: ApprovalRequestView }) 
               </li>
             );
           })}
-        </ol>
+          </ol>
+        ) : null}
 
-        <div className="space-y-3 border-t border-border pt-4">
-          <h3 className="text-sm font-medium">{t("history")}</h3>
-          {actions.length === 0 ? (
+        <div
+          className={
+            showSteps ? "space-y-3 border-t border-border pt-4" : "space-y-3"
+          }
+        >
+          {showSteps ? (
+            <h3 className="text-sm font-medium">{t("history")}</h3>
+          ) : null}
+          {historyCount === 0 ? (
             <p className="text-sm text-muted-foreground">{t("noHistory")}</p>
           ) : (
-            <ol className="space-y-3">
-              {actions.map((action) => (
-                <li key={action.id} className="flex items-start gap-3 text-sm">
-                  <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-x-2">
-                      <span className="font-medium">
-                        {t(actionLabelKey(action.action))}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {t("by", { name: action.actor.name ?? "—" })}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {action.actedAt}
-                      </span>
-                    </div>
-                    {action.comment ? (
-                      <p className="mt-1 whitespace-pre-wrap text-muted-foreground">
-                        {action.comment}
-                      </p>
+            <table className="w-full border-collapse text-left align-top">
+              {historyRounds.map((round, index) => {
+                const roundActions = round.actions ?? [];
+                const isLast = index === historyRounds.length - 1;
+                const open = isRoundOpen(round.id, isLast);
+
+                return (
+                  <tbody key={round.id}>
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className={`pb-1.5 ${index > 0 ? "pt-5" : "pt-0"}`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleRound(round.id, isLast)}
+                          aria-expanded={open}
+                          className="flex w-full flex-wrap items-center gap-x-2 gap-y-1.5 rounded-md px-1 py-0.5 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="size-3.5 shrink-0 rounded-full bg-primary ring-4 ring-background"
+                          />
+                          {historyRounds.length > 1 ? (
+                            <span className="text-sm font-semibold">
+                              {t("round", { n: index + 1 })}
+                            </span>
+                          ) : null}
+                          <ApprovalStatusBadge status={round.status} />
+                          <span className="text-xs text-muted-foreground">
+                            {t("submittedBy")} {round.submittedBy ?? "—"} ·{" "}
+                            {round.submittedAt}
+                            {round.decidedAt
+                              ? ` · ${t("decidedAt")} ${round.decidedAt}`
+                              : ""}
+                          </span>
+                          <ChevronDown
+                            aria-hidden="true"
+                            className={`ml-auto size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-0" : "-rotate-90"}`}
+                          />
+                        </button>
+                      </td>
+                    </tr>
+
+                    {open && roundActions.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="pb-1 pl-6 text-sm text-muted-foreground"
+                        >
+                          {t("noHistory")}
+                        </td>
+                      </tr>
+                    ) : open ? (
+                      roundActions.map((action) => {
+                        const stepLabel = round.steps.find(
+                          (step) => step.position === action.stepPosition
+                        )?.label;
+
+                        return (
+                          <Fragment key={action.id}>
+                            <tr>
+                              <td className="w-6 py-1">
+                                <span
+                                  aria-hidden="true"
+                                  className="mt-1.5 block size-2 rounded-full bg-primary/60"
+                                />
+                              </td>
+                              <td className="py-1 pr-4 text-sm font-medium whitespace-nowrap">
+                                {t(actionLabelKey(action.action))}
+                              </td>
+                              <td className="py-1 pr-4">
+                                {stepLabel ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] font-normal"
+                                  >
+                                    {stepLabel}
+                                  </Badge>
+                                ) : null}
+                              </td>
+                              <td className="py-1 pr-4 text-xs text-muted-foreground">
+                                {t("by", { name: action.actor.name ?? "—" })}
+                              </td>
+                              <td className="py-1 text-xs text-muted-foreground whitespace-nowrap">
+                                {action.actedAt}
+                              </td>
+                            </tr>
+                            {action.comment ? (
+                              <tr>
+                                <td />
+                                <td colSpan={4} className="pb-2.5">
+                                  <p className="whitespace-pre-wrap rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-xs leading-relaxed text-muted-foreground">
+                                    {action.comment}
+                                  </p>
+                                </td>
+                              </tr>
+                            ) : null}
+                          </Fragment>
+                        );
+                      })
                     ) : null}
-                  </div>
-                </li>
-              ))}
-            </ol>
+                  </tbody>
+                );
+              })}
+            </table>
           )}
         </div>
       </CardContent>

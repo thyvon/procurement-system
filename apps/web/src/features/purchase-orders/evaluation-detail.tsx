@@ -4,9 +4,8 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, Pencil, Printer } from "lucide-react";
-import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
+import { unwrap, withAuth } from "@/lib/api-client";
 import { purchaseOrdersEvaluationsShow } from "@/lib/api/evaluation/evaluation";
-import { approvalsRequestsIndex } from "@/lib/api/approval-request/approval-request";
 import type { EvaluationResource } from "@/lib/api/model/evaluationResource";
 import { Button } from "@/components/ui/button";
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton";
@@ -19,7 +18,7 @@ import {
 import { Label } from "@/components/ui/label";
 import {
   EVALUATION_SUBJECT,
-  parseApprovalRequest,
+  fetchApprovalRounds,
   type ApprovalRequestView,
 } from "@/features/approvals/approval-types";
 import { ApprovalTimeline } from "@/features/approvals/components/approval-timeline";
@@ -30,9 +29,13 @@ import { fromEvaluation } from "./components/evaluation-matrix";
 
 interface EvaluationDetailProps {
   evaluationId: string;
+  embedded?: boolean;
 }
 
-export function EvaluationDetail({ evaluationId }: EvaluationDetailProps) {
+export function EvaluationDetail({
+  evaluationId,
+  embedded = false,
+}: EvaluationDetailProps) {
   const router = useRouter();
   const tf = useTranslations("purchaseOrders.form");
   const tt = useTranslations("purchaseOrders.table");
@@ -45,7 +48,9 @@ export function EvaluationDetail({ evaluationId }: EvaluationDetailProps) {
       unwrap(await purchaseOrdersEvaluationsShow(evaluationId, withAuth())),
   });
 
-  const approvalQuery = useQuery({
+  // Shared key/queryFn with evaluation-form and approval-detail: every
+  // approval round for this evaluation, newest first.
+  const roundsQuery = useQuery({
     queryKey: [
       "approvals",
       "requests",
@@ -53,16 +58,9 @@ export function EvaluationDetail({ evaluationId }: EvaluationDetailProps) {
       EVALUATION_SUBJECT,
       evaluationId,
     ],
-    queryFn: async (): Promise<ApprovalRequestView | null> => {
-      const envelope = unwrapWithMeta<unknown>(
-        await approvalsRequestsIndex(
-          { subject_type: EVALUATION_SUBJECT, subject_id: evaluationId },
-          withAuth()
-        )
-      );
-      const rows = (envelope.data ?? []) as unknown[];
-      return rows.length > 0 ? parseApprovalRequest(rows[0]) : null;
-    },
+    enabled: !embedded,
+    queryFn: (): Promise<ApprovalRequestView[]> =>
+      fetchApprovalRounds(EVALUATION_SUBJECT, evaluationId),
   });
 
   if (showQuery.isPending) {
@@ -70,6 +68,10 @@ export function EvaluationDetail({ evaluationId }: EvaluationDetailProps) {
   }
 
   if (showQuery.isError || !showQuery.data) {
+    if (embedded) {
+      return <p className="text-sm text-destructive">{tf("loadFailed")}</p>;
+    }
+
     return (
       <div className="mt-1 min-w-0 space-y-4">
         <Button variant="outline" onClick={() => router.push("/purchase-orders/evaluations")}>
@@ -82,8 +84,10 @@ export function EvaluationDetail({ evaluationId }: EvaluationDetailProps) {
 
   const evaluation = showQuery.data;
   const value = fromEvaluation(evaluation);
-  const approvalRequest = approvalQuery.data ?? null;
+  const rounds = roundsQuery.data ?? [];
+  const approvalRequest = rounds[0] ?? null;
   const status = evaluation.status;
+  const frozen = status === "approved" || status === "rejected";
 
   const handlePrint = () => {
     const originalTitle = document.title;
@@ -94,6 +98,82 @@ export function EvaluationDetail({ evaluationId }: EvaluationDetailProps) {
       document.title = originalTitle;
     }
   };
+
+  const banner =
+    status === "in_review" ? (
+      <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+        {ta("inReview")}
+      </div>
+    ) : status === "rejected" ? (
+      <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
+        {ta("rejectedState")}
+      </div>
+    ) : status === "returned" ? (
+      <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+        {ta("returnedState")}
+      </div>
+    ) : null;
+
+  const matrixCard = (
+    <Card size="sm" className="min-w-0 text-xs">
+      <CardHeader>
+        <CardTitle className="text-xs">{tf("title")}</CardTitle>
+      </CardHeader>
+      <CardContent className="min-w-0 space-y-3">
+        <EvaluationMatrixReadOnly
+          value={value}
+          currency={evaluation.currency}
+        />
+
+        <div className="space-y-3 border-t border-border pt-3">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="flex items-center gap-1">
+              <Label className="text-left text-xs after:ml-1 after:content-[':']">
+                {tf("currency")}
+              </Label>
+              <p className="text-xs tabular-nums">{evaluation.currency}</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <Label className="text-left text-xs after:ml-1 after:content-[':']">
+                {tf("exchangeRate")}
+              </Label>
+              <p className="text-xs tabular-nums">
+                {evaluation.exchangeRate.toLocaleString("en-US")}
+                {evaluation.currency === "KHR" ? (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    {tf("exchangeRateHint")}
+                  </span>
+                ) : null}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-left text-xs after:ml-1 after:content-[':']">
+              {tf("basis")}
+            </Label>
+            <p className="whitespace-pre-wrap text-xs">
+              {evaluation.recommendationBasis || (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  if (embedded) {
+    // The approval page shows the in-review notice from its own pending
+    // state; keep only document-specific banners here.
+    return (
+      <div className="min-w-0 space-y-4">
+        {status === "in_review" ? null : banner}
+        {matrixCard}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -122,83 +202,28 @@ export function EvaluationDetail({ evaluationId }: EvaluationDetailProps) {
             <Button
             variant="outline"
             onClick={handlePrint}
-            disabled={approvalQuery.isPending}
+            disabled={roundsQuery.isPending}
           >
               <Printer />
               {td("print")}
             </Button>
-            <Button
-              onClick={() =>
-                router.push(`/purchase-orders/evaluations/${evaluation.id}/edit`)
-              }
-            >
-              <Pencil />
-              {tt("edit")}
-            </Button>
+            {frozen ? null : (
+              <Button
+                onClick={() =>
+                  router.push(
+                    `/purchase-orders/evaluations/${evaluation.id}/edit`,
+                  )
+                }
+              >
+                <Pencil />
+                {tt("edit")}
+              </Button>
+            )}
           </div>
         </div>
 
-        {status === "in_review" ? (
-          <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
-            {ta("inReview")}
-          </div>
-        ) : status === "rejected" ? (
-          <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
-            {ta("rejectedState")}
-          </div>
-        ) : status === "returned" ? (
-          <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
-            {ta("returnedState")}
-          </div>
-        ) : null}
-
-        <Card size="sm" className="min-w-0 text-xs">
-          <CardHeader>
-            <CardTitle className="text-xs">{tf("title")}</CardTitle>
-          </CardHeader>
-          <CardContent className="min-w-0 space-y-3">
-            <EvaluationMatrixReadOnly
-              value={value}
-              currency={evaluation.currency}
-            />
-
-            <div className="space-y-3 border-t border-border pt-3">
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                <div className="flex items-center gap-1">
-                  <Label className="text-left text-xs after:ml-1 after:content-[':']">
-                    {tf("currency")}
-                  </Label>
-                  <p className="text-xs tabular-nums">{evaluation.currency}</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Label className="text-left text-xs after:ml-1 after:content-[':']">
-                    {tf("exchangeRate")}
-                  </Label>
-                  <p className="text-xs tabular-nums">
-                    {evaluation.exchangeRate.toLocaleString("en-US")}
-                    {evaluation.currency === "KHR" ? (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        {tf("exchangeRateHint")}
-                      </span>
-                    ) : null}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-left text-xs after:ml-1 after:content-[':']">
-                  {tf("basis")}
-                </Label>
-                <p className="whitespace-pre-wrap text-xs">
-                  {evaluation.recommendationBasis || (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {banner}
+        {matrixCard}
 
         {approvalRequest ? (
           <div className="space-y-4">
@@ -212,7 +237,7 @@ export function EvaluationDetail({ evaluationId }: EvaluationDetailProps) {
               </Button>
             </div>
 
-            <ApprovalTimeline request={approvalRequest} />
+            <ApprovalTimeline request={approvalRequest} rounds={rounds} />
           </div>
         ) : null}
       </div>

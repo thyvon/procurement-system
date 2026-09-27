@@ -31,16 +31,16 @@ import {
   purchaseOrdersEvaluationsStore,
   purchaseOrdersEvaluationsUpdate,
 } from "@/lib/api/evaluation/evaluation";
-import { approvalsDraftsStore, approvalsRequestsIndex } from "@/lib/api/approval-request/approval-request";
+import { approvalsDraftsStore } from "@/lib/api/approval-request/approval-request";
 import type { EvaluationResource } from "@/lib/api/model/evaluationResource";
 import type { StoreApprovalDraftRequest } from "@/lib/api/model/storeApprovalDraftRequest";
 import type { StoreEvaluationRequest } from "@/lib/api/model/storeEvaluationRequest";
 import type { UpdateEvaluationRequest } from "@/lib/api/model/updateEvaluationRequest";
-import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
+import { unwrap, withAuth } from "@/lib/api-client";
 import { useMe } from "@/hooks/use-me";
 import {
   EVALUATION_SUBJECT,
-  parseApprovalRequest,
+  fetchApprovalRounds,
   type ApprovalAction,
   type ApprovalRequestView,
 } from "@/features/approvals/approval-types";
@@ -235,18 +235,12 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
     enabled: isEdit,
   });
 
-  const approvalQuery = useQuery({
+  // Shared key/queryFn with evaluation-detail and approval-detail: every
+  // approval round for this evaluation, newest first.
+  const roundsQuery = useQuery({
     queryKey: ["approvals", "requests", "subject", EVALUATION_SUBJECT, evaluationId],
-    queryFn: async (): Promise<ApprovalRequestView | null> => {
-      const envelope = unwrapWithMeta<unknown>(
-        await approvalsRequestsIndex(
-          { subject_type: EVALUATION_SUBJECT, subject_id: evaluationId! },
-          withAuth()
-        )
-      );
-      const rows = (envelope.data ?? []) as unknown[];
-      return rows.length > 0 ? parseApprovalRequest(rows[0]) : null;
-    },
+    queryFn: (): Promise<ApprovalRequestView[]> =>
+      fetchApprovalRounds(EVALUATION_SUBJECT, evaluationId!),
     enabled: isEdit,
   });
 
@@ -325,7 +319,12 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
 
   const evaluationStatus = showQuery.data?.status ?? null;
   const inReview = evaluationStatus === "in_review";
-  const approvalRequest = approvalQuery.data ?? null;
+  const locked =
+    evaluationStatus === "in_review" ||
+    evaluationStatus === "approved" ||
+    evaluationStatus === "rejected";
+  const rounds = roundsQuery.data ?? [];
+  const approvalRequest = rounds[0] ?? null;
   const currentStep = approvalRequest?.currentStep ?? null;
   const isAssignee =
     approvalRequest?.status === "pending" &&
@@ -478,6 +477,10 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
         <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
           {ta("inReview")}
         </div>
+      ) : evaluationStatus === "approved" ? (
+        <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+          {ta("approvedState")}
+        </div>
       ) : evaluationStatus === "rejected" ? (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
           {ta("rejectedState")}
@@ -488,15 +491,17 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
         </div>
       ) : null}
 
-      <fieldset disabled={inReview} className="mx-0 min-w-0 border-0 p-0">
+      <fieldset disabled={locked} className="mx-0 min-w-0 border-0 p-0">
         <Card size="sm" className="min-w-0 text-xs">
           <CardHeader>
             <CardTitle className="text-xs">{tf("title")}</CardTitle>
             <CardAction>
-              <Button type="button" onClick={addQuotation}>
-                <Plus className="mr-1.5 size-3.5" />
-                {tf("addQuotation")}
-              </Button>
+              {value.quotations.length < 3 && (
+                <Button type="button" onClick={addQuotation}>
+                  <Plus className="mr-1.5 size-3.5" />
+                  {tf("addQuotation")}
+                </Button>
+              )}
             </CardAction>
           </CardHeader>
           <CardContent className="min-w-0 space-y-3">
@@ -581,7 +586,7 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
             </Button>
           </div>
 
-          <ApprovalTimeline request={approvalRequest} />
+          <ApprovalTimeline request={approvalRequest} rounds={rounds} />
 
           {isAssignee ? (
             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -611,7 +616,7 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
         </div>
       ) : null}
 
-      {inReview ? null : (
+      {locked ? null : (
         <SubmitApprovalPanel
           subjectType={EVALUATION_SUBJECT}
           subjectId={evaluationId ?? null}

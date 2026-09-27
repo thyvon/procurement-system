@@ -15,6 +15,9 @@ export interface UpdateEvaluationRequest {
   recommendation_basis: string;
   /** @minItems 1 */
   items: UpdateEvaluationRequestItemsItem[];
-  /** @minItems 2 */
+  /**
+     * @minItems 2
+     * @maxItems 3
+     */
   quotations: UpdateEvaluationRequestQuotationsItem[];
 }

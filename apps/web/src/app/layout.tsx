@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter, Battambang, Caveat } from "next/font/google";
+import localFont from "next/font/local";
 import { getLocale, getMessages } from "next-intl/server";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import Providers from "./providers";
@@ -26,6 +27,14 @@ const caveat = Caveat({
   subsets: ["latin"],
 });
 
+// Company print face; Khmer text falls through to Battambang.
+const twCenMt = localFont({
+  src: "../fonts/tw-cen-mt.ttf",
+  variable: "--font-tw-cen",
+  weight: "400",
+  style: "normal",
+});
+
 export const metadata: Metadata = {
   title: "Procurement",
   description: "Procurement Management System",
@@ -41,7 +50,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${inter.variable} ${geistMono.variable} ${battambang.variable} ${caveat.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} ${battambang.variable} ${caveat.variable} ${twCenMt.variable} h-full antialiased`}
     >
       <body className="font-sans min-h-full flex flex-col">
         <ThemeProvider>

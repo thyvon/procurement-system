@@ -311,6 +311,13 @@
   .print-area {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    font-family: var(--font-tw-cen), var(--font-battambang), ui-sans-serif,
+      system-ui, sans-serif;
+  }
+
+  .print-area,
+  .print-area * {
+    border-color: #000 !important;
   }
 
   .print-area table,
@@ -318,14 +325,25 @@
     font-size: 8pt !important;
   }
 
+  .print-area td,
+  .print-area th {
+    padding: 1px 2px !important;
+  }
+
+  .print-area td > div,
+  .print-area th > div {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
   .print-area table {
     min-width: 0 !important;
     width: 100% !important;
-    table-layout: fixed;
   }
 
   .print-area .overflow-x-auto {
     overflow: visible !important;
+    max-width: none !important;
   }
 
   .print-area .truncate {

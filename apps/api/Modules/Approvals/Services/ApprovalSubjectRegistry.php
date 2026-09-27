@@ -24,7 +24,11 @@ class ApprovalSubjectRegistry
      * USD at the registry boundary because approval bands are USD-scale.
      * Subjects without those columns keep their raw amount.
      *
-     * @var array<string, array{model: class-string<Model>, amount_column: string, code_column: string, permission: string, currency_column?: string, exchange_rate_column?: string}>
+     * `submittable_statuses` freezes a subject once it has been decided:
+     * only these statuses may enter (or re-enter) the approval flow, so an
+     * approved or rejected document can never open a new round.
+     *
+     * @var array<string, array{model: class-string<Model>, amount_column: string, code_column: string, permission: string, currency_column?: string, exchange_rate_column?: string, submittable_statuses?: array<int, string>}>
      */
     private const SUBJECTS = [
         'evaluation' => [
@@ -34,11 +38,12 @@ class ApprovalSubjectRegistry
             'permission' => 'evaluations.manage',
             'currency_column' => 'currency',
             'exchange_rate_column' => 'exchange_rate',
+            'submittable_statuses' => ['draft', 'returned'],
         ],
     ];
 
     /**
-     * @return array{model: class-string<Model>, amount_column: string, code_column: string, permission: string, currency_column?: string, exchange_rate_column?: string}
+     * @return array{model: class-string<Model>, amount_column: string, code_column: string, permission: string, currency_column?: string, exchange_rate_column?: string, submittable_statuses?: array<int, string>}
      */
     public function definition(string $subjectType): array
     {
@@ -66,6 +71,28 @@ class ApprovalSubjectRegistry
         }
 
         return $subject;
+    }
+
+    /**
+     * A subject may only enter the approval flow from an editable status —
+     * decided documents (approved/rejected) are frozen so a finished round
+     * can never be reopened.
+     */
+    public function ensureSubmittable(string $subjectType, Model $subject): void
+    {
+        $statuses = $this->definition($subjectType)['submittable_statuses'] ?? null;
+
+        if ($statuses === null) {
+            return;
+        }
+
+        $status = (string) $subject->getAttribute('status');
+
+        if (! in_array($status, $statuses, true)) {
+            throw ValidationException::withMessages([
+                'status' => "A document with status '{$status}' cannot be submitted for approval.",
+            ]);
+        }
     }
 
     public function amount(string $subjectType, Model $subject): float

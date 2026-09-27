@@ -4,38 +4,25 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { ArrowLeft, Check, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, Check, Printer, RotateCcw, X } from "lucide-react";
 import { approvalsRequestsShow } from "@/lib/api/approval-request/approval-request";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { useMe } from "@/hooks/use-me";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  fetchApprovalRounds,
   parseApprovalRequest,
   type ApprovalAction,
   type ApprovalRequestView,
 } from "./approval-types";
 import { ApprovalStatusBadge, ApprovalTimeline } from "./components/approval-timeline";
 import { ApprovalActionDialog } from "./components/approval-action-dialog";
-
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-start justify-between gap-3 text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium">{value ?? "—"}</span>
-    </div>
-  );
-}
-
-const money = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  minimumFractionDigits: 2,
-});
+import { SubjectDetailSlot } from "./subject-detail-slot";
 
 export function ApprovalDetail({ requestId }: { requestId: string }) {
   const t = useTranslations("approvals.detail");
   const ts = useTranslations("approvals.subjects");
+  const ta = useTranslations("approvals.form");
   const router = useRouter();
   const me = useMe();
   const [action, setAction] = useState<ApprovalAction | null>(null);
@@ -46,6 +33,16 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
       parseApprovalRequest(
         unwrap(await approvalsRequestsShow(requestId, withAuth()))
       ),
+  });
+
+  // Same key/queryFn as evaluation-detail & evaluation-form: every round
+  // for this document, so the timeline reads like a full audit trail.
+  const subjectType = query.data?.subjectType ?? "";
+  const subjectId = query.data?.subjectId ?? "";
+  const roundsQuery = useQuery({
+    queryKey: ["approvals", "requests", "subject", subjectType, subjectId],
+    enabled: subjectId !== "",
+    queryFn: () => fetchApprovalRounds(subjectType, subjectId),
   });
 
   if (query.isPending) {
@@ -74,9 +71,19 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
     request.steps.find((step) => step.position === currentStep?.position)
       ?.allowedActions ?? [];
 
+  const handlePrint = () => {
+    const originalTitle = document.title;
+    document.title = `${request.documentCode ?? t("document")}-approval`;
+    try {
+      window.print();
+    } finally {
+      document.title = originalTitle;
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
@@ -101,63 +108,54 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
           </div>
         </div>
 
-        {isAssignee ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {allowedActions.includes("approve") ? (
-              <Button onClick={() => setAction("approve")}>
-                <Check />
-                {t("approve")}
-              </Button>
-            ) : null}
-            {allowedActions.includes("return") ? (
-              <Button variant="outline" onClick={() => setAction("return")}>
-                <RotateCcw />
-                {t("return")}
-              </Button>
-            ) : null}
-            {allowedActions.includes("reject") ? (
-              <Button variant="destructive" onClick={() => setAction("reject")}>
-                <X />
-                {t("reject")}
-              </Button>
-            ) : null}
-          </div>
-        ) : request.status === "pending" ? (
-          <p className="text-sm text-muted-foreground">{t("notAssignee")}</p>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer />
+            {t("print")}
+          </Button>
+          {isAssignee ? (
+            <>
+              {allowedActions.includes("approve") ? (
+                <Button onClick={() => setAction("approve")}>
+                  <Check />
+                  {t("approve")}
+                </Button>
+              ) : null}
+              {allowedActions.includes("return") ? (
+                <Button variant="outline" onClick={() => setAction("return")}>
+                  <RotateCcw />
+                  {t("return")}
+                </Button>
+              ) : null}
+              {allowedActions.includes("reject") ? (
+                <Button
+                  variant="destructive"
+                  onClick={() => setAction("reject")}
+                >
+                  <X />
+                  {t("reject")}
+                </Button>
+              ) : null}
+            </>
+          ) : request.status === "pending" ? (
+            <p className="text-sm text-muted-foreground">{t("notAssignee")}</p>
+          ) : null}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("status")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Row label={t("document")} value={request.documentCode} />
-            <Row
-              label={t("amount")}
-              value={
-                <span className="tabular-nums">
-                  {money.format(Number(request.amountSnapshot))}
-                </span>
-              }
-            />
-            <Row label={t("flow")} value={request.flow?.name} />
-            <Row label={t("submittedBy")} value={request.submittedBy} />
-            <Row label={t("submittedAt")} value={request.submittedAt} />
-            <Row label={t("decidedAt")} value={request.decidedAt} />
-            <Row
-              label={t("currentStep")}
-              value={currentStep ? currentStep.label : "—"}
-            />
-            <Row
-              label={t("assignedTo")}
-              value={currentStep?.assigneeName ?? "—"}
-            />
-          </CardContent>
-        </Card>
+      {request.status === "pending" ? (
+        <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm print:hidden">
+          {ta("inReview")}
+        </div>
+      ) : null}
 
-        <ApprovalTimeline request={request} />
+      <SubjectDetailSlot
+        subjectType={request.subjectType}
+        subjectId={request.subjectId}
+      />
+
+      <div className="print:hidden">
+        <ApprovalTimeline request={request} rounds={roundsQuery.data} />
       </div>
 
       {action ? (

@@ -119,7 +119,6 @@ class ApprovalService
         return DB::transaction(function () use ($subjectType, $subjectId, $assignees, $user): ApprovalRequest {
             $subject = $this->subjects->find($subjectType, $subjectId);
             $amount = $this->subjects->amount($subjectType, $subject);
-            [$setting, $flow] = $this->resolveFlow($subjectType, $amount);
 
             $pendingExists = ApprovalRequest::query()
                 ->where('subject_type', $subjectType)
@@ -132,6 +131,10 @@ class ApprovalService
                     'subjectId' => 'A pending approval request already exists for this document.',
                 ]);
             }
+
+            $this->subjects->ensureSubmittable($subjectType, $subject);
+
+            [$setting, $flow] = $this->resolveFlow($subjectType, $amount);
 
             $steps = $flow->steps()->get();
             $snapshotSteps = [];

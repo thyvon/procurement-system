@@ -33,7 +33,7 @@ trait ValidatesEvaluationPayload
             'items.*.description' => ['required', 'string'],
             'items.*.qty' => ['required', 'numeric', 'gt:0'],
             'items.*.uom' => ['required', 'string', 'max:32'],
-            'quotations' => ['required', 'array', 'min:2'],
+            'quotations' => ['required', 'array', 'min:2', 'max:3'],
             'quotations.*.supplier_code' => ['required', 'string', 'max:64'],
             'quotations.*.supplier_name' => ['required', 'string', 'max:255'],
             'quotations.*.supplier_phone' => ['required', 'string', 'max:255'],

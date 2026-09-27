@@ -15,6 +15,9 @@ export interface StoreEvaluationRequest {
   recommendation_basis: string;
   /** @minItems 1 */
   items: StoreEvaluationRequestItemsItem[];
-  /** @minItems 2 */
+  /**
+     * @minItems 2
+     * @maxItems 3
+     */
   quotations: StoreEvaluationRequestQuotationsItem[];
 }

@@ -80,9 +80,10 @@ export function formatMoney(amount: number, currency: string = "USD"): string {
     maximumFractionDigits: digits,
   }).format(amount);
 
+  // Non-breaking space: keeps "$ 1,299.00" on one line when columns tighten.
   return formatted.startsWith("-")
-    ? `-${symbol}${formatted.slice(1)}`
-    : `${symbol}${formatted}`;
+    ? `-${symbol}\u00A0${formatted.slice(1)}`
+    : `${symbol}\u00A0${formatted}`;
 }
 
 function parseMoney(value: string): number {
@@ -157,6 +158,8 @@ export const headCell =
 export const bodyCell = "border border-border p-1 align-top text-xs";
 export const criteriaLabelCell =
   "border-y border-border bg-muted/40 px-2 py-1 text-left text-xs font-medium";
+
+export const DESCRIPTION_WIDTH = 400;
 
 /** Maps a saved evaluation onto the matrix value shape (form + detail share it). */
 export function fromEvaluation(evaluation: EvaluationResource): EvaluationMatrixValue {
@@ -400,19 +403,44 @@ export function EvaluationMatrix({
     { key: "grandTotal", readonly: true },
   ] as const;
 
+  const FIXED_COLUMNS_WIDTH = 292;
+  const QUOTATION_GROUP_WIDTH = 383;
+  const tableWidth =
+    FIXED_COLUMNS_WIDTH +
+    DESCRIPTION_WIDTH +
+    quotations.length * QUOTATION_GROUP_WIDTH;
+
   return (
     <div className="min-w-0 space-y-3">
       <div className="w-full max-w-full overflow-x-auto border border-border">
-        <table className="w-full min-w-[1400px] border-collapse text-xs">
+        <table
+          className="w-full border-collapse text-xs table-fixed"
+          style={{ width: "100%", minWidth: tableWidth }}
+        >
+          <colgroup>
+            <col className="w-8" />
+            <col className="w-[140px]" />
+            <col className="w-[400px] print:w-auto" />
+            <col className="w-15" />
+            <col className="w-15" />
+            {quotations.map((_, index) => (
+              <Fragment key={`q-cols-${index}`}>
+                <col className="w-12" />
+                <col className="w-[140px]" />
+                <col className="w-[90px]" />
+                <col className="w-[105px]" />
+              </Fragment>
+            ))}
+          </colgroup>
           <thead>
             <tr>
-              <th className={`${headCell} w-5`} rowSpan={3}>
+              <th className={`${headCell} w-8`} rowSpan={3}>
                 {t("no")}
               </th>
-              <th className={`${headCell} w-[50px]`} rowSpan={3}>
+              <th className={`${headCell} w-[140px]`} rowSpan={3}>
                 {t("itemCode")} <RequiredMark />
               </th>
-              <th className={`${headCell} w-[250px]`} rowSpan={3}>
+              <th className={headCell} rowSpan={3}>
                 {t("description")} <RequiredMark />
               </th>
               <th className={`${headCell} w-15`} rowSpan={3}>
@@ -425,7 +453,7 @@ export function EvaluationMatrix({
                 <th
                   key={`q-head-${index}`}
                   className={`${headCell} min-w-[15px] text-center`}
-                  colSpan={3}
+                  colSpan={4}
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>{t("quotation", { n: quoteLabel(index) })}</span>
@@ -450,7 +478,7 @@ export function EvaluationMatrix({
                 <th
                   key={`q-supplier-${index}`}
                   className={`${bodyCell} bg-muted/40`}
-                  colSpan={3}
+                  colSpan={4}
                 >
                   <div className="grid grid-cols-[max-content_1fr] items-center gap-x-1.5 gap-y-1 text-left">
                     <span className="text-xs text-muted-foreground">
@@ -504,12 +532,15 @@ export function EvaluationMatrix({
             <tr>
               {quotations.map((_, index) => (
                 <Fragment key={`q-cols-${index}`}>
-                  <th className={`${headCell} w-12 text-center`}>
+                  <th className={`${headCell} w-12 whitespace-nowrap text-center`}>
                     {t("winner")} <RequiredMark />
                   </th>
                   <th className={`${headCell} w-[140px]`}>{t("brand")}</th>
-                  <th className={`${headCell} w-[80px] text-right`}>
+                  <th className={`${headCell} w-[90px] text-right`}>
                     {t("unitCost")} <RequiredMark />
+                  </th>
+                  <th className={`${headCell} w-[105px] text-right`}>
+                    {t("totalCost")}
                   </th>
                 </Fragment>
               ))}
@@ -609,6 +640,13 @@ export function EvaluationMatrix({
                           className="h-7 border-0 bg-background px-1.5 text-right text-xs shadow-none placeholder:text-xs md:text-xs"
                         />
                       </td>
+                      <td className={bodyCell}>
+                        <div className="flex h-7 items-center justify-end text-xs tabular-nums">
+                          {Number.isFinite(Number.parseFloat(pricing.unitCost))
+                            ? formatMoney(lineTotal(item, pricing), currency)
+                            : "—"}
+                        </div>
+                      </td>
                     </Fragment>
                   );
                 })}
@@ -644,7 +682,7 @@ export function EvaluationMatrix({
                       key === "subTotal" ? subTotal(items, panel) : grandTotal(items, panel);
                     const strong = key === "grandTotal";
                     return (
-                      <td key={`${key}-${qIndex}`} className={bodyCell} colSpan={3}>
+                      <td key={`${key}-${qIndex}`} className={bodyCell} colSpan={4}>
                         <div
                           className={`flex h-7 items-center justify-end text-xs tabular-nums${strong ? " font-semibold" : ""}`}
                         >
@@ -655,7 +693,7 @@ export function EvaluationMatrix({
                   }
                   const field = key === "discount" ? "discount" : "vat";
                   return (
-                    <td key={`${key}-${qIndex}`} className={bodyCell} colSpan={3}>
+                    <td key={`${key}-${qIndex}`} className={bodyCell} colSpan={4}>
                       <Input
                         value={panel.totals[field]}
                         onChange={(e) => patchTotals(qIndex, { [field]: e.target.value })}
@@ -681,7 +719,7 @@ export function EvaluationMatrix({
                   </div>
                 </td>
                 {quotations.map((panel, qIndex) => (
-                  <td key={`${key}-${qIndex}`} className={bodyCell} colSpan={3}>
+                  <td key={`${key}-${qIndex}`} className={bodyCell} colSpan={4}>
                     {key === "warranty" ||
                     key === "leadTime" ||
                     key === "otherRemarks" ? (

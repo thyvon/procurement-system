@@ -1,5 +1,6 @@
 "use client";
 
+import { format, isValid, parseISO } from "date-fns";
 import { useTranslations } from "next-intl";
 import type { EvaluationResource } from "@/lib/api/model/evaluationResource";
 import type {
@@ -25,7 +26,9 @@ type SignatureColumn = {
 
 function dateOnly(value: string | null | undefined): string {
   if (!value) return "";
-  return value.split(" ")[0] ?? "";
+  const datePart = (value.split(" ")[0] ?? "").split("T")[0] ?? "";
+  const date = parseISO(datePart);
+  return isValid(date) ? format(date, "MMM dd, yyyy") : "";
 }
 
 function actionForStep(

@@ -648,6 +648,53 @@ it('returns the document and resets the evaluation to draft', function () {
         ->and($request->fresh()->current_position)->toBeNull();
 });
 
+it('never allows resubmitting an evaluation that was fully approved', function () {
+    $evaluation = approvalsEvaluation();
+    $request = approvalsPending($evaluation);
+
+    approvalsAct($request, 'approve', null, $this->firstApprover)->assertOk();
+    approvalsAct($request, 'approve', null, $this->secondApprover)
+        ->assertOk()
+        ->assertJsonPath('data.status', 'approved');
+
+    $response = approvalsSubmit($evaluation, approvalsAssignees())
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422);
+
+    expect($response->json('errors.status.0'))->toBe("A document with status 'approved' cannot be submitted for approval.")
+        ->and(ApprovalRequest::query()->count())->toBe(1)
+        ->and($evaluation->fresh()->status)->toBe('approved');
+});
+
+it('never allows resubmitting a rejected evaluation', function () {
+    $evaluation = approvalsEvaluation();
+    $request = approvalsPending($evaluation);
+
+    approvalsAct($request, 'reject', 'Prices are above the budget.', $this->firstApprover)->assertOk();
+
+    $response = approvalsSubmit($evaluation, approvalsAssignees())
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422);
+
+    expect($response->json('errors.status.0'))->toBe("A document with status 'rejected' cannot be submitted for approval.")
+        ->and(ApprovalRequest::query()->count())->toBe(1)
+        ->and($evaluation->fresh()->status)->toBe('rejected');
+});
+
+it('still allows resubmitting after the document was returned', function () {
+    $evaluation = approvalsEvaluation();
+    $request = approvalsPending($evaluation);
+
+    approvalsAct($request, 'return', 'Missing quotation attachment.', $this->firstApprover)->assertOk();
+
+    approvalsSubmit($evaluation, approvalsAssignees())
+        ->assertStatus(201)
+        ->assertJsonPath('data.status', 'pending');
+
+    expect(ApprovalRequest::query()->count())->toBe(2)
+        ->and($evaluation->fresh()->status)->toBe('in_review');
+});
+
 it('forbids acting when you are not the current assignee', function () {
     $request = approvalsPending(approvalsEvaluation());
 

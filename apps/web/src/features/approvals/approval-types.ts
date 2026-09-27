@@ -1,3 +1,6 @@
+import { unwrapWithMeta, withAuth } from "@/lib/api-client";
+import { approvalsRequestsIndex } from "@/lib/api/approval-request/approval-request";
+
 export type ApprovalCandidate = {
   id: number;
   name: string;
@@ -85,6 +88,25 @@ export type ApprovalRequestView = {
 };
 
 export const EVALUATION_SUBJECT = "evaluation";
+
+/**
+ * Every approval round ever submitted for a document, newest first —
+ * the shared queryFn behind ["approvals","requests","subject",type,id],
+ * so return/reject/resubmit cycles stay visible as one audit trail.
+ */
+export async function fetchApprovalRounds(
+  subjectType: string,
+  subjectId: string
+): Promise<ApprovalRequestView[]> {
+  const envelope = unwrapWithMeta<unknown>(
+    await approvalsRequestsIndex(
+      { subject_type: subjectType, subject_id: subjectId, per_page: 100 },
+      withAuth()
+    )
+  );
+  const rows = (envelope.data ?? []) as unknown[];
+  return rows.map((row) => parseApprovalRequest(row));
+}
 
 type FlowWithSteps = {
   setting?: { subjectType: string };

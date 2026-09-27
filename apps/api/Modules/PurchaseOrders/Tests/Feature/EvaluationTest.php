@@ -352,6 +352,28 @@ it('rejects a single quotation with a 422 envelope', function () {
     expect(Evaluation::query()->count())->toBe(0);
 });
 
+it('rejects more than three quotations with a 422 envelope', function () {
+    $payload = evaluationPayload();
+    foreach ([[3, 'Third Supplier'], [4, 'Fourth Supplier']] as $extra) {
+        $quotation = $payload['quotations'][$extra[0] - 3];
+        $quotation['supplier_code'] = 'SUP-000'.$extra[0];
+        $quotation['supplier_name'] = $extra[1];
+        foreach ($quotation['lines'] as $line) {
+            $line['is_selected'] = false;
+        }
+        $payload['quotations'][] = $quotation;
+    }
+
+    $response = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/purchase-orders/evaluations', $payload)
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
+
+    expect($response->json('errors'))->toHaveKey('quotations')
+        ->and(Evaluation::query()->count())->toBe(0);
+});
+
 it('rejects an item without any selected winning line', function () {
     $payload = evaluationPayload();
     $payload['quotations'][0]['lines'][0]['is_selected'] = false;

@@ -167,10 +167,13 @@ function useEvaluationColumns({
                   <Eye className="mr-2 size-4" />
                   {tt("view")}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onEditRequest(evaluation)}>
-                  <Pencil className="mr-2 size-4" />
-                  {tt("edit")}
-                </DropdownMenuItem>
+                {evaluation.status === "approved" ||
+                evaluation.status === "rejected" ? null : (
+                  <DropdownMenuItem onClick={() => onEditRequest(evaluation)}>
+                    <Pencil className="mr-2 size-4" />
+                    {tt("edit")}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive"
