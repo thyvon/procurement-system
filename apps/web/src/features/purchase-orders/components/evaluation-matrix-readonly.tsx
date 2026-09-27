@@ -243,7 +243,7 @@ export function EvaluationMatrixReadOnly({
                 className={key === "grandTotal" ? "border-t-2 border-border" : undefined}
               >
                 <td className={`${cell} bg-muted/20`} colSpan={5}>
-                  <div className="flex items-center justify-end gap-2 pr-2 text-xs font-medium">
+                  <div className="flex items-center justify-end gap-2 pr-2 text-xs font-bold">
                     <span>{t(key)}</span>
                   </div>
                 </td>
@@ -267,7 +267,7 @@ export function EvaluationMatrixReadOnly({
                   return (
                     <td key={`${key}-${qIndex}`} className={cell} colSpan={3}>
                       <div
-                        className={`flex h-7 items-center justify-end text-xs tabular-nums${strong ? " font-semibold" : ""}`}
+                        className={`flex h-7 items-center justify-end text-xs tabular-nums${strong ? " font-bold" : ""}`}
                       >
                         {hasValue ? formatMoney(amount, currency) : "—"}
                       </div>

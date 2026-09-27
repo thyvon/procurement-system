@@ -157,7 +157,7 @@ export const headCell =
   "border border-border bg-muted/60 px-2 py-1 text-left text-xs font-medium";
 export const bodyCell = "border border-border p-1 align-top text-xs";
 export const criteriaLabelCell =
-  "border-y border-border bg-muted/40 px-2 py-1 text-left text-xs font-medium";
+  "border-y border-border bg-muted/40 px-2 py-1 text-left text-xs font-bold";
 
 export const DESCRIPTION_WIDTH = 400;
 
@@ -659,7 +659,7 @@ export function EvaluationMatrix({
                 className={key === "grandTotal" ? "border-t-2 border-border" : undefined}
               >
                 <td className={`${bodyCell} bg-muted/20`} colSpan={5}>
-                  <div className="flex items-center justify-between gap-2 pr-2 text-xs font-medium">
+                  <div className="flex items-center justify-between gap-2 pr-2 text-xs font-bold">
                     {key === "subTotal" ? (
                       <Button
                         type="button"
@@ -684,7 +684,7 @@ export function EvaluationMatrix({
                     return (
                       <td key={`${key}-${qIndex}`} className={bodyCell} colSpan={4}>
                         <div
-                          className={`flex h-7 items-center justify-end text-xs tabular-nums${strong ? " font-semibold" : ""}`}
+                          className={`flex h-7 items-center justify-end text-xs tabular-nums${strong ? " font-bold" : ""}`}
                         >
                           {formatMoney(amount, currency)}
                         </div>
