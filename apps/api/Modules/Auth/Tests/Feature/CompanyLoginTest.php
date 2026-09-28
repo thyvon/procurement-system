@@ -219,6 +219,31 @@ it('applies the company userPhoto as an sso avatar on first login', function () 
         ->and($data['user']['avatar'])->toBe(Storage::disk('public')->url($path));
 });
 
+it('replaces the previous sso avatar file when the company photo changes', function () {
+    Storage::fake('public');
+
+    fakeCompanyLoginWith(
+        Http::sequence()
+            ->push(companyLoginSuccessPayload())
+            ->push(companyLoginSuccessPayload(['userPhoto' => companySignatureDataUri()])),
+        Http::response(companyMyInfoPayload()),
+    );
+
+    postCompanyLogin()->assertOk();
+
+    $user = User::query()->where('email', 'vun.thy@mjqeducation.edu.kh')->firstOrFail();
+    $firstPath = $user->avatar_path;
+
+    postCompanyLogin()->assertOk();
+
+    $secondPath = $user->refresh()->avatar_path;
+
+    expect($secondPath)->not->toBe($firstPath)
+        ->and(Storage::disk('public')->exists($secondPath))->toBeTrue()
+        ->and(Storage::disk('public')->exists($firstPath))->toBeFalse()
+        ->and(Storage::disk('public')->allFiles('avatars'))->toBe([$secondPath]);
+});
+
 it('never overwrites a manually uploaded avatar with the company photo', function () {
     Storage::fake('public');
 
@@ -310,6 +335,27 @@ it('stores the company signature as an sso file on login and exposes it through 
         ->getJson('/api/v1/auth/me')
         ->assertOk()
         ->assertJsonPath('data.signature', Storage::disk('public')->url($path));
+});
+
+it('never overwrites a manually uploaded signature with the company signature', function () {
+    Storage::fake('public');
+
+    $existing = User::factory()->create(['email' => 'vun.thy@mjqeducation.edu.kh']);
+
+    $manualPath = 'signatures/user_'.$existing->getKey().'_manual.png';
+    Storage::disk('public')->put($manualPath, 'manual-upload-bytes');
+    $existing->update(['signature_path' => $manualPath]);
+
+    fakeCompanyLoginWith(
+        Http::response(companyLoginSuccessPayload()),
+        Http::response(companyMyInfoPayload()),
+    );
+
+    postCompanyLogin()->assertOk();
+
+    expect($existing->refresh()->signature_path)->toBe($manualPath)
+        ->and(Storage::disk('public')->exists($manualPath))->toBeTrue()
+        ->and(Storage::disk('public')->allFiles('signatures'))->toBe([$manualPath]);
 });
 
 it('refreshes the signature on later logins, keeps superseded files, and keeps it when getMyInfo omits it', function () {
