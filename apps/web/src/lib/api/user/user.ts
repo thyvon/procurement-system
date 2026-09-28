@@ -28,8 +28,10 @@ import type {
   ModelNotFoundExceptionResponse,
   StoreUserRequest,
   UpdateAvatarRequest,
+  UpdateSignatureRequest,
   UpdateUserRequest,
   UsersAvatar200,
+  UsersSignature200,
   UsersUsersDestroy200,
   UsersUsersIndex200,
   UsersUsersShow200,
@@ -963,6 +965,150 @@ export function useUsersAvatar<TData = Awaited<ReturnType<typeof usersAvatar>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getUsersAvatarQueryOptions(user,updateAvatarRequest,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type usersSignatureResponse200 = {
+  data: UsersSignature200
+  status: 200
+}
+
+export type usersSignatureResponse401 = {
+  data: AuthenticationExceptionResponse
+  status: 401
+}
+
+export type usersSignatureResponse403 = {
+  data: AuthorizationExceptionResponse
+  status: 403
+}
+
+export type usersSignatureResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
+export type usersSignatureResponse422 = {
+  data: ValidationExceptionResponse
+  status: 422
+}
+
+export type usersSignatureResponseSuccess = (usersSignatureResponse200) & {
+  headers: Headers;
+};
+export type usersSignatureResponseError = (usersSignatureResponse401 | usersSignatureResponse403 | usersSignatureResponse404 | usersSignatureResponse422) & {
+  headers: Headers;
+};
+
+export type usersSignatureResponse = (usersSignatureResponseSuccess | usersSignatureResponseError)
+
+export const getUsersSignatureUrl = (user: number,) => {
+
+
+
+
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/${user}/signature`
+}
+
+export const usersSignature = async (user: number,
+    updateSignatureRequest: UpdateSignatureRequest, options?: RequestInit): Promise<usersSignatureResponse> => {
+    const formData = new FormData();
+formData.append(`image`, updateSignatureRequest.image);
+
+  const res = await fetch(getUsersSignatureUrl(user),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: usersSignatureResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as usersSignatureResponse
+}
+
+
+
+
+
+export const getUsersSignatureQueryKey = (user: number,
+    updateSignatureRequest?: UpdateSignatureRequest,) => {
+    return [
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/${user}/signature`, updateSignatureRequest
+    ] as const;
+    }
+
+
+export const getUsersSignatureQueryOptions = <TData = Awaited<ReturnType<typeof usersSignature>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(user: number,
+    updateSignatureRequest: UpdateSignatureRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersSignature>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getUsersSignatureQueryKey(user,updateSignatureRequest);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof usersSignature>>> = ({ signal }) => usersSignature(user,updateSignatureRequest, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: user !== null && user !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof usersSignature>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type UsersSignatureQueryResult = NonNullable<Awaited<ReturnType<typeof usersSignature>>>
+export type UsersSignatureQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse
+
+
+export function useUsersSignature<TData = Awaited<ReturnType<typeof usersSignature>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ user: number,
+    updateSignatureRequest: UpdateSignatureRequest, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersSignature>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersSignature>>,
+          TError,
+          Awaited<ReturnType<typeof usersSignature>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useUsersSignature<TData = Awaited<ReturnType<typeof usersSignature>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ user: number,
+    updateSignatureRequest: UpdateSignatureRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersSignature>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersSignature>>,
+          TError,
+          Awaited<ReturnType<typeof usersSignature>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useUsersSignature<TData = Awaited<ReturnType<typeof usersSignature>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ user: number,
+    updateSignatureRequest: UpdateSignatureRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersSignature>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useUsersSignature<TData = Awaited<ReturnType<typeof usersSignature>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse | ValidationExceptionResponse>(
+ user: number,
+    updateSignatureRequest: UpdateSignatureRequest, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersSignature>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getUsersSignatureQueryOptions(user,updateSignatureRequest,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

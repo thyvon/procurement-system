@@ -4,6 +4,7 @@ namespace Modules\Users\Services;
 
 use App\Models\User;
 use App\Support\DataUri;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -27,6 +28,23 @@ class SignatureService
     ];
 
     /**
+     * Replace the signature with a file uploaded by the user or an admin.
+     *
+     * Previous files are deliberately kept (unlike avatars): approval
+     * snapshots freeze signature_path at submit time, so historical
+     * documents must keep resolving the file they were printed with.
+     */
+    public function replaceWithUpload(User $user, UploadedFile $file): void
+    {
+        $ext = self::ALLOWED_MIME_EXT[$file->getMimeType() ?? ''] ?? 'jpg';
+        $name = sprintf('user_%d_%s.%s', $user->getKey(), Str::lower(Str::random(12)), $ext);
+
+        $path = $file->storeAs(self::DIRECTORY, $name, self::DISK);
+
+        $user->update(['signature_path' => $path]);
+    }
+
+    /**
      * Apply the company (E-Purchase) signature.
      *
      * Invalid or oversized payloads are skipped silently: the signature is
@@ -47,6 +65,12 @@ class SignatureService
         }
 
         $current = $user->signature_path;
+
+        // A manually uploaded signature wins over the company one, exactly
+        // like avatars: a later login must never overwrite the user's own.
+        if ($current !== null && str_starts_with(basename($current), 'user_')) {
+            return;
+        }
 
         if ($current !== null
             && Storage::disk(self::DISK)->exists($current)

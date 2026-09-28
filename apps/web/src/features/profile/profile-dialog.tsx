@@ -4,7 +4,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { usersAvatar, usersUsersUpdate } from "@/lib/api/user/user";
+import {
+  usersAvatar,
+  usersSignature,
+  usersUsersUpdate,
+} from "@/lib/api/user/user";
 import type { UserResource } from "@/lib/api/model";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { RequiredMark } from "@/components/required-mark";
@@ -42,6 +46,7 @@ export function ProfileDialog({ user, open, onOpenChange }: Props) {
   const [position, setPosition] = useState(user.position ?? "");
   const [password, setPassword] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [signatureFile, setSignatureFile] = useState<File | null>(null);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -69,6 +74,12 @@ export function ProfileDialog({ user, open, onOpenChange }: Props) {
         );
       }
 
+      if (signatureFile) {
+        unwrap<UserResource>(
+          await usersSignature(user.id, { image: signatureFile }, withAuth())
+        );
+      }
+
       return updated;
     },
     onSuccess: () => {
@@ -76,6 +87,7 @@ export function ProfileDialog({ user, open, onOpenChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success(t("updated"));
       setFile(null);
+      setSignatureFile(null);
       setPassword("");
       onOpenChange(false);
     },
@@ -88,6 +100,7 @@ export function ProfileDialog({ user, open, onOpenChange }: Props) {
       setPosition(user.position ?? "");
       setPassword("");
       setFile(null);
+      setSignatureFile(null);
     } else {
       saveMutation.reset();
     }
@@ -189,6 +202,41 @@ export function ProfileDialog({ user, open, onOpenChange }: Props) {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {t("photoHint")}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Label
+                htmlFor="signature-file"
+                className="w-28 shrink-0 pt-1.5 text-left after:ml-1 after:content-[':']"
+              >
+                {t("changeSignature")}
+              </Label>
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="flex items-center gap-3">
+                  {user.signature ? (
+                    <img
+                      src={user.signature}
+                      alt=""
+                      className="h-10 w-24 shrink-0 rounded-md border border-border bg-background object-contain p-1"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-24 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-center text-xs text-muted-foreground">
+                      —
+                    </div>
+                  )}
+                  <Input
+                    id="signature-file"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="flex-1"
+                    onChange={(e) =>
+                      setSignatureFile(e.target.files?.[0] ?? null)
+                    }
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t("signatureHint")}
                 </p>
               </div>
             </div>

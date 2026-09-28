@@ -466,6 +466,8 @@
     "passwordPlaceholder": "ទុកឲ្យនៅទំនេរដើម្បីរក្សាពាក្យសម្ងាត់បច្ចុប្បន្ន",
     "changePhoto": "រូបភាពប្រវត្តិរូប",
     "photoHint": "JPG, PNG ឬ WebP។ អតិបរមា 2 MB។",
+    "changeSignature": "ហត្ថលេខា",
+    "signatureHint": "បោះពុម្ពនៅលើឯកសារអនុម័ត។ JPG, PNG ឬ WebP។ អតិបរមា 2 MB។",
     "cancel": "បោះបង់",
     "save": "រក្សាទុក",
     "saving": "កំពុងរក្សាទុក...",

@@ -11,9 +11,11 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Modules\Approvals\Services\TocaEntryService;
 use Modules\Users\Http\Requests\StoreUserRequest;
 use Modules\Users\Http\Requests\UpdateAvatarRequest;
+use Modules\Users\Http\Requests\UpdateSignatureRequest;
 use Modules\Users\Http\Requests\UpdateUserRequest;
 use Modules\Users\Repositories\UserRepositoryInterface;
 use Modules\Users\Services\AvatarService;
+use Modules\Users\Services\SignatureService;
 use Modules\Users\Services\UserRoleService;
 
 class UserController extends Controller
@@ -22,6 +24,7 @@ class UserController extends Controller
         private readonly UserRepositoryInterface $users,
         private readonly UserRoleService $roles,
         private readonly AvatarService $avatars,
+        private readonly SignatureService $signatures,
         private readonly TocaEntryService $toca,
     ) {}
 
@@ -102,6 +105,15 @@ class UserController extends Controller
         $this->authorize('update', $user);
 
         $this->avatars->replaceWithUpload($user, $request->file('image'));
+
+        return new UserResource($user->refresh());
+    }
+
+    public function updateSignature(UpdateSignatureRequest $request, User $user): UserResource
+    {
+        $this->authorize('update', $user);
+
+        $this->signatures->replaceWithUpload($user, $request->file('image'));
 
         return new UserResource($user->refresh());
     }

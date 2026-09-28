@@ -13,6 +13,7 @@ Route::prefix('v1/users')
             ->parameters(['' => 'user'])
             ->names('users');
         Route::post('/{user}/avatar', [UserController::class, 'updateAvatar'])->name('avatar');
+        Route::post('/{user}/signature', [UserController::class, 'updateSignature'])->name('signature');
     });
 
 Route::prefix('v1/roles')

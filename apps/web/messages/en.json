@@ -466,6 +466,8 @@
     "passwordPlaceholder": "Leave blank to keep current password",
     "changePhoto": "Profile photo",
     "photoHint": "JPG, PNG or WebP. Max 2 MB.",
+    "changeSignature": "Signature",
+    "signatureHint": "Printed on approval sheets. JPG, PNG or WebP. Max 2 MB.",
     "cancel": "Cancel",
     "save": "Save",
     "saving": "Saving...",
