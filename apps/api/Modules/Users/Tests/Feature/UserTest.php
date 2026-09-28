@@ -87,6 +87,26 @@ it('updates name and roles of a same-entity user', function () {
         ->assertJsonPath('data.roles.0', 'admin');
 });
 
+it('lets a user update their own profile details', function () {
+    $this->actingAs($this->staffA, 'sanctum')
+        ->patchJson("/api/v1/users/{$this->staffA->getKey()}", [
+            'name' => 'Renamed Me',
+            'email' => 'renamed.me@test.local',
+            'position' => 'Procurement Officer',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.name', 'Renamed Me')
+        ->assertJsonPath('data.position', 'Procurement Officer');
+
+    expect($this->staffA->refresh()->position)->toBe('Procurement Officer');
+
+    // An empty position clears it instead of failing validation.
+    $this->actingAs($this->staffA, 'sanctum')
+        ->patchJson("/api/v1/users/{$this->staffA->getKey()}", ['position' => null])
+        ->assertOk()
+        ->assertJsonPath('data.position', null);
+});
+
 it('rejects weak passwords and duplicate emails with 422 envelope', function () {
     $response = $this->actingAs($this->adminA, 'sanctum')
         ->postJson('/api/v1/users', [

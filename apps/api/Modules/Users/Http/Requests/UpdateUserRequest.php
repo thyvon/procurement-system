@@ -23,6 +23,7 @@ class UpdateUserRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'password' => ['sometimes', 'string', 'min:10'],
+            'position' => ['sometimes', 'nullable', 'string', 'max:255'],
             'is_active' => ['sometimes', 'boolean'],
             'roles' => ['sometimes', 'array'],
             'roles.*' => ['string', Rule::exists('roles', 'name')->where('guard_name', 'sanctum')],

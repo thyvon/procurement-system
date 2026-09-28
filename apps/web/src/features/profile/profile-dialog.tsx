@@ -3,9 +3,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { usersAvatar } from "@/lib/api/user/user";
+import { toast } from "sonner";
+import { usersAvatar, usersUsersUpdate } from "@/lib/api/user/user";
 import type { UserResource } from "@/lib/api/model";
 import { unwrap, withAuth } from "@/lib/api-client";
+import { RequiredMark } from "@/components/required-mark";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,25 +37,64 @@ const initialsOf = (name: string) =>
 export function ProfileDialog({ user, open, onOpenChange }: Props) {
   const t = useTranslations("profile");
   const queryClient = useQueryClient();
+  const [name, setName] = useState(user.name);
+  const [email, setEmail] = useState(user.email);
+  const [position, setPosition] = useState(user.position ?? "");
+  const [password, setPassword] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
-  const uploadMutation = useMutation({
-    mutationFn: async (image: File) =>
-      unwrap<UserResource>(await usersAvatar(user.id, { image }, withAuth())),
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const payload: {
+        name: string;
+        email: string;
+        position: string | null;
+        password?: string;
+      } = {
+        name: name.trim(),
+        email: email.trim(),
+        position: position.trim() || null,
+      };
+      if (password.trim()) {
+        payload.password = password;
+      }
+
+      const updated = unwrap<UserResource>(
+        await usersUsersUpdate(user.id, payload, withAuth())
+      );
+
+      if (file) {
+        unwrap<UserResource>(
+          await usersAvatar(user.id, { image: file }, withAuth())
+        );
+      }
+
+      return updated;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["me"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success(t("updated"));
       setFile(null);
+      setPassword("");
       onOpenChange(false);
     },
   });
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) {
+    if (next) {
+      setName(user.name);
+      setEmail(user.email);
+      setPosition(user.position ?? "");
+      setPassword("");
       setFile(null);
-      uploadMutation.reset();
+    } else {
+      saveMutation.reset();
     }
     onOpenChange(next);
   };
+
+  const canSave = name.trim() !== "" && email.trim() !== "";
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -62,40 +103,110 @@ export function ProfileDialog({ user, open, onOpenChange }: Props) {
           <DialogTitle>{t("title")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 text-sm">
-          <div className="flex items-center gap-4">
-            <Avatar className="size-16">
-              {user.avatar && <AvatarImage src={user.avatar} alt="" />}
-              <AvatarFallback>{initialsOf(user.name)}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <div className="truncate font-medium">{user.name}</div>
-              <div className="truncate text-muted-foreground">{user.email}</div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Label
+                htmlFor="profile-name"
+                className="w-28 shrink-0 text-left after:ml-1 after:content-[':']"
+              >
+                {t("name")} <RequiredMark />
+              </Label>
+              <Input
+                id="profile-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="flex-1"
+              />
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="avatar-file">{t("changePhoto")}</Label>
-            <Input
-              id="avatar-file"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            />
-            <p className="text-xs text-muted-foreground">{t("photoHint")}</p>
+            <div className="flex items-center gap-3">
+              <Label
+                htmlFor="profile-email"
+                className="w-28 shrink-0 text-left after:ml-1 after:content-[':']"
+              >
+                {t("email")} <RequiredMark />
+              </Label>
+              <Input
+                id="profile-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Label
+                htmlFor="profile-position"
+                className="w-28 shrink-0 text-left after:ml-1 after:content-[':']"
+              >
+                {t("position")}
+              </Label>
+              <Input
+                id="profile-position"
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Label
+                htmlFor="profile-password"
+                className="w-28 shrink-0 text-left after:ml-1 after:content-[':']"
+              >
+                {t("password")}
+              </Label>
+              <Input
+                id="profile-password"
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={t("passwordPlaceholder")}
+                className="flex-1"
+              />
+            </div>
+            <div className="flex items-start gap-3">
+              <Label
+                htmlFor="avatar-file"
+                className="w-28 shrink-0 pt-1.5 text-left after:ml-1 after:content-[':']"
+              >
+                {t("changePhoto")}
+              </Label>
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="flex items-center gap-3">
+                  <Avatar className="size-10 shrink-0">
+                    {user.avatar && <AvatarImage src={user.avatar} alt="" />}
+                    <AvatarFallback className="text-xs">
+                      {initialsOf(user.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <Input
+                    id="avatar-file"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="flex-1"
+                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t("photoHint")}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
         <DialogFooter>
           <Button
             variant="outline"
             onClick={() => handleOpenChange(false)}
-            disabled={uploadMutation.isPending}
+            disabled={saveMutation.isPending}
           >
             {t("cancel")}
           </Button>
           <Button
-            disabled={!file || uploadMutation.isPending}
-            onClick={() => file && uploadMutation.mutate(file)}
+            disabled={!canSave || saveMutation.isPending}
+            onClick={() => saveMutation.mutate()}
           >
-            {uploadMutation.isPending ? t("uploading") : t("upload")}
+            {saveMutation.isPending ? t("saving") : t("save")}
           </Button>
         </DialogFooter>
       </DialogContent>
