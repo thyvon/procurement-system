@@ -84,7 +84,7 @@ export const getApprovalsFlowsIndexUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/approvals/flows`
+  return `https://procurement.systemsolution.online/api/v1/approvals/flows`
 }
 
 export const approvalsFlowsIndex = async ( options?: RequestInit): Promise<approvalsFlowsIndexResponse> => {
@@ -111,7 +111,7 @@ export const approvalsFlowsIndex = async ( options?: RequestInit): Promise<appro
 
 export const getApprovalsFlowsIndexQueryKey = () => {
     return [
-    `http://localhost:8000/api/v1/approvals/flows`
+    `https://procurement.systemsolution.online/api/v1/approvals/flows`
     ] as const;
     }
 
@@ -266,7 +266,7 @@ export const getApprovalsFlowsStoreUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/approvals/flows`
+  return `https://procurement.systemsolution.online/api/v1/approvals/flows`
 }
 
 export const approvalsFlowsStore = async (storeApprovalFlowRequest: StoreApprovalFlowRequest, options?: RequestInit): Promise<approvalsFlowsStoreResponse> => {
@@ -299,7 +299,7 @@ const res = await fetch(getApprovalsFlowsStoreUrl(),
 
 export const getApprovalsFlowsStoreQueryKey = (storeApprovalFlowRequest?: StoreApprovalFlowRequest,) => {
     return [
-    'POST', `http://localhost:8000/api/v1/approvals/flows`, storeApprovalFlowRequest
+    'POST', `https://procurement.systemsolution.online/api/v1/approvals/flows`, storeApprovalFlowRequest
     ] as const;
     }
 
@@ -402,7 +402,7 @@ export const getApprovalsFlowsShowUrl = (flow: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/approvals/flows/${flow}`
+  return `https://procurement.systemsolution.online/api/v1/approvals/flows/${flow}`
 }
 
 export const approvalsFlowsShow = async (flow: string, options?: RequestInit): Promise<approvalsFlowsShowResponse> => {
@@ -429,7 +429,7 @@ export const approvalsFlowsShow = async (flow: string, options?: RequestInit): P
 
 export const getApprovalsFlowsShowQueryKey = (flow: string,) => {
     return [
-    `http://localhost:8000/api/v1/approvals/flows/${flow}`
+    `https://procurement.systemsolution.online/api/v1/approvals/flows/${flow}`
     ] as const;
     }
 
@@ -589,7 +589,7 @@ export const getApprovalsFlowsUpdateUrl = (flow: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/approvals/flows/${flow}`
+  return `https://procurement.systemsolution.online/api/v1/approvals/flows/${flow}`
 }
 
 export const approvalsFlowsUpdate = async (flow: string,
@@ -624,7 +624,7 @@ const res = await fetch(getApprovalsFlowsUpdateUrl(flow),
 export const getApprovalsFlowsUpdateQueryKey = (flow: string,
     updateApprovalFlowRequest?: UpdateApprovalFlowRequest,) => {
     return [
-    'PUT', `http://localhost:8000/api/v1/approvals/flows/${flow}`, updateApprovalFlowRequest
+    'PUT', `https://procurement.systemsolution.online/api/v1/approvals/flows/${flow}`, updateApprovalFlowRequest
     ] as const;
     }
 
@@ -732,7 +732,7 @@ export const getApprovalsFlowsDestroyUrl = (flow: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/approvals/flows/${flow}`
+  return `https://procurement.systemsolution.online/api/v1/approvals/flows/${flow}`
 }
 
 export const approvalsFlowsDestroy = async (flow: string, options?: RequestInit): Promise<approvalsFlowsDestroyResponse> => {
@@ -759,7 +759,7 @@ export const approvalsFlowsDestroy = async (flow: string, options?: RequestInit)
 
 export const getApprovalsFlowsDestroyQueryKey = (flow: string,) => {
     return [
-    'DELETE', `http://localhost:8000/api/v1/approvals/flows/${flow}`
+    'DELETE', `https://procurement.systemsolution.online/api/v1/approvals/flows/${flow}`
     ] as const;
     }
 

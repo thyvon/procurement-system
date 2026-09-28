@@ -70,7 +70,7 @@ export const getProductsRefsUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/products/refs`
+  return `https://procurement.systemsolution.online/api/v1/products/refs`
 }
 
 export const productsRefs = async ( options?: RequestInit): Promise<productsRefsResponse> => {
@@ -97,7 +97,7 @@ export const productsRefs = async ( options?: RequestInit): Promise<productsRefs
 
 export const getProductsRefsQueryKey = () => {
     return [
-    `http://localhost:8000/api/v1/products/refs`
+    `https://procurement.systemsolution.online/api/v1/products/refs`
     ] as const;
     }
 

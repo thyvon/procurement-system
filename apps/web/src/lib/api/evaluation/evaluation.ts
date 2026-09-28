@@ -97,7 +97,7 @@ export const getPurchaseOrdersEvaluationsIndexUrl = (params?: PurchaseOrdersEval
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `http://localhost:8000/api/v1/purchase-orders/evaluations?${stringifiedParams}` : `http://localhost:8000/api/v1/purchase-orders/evaluations`
+  return stringifiedParams.length > 0 ? `https://procurement.systemsolution.online/api/v1/purchase-orders/evaluations?${stringifiedParams}` : `https://procurement.systemsolution.online/api/v1/purchase-orders/evaluations`
 }
 
 export const purchaseOrdersEvaluationsIndex = async (params?: PurchaseOrdersEvaluationsIndexParams, options?: RequestInit): Promise<purchaseOrdersEvaluationsIndexResponse> => {
@@ -124,7 +124,7 @@ export const purchaseOrdersEvaluationsIndex = async (params?: PurchaseOrdersEval
 
 export const getPurchaseOrdersEvaluationsIndexQueryKey = (params?: PurchaseOrdersEvaluationsIndexParams,) => {
     return [
-    `http://localhost:8000/api/v1/purchase-orders/evaluations`, ...(params ? [params] : [])
+    `https://procurement.systemsolution.online/api/v1/purchase-orders/evaluations`, ...(params ? [params] : [])
     ] as const;
     }
 
@@ -279,7 +279,7 @@ export const getPurchaseOrdersEvaluationsStoreUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/purchase-orders/evaluations`
+  return `https://procurement.systemsolution.online/api/v1/purchase-orders/evaluations`
 }
 
 export const purchaseOrdersEvaluationsStore = async (storeEvaluationRequest: StoreEvaluationRequest, options?: RequestInit): Promise<purchaseOrdersEvaluationsStoreResponse> => {
@@ -312,7 +312,7 @@ const res = await fetch(getPurchaseOrdersEvaluationsStoreUrl(),
 
 export const getPurchaseOrdersEvaluationsStoreQueryKey = (storeEvaluationRequest?: StoreEvaluationRequest,) => {
     return [
-    'POST', `http://localhost:8000/api/v1/purchase-orders/evaluations`, storeEvaluationRequest
+    'POST', `https://procurement.systemsolution.online/api/v1/purchase-orders/evaluations`, storeEvaluationRequest
     ] as const;
     }
 
@@ -415,7 +415,7 @@ export const getPurchaseOrdersEvaluationsShowUrl = (evaluation: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/purchase-orders/evaluations/${evaluation}`
+  return `https://procurement.systemsolution.online/api/v1/purchase-orders/evaluations/${evaluation}`
 }
 
 export const purchaseOrdersEvaluationsShow = async (evaluation: string, options?: RequestInit): Promise<purchaseOrdersEvaluationsShowResponse> => {
@@ -442,7 +442,7 @@ export const purchaseOrdersEvaluationsShow = async (evaluation: string, options?
 
 export const getPurchaseOrdersEvaluationsShowQueryKey = (evaluation: string,) => {
     return [
-    `http://localhost:8000/api/v1/purchase-orders/evaluations/${evaluation}`
+    `https://procurement.systemsolution.online/api/v1/purchase-orders/evaluations/${evaluation}`
     ] as const;
     }
 
@@ -602,7 +602,7 @@ export const getPurchaseOrdersEvaluationsUpdateUrl = (evaluation: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/purchase-orders/evaluations/${evaluation}`
+  return `https://procurement.systemsolution.online/api/v1/purchase-orders/evaluations/${evaluation}`
 }
 
 export const purchaseOrdersEvaluationsUpdate = async (evaluation: string,
@@ -637,7 +637,7 @@ const res = await fetch(getPurchaseOrdersEvaluationsUpdateUrl(evaluation),
 export const getPurchaseOrdersEvaluationsUpdateQueryKey = (evaluation: string,
     updateEvaluationRequest?: UpdateEvaluationRequest,) => {
     return [
-    'PUT', `http://localhost:8000/api/v1/purchase-orders/evaluations/${evaluation}`, updateEvaluationRequest
+    'PUT', `https://procurement.systemsolution.online/api/v1/purchase-orders/evaluations/${evaluation}`, updateEvaluationRequest
     ] as const;
     }
 
@@ -745,7 +745,7 @@ export const getPurchaseOrdersEvaluationsDestroyUrl = (evaluation: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/purchase-orders/evaluations/${evaluation}`
+  return `https://procurement.systemsolution.online/api/v1/purchase-orders/evaluations/${evaluation}`
 }
 
 export const purchaseOrdersEvaluationsDestroy = async (evaluation: string, options?: RequestInit): Promise<purchaseOrdersEvaluationsDestroyResponse> => {
@@ -772,7 +772,7 @@ export const purchaseOrdersEvaluationsDestroy = async (evaluation: string, optio
 
 export const getPurchaseOrdersEvaluationsDestroyQueryKey = (evaluation: string,) => {
     return [
-    'DELETE', `http://localhost:8000/api/v1/purchase-orders/evaluations/${evaluation}`
+    'DELETE', `https://procurement.systemsolution.online/api/v1/purchase-orders/evaluations/${evaluation}`
     ] as const;
     }
 

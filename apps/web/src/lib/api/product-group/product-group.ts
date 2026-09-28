@@ -78,7 +78,7 @@ export const getProductsGroupsIndexUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/products/groups`
+  return `https://procurement.systemsolution.online/api/v1/products/groups`
 }
 
 export const productsGroupsIndex = async ( options?: RequestInit): Promise<productsGroupsIndexResponse> => {
@@ -105,7 +105,7 @@ export const productsGroupsIndex = async ( options?: RequestInit): Promise<produ
 
 export const getProductsGroupsIndexQueryKey = () => {
     return [
-    `http://localhost:8000/api/v1/products/groups`
+    `https://procurement.systemsolution.online/api/v1/products/groups`
     ] as const;
     }
 
@@ -255,7 +255,7 @@ export const getProductsGroupsStoreUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/products/groups`
+  return `https://procurement.systemsolution.online/api/v1/products/groups`
 }
 
 export const productsGroupsStore = async (storeProductGroupRequest: StoreProductGroupRequest, options?: RequestInit): Promise<productsGroupsStoreResponse> => {
@@ -288,7 +288,7 @@ const res = await fetch(getProductsGroupsStoreUrl(),
 
 export const getProductsGroupsStoreQueryKey = (storeProductGroupRequest?: StoreProductGroupRequest,) => {
     return [
-    'POST', `http://localhost:8000/api/v1/products/groups`, storeProductGroupRequest
+    'POST', `https://procurement.systemsolution.online/api/v1/products/groups`, storeProductGroupRequest
     ] as const;
     }
 
@@ -391,7 +391,7 @@ export const getProductsGroupsShowUrl = (group: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/products/groups/${group}`
+  return `https://procurement.systemsolution.online/api/v1/products/groups/${group}`
 }
 
 export const productsGroupsShow = async (group: string, options?: RequestInit): Promise<productsGroupsShowResponse> => {
@@ -418,7 +418,7 @@ export const productsGroupsShow = async (group: string, options?: RequestInit): 
 
 export const getProductsGroupsShowQueryKey = (group: string,) => {
     return [
-    `http://localhost:8000/api/v1/products/groups/${group}`
+    `https://procurement.systemsolution.online/api/v1/products/groups/${group}`
     ] as const;
     }
 
@@ -573,7 +573,7 @@ export const getProductsGroupsUpdateUrl = (group: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/products/groups/${group}`
+  return `https://procurement.systemsolution.online/api/v1/products/groups/${group}`
 }
 
 export const productsGroupsUpdate = async (group: string,
@@ -608,7 +608,7 @@ const res = await fetch(getProductsGroupsUpdateUrl(group),
 export const getProductsGroupsUpdateQueryKey = (group: string,
     updateProductGroupRequest?: UpdateProductGroupRequest,) => {
     return [
-    'PUT', `http://localhost:8000/api/v1/products/groups/${group}`, updateProductGroupRequest
+    'PUT', `https://procurement.systemsolution.online/api/v1/products/groups/${group}`, updateProductGroupRequest
     ] as const;
     }
 
@@ -711,7 +711,7 @@ export const getProductsGroupsDestroyUrl = (group: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/products/groups/${group}`
+  return `https://procurement.systemsolution.online/api/v1/products/groups/${group}`
 }
 
 export const productsGroupsDestroy = async (group: string, options?: RequestInit): Promise<productsGroupsDestroyResponse> => {
@@ -738,7 +738,7 @@ export const productsGroupsDestroy = async (group: string, options?: RequestInit
 
 export const getProductsGroupsDestroyQueryKey = (group: string,) => {
     return [
-    'DELETE', `http://localhost:8000/api/v1/products/groups/${group}`
+    'DELETE', `https://procurement.systemsolution.online/api/v1/products/groups/${group}`
     ] as const;
     }
 

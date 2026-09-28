@@ -76,7 +76,7 @@ export const getPermissionsIndexUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/permissions`
+  return `https://procurement.systemsolution.online/api/v1/permissions`
 }
 
 export const permissionsIndex = async ( options?: RequestInit): Promise<permissionsIndexResponse> => {
@@ -103,7 +103,7 @@ export const permissionsIndex = async ( options?: RequestInit): Promise<permissi
 
 export const getPermissionsIndexQueryKey = () => {
     return [
-    `http://localhost:8000/api/v1/permissions`
+    `https://procurement.systemsolution.online/api/v1/permissions`
     ] as const;
     }
 

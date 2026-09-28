@@ -93,7 +93,7 @@ export const getEpurchaseVendorsSearchUrl = (params?: EpurchaseVendorsSearchPara
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `http://localhost:8000/api/v1/epurchase/vendor-search?${stringifiedParams}` : `http://localhost:8000/api/v1/epurchase/vendor-search`
+  return stringifiedParams.length > 0 ? `https://procurement.systemsolution.online/api/v1/epurchase/vendor-search?${stringifiedParams}` : `https://procurement.systemsolution.online/api/v1/epurchase/vendor-search`
 }
 
 /**
@@ -123,7 +123,7 @@ export const epurchaseVendorsSearch = async (params?: EpurchaseVendorsSearchPara
 
 export const getEpurchaseVendorsSearchQueryKey = (params?: EpurchaseVendorsSearchParams,) => {
     return [
-    `http://localhost:8000/api/v1/epurchase/vendor-search`, ...(params ? [params] : [])
+    `https://procurement.systemsolution.online/api/v1/epurchase/vendor-search`, ...(params ? [params] : [])
     ] as const;
     }
 
@@ -284,7 +284,7 @@ export const getEpurchaseVendorsInfoUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/epurchase/vendor-info`
+  return `https://procurement.systemsolution.online/api/v1/epurchase/vendor-info`
 }
 
 /**
@@ -320,7 +320,7 @@ const res = await fetch(getEpurchaseVendorsInfoUrl(),
 
 export const getEpurchaseVendorsInfoQueryKey = (showEPurchaseVendorInfoRequest?: ShowEPurchaseVendorInfoRequest,) => {
     return [
-    'POST', `http://localhost:8000/api/v1/epurchase/vendor-info`, showEPurchaseVendorInfoRequest
+    'POST', `https://procurement.systemsolution.online/api/v1/epurchase/vendor-info`, showEPurchaseVendorInfoRequest
     ] as const;
     }
 

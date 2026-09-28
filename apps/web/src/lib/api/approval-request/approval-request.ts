@@ -106,7 +106,7 @@ export const getApprovalsPreviewUrl = (params: ApprovalsPreviewParams,) => {
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `http://localhost:8000/api/v1/approvals/preview?${stringifiedParams}` : `http://localhost:8000/api/v1/approvals/preview`
+  return stringifiedParams.length > 0 ? `https://procurement.systemsolution.online/api/v1/approvals/preview?${stringifiedParams}` : `https://procurement.systemsolution.online/api/v1/approvals/preview`
 }
 
 export const approvalsPreview = async (params: ApprovalsPreviewParams, options?: RequestInit): Promise<approvalsPreviewResponse> => {
@@ -133,7 +133,7 @@ export const approvalsPreview = async (params: ApprovalsPreviewParams, options?:
 
 export const getApprovalsPreviewQueryKey = (params?: ApprovalsPreviewParams,) => {
     return [
-    `http://localhost:8000/api/v1/approvals/preview`, ...(params ? [params] : [])
+    `https://procurement.systemsolution.online/api/v1/approvals/preview`, ...(params ? [params] : [])
     ] as const;
     }
 
@@ -288,7 +288,7 @@ export const getApprovalsDraftsStoreUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/approvals/drafts`
+  return `https://procurement.systemsolution.online/api/v1/approvals/drafts`
 }
 
 export const approvalsDraftsStore = async (storeApprovalDraftRequest: StoreApprovalDraftRequest, options?: RequestInit): Promise<approvalsDraftsStoreResponse> => {
@@ -321,7 +321,7 @@ const res = await fetch(getApprovalsDraftsStoreUrl(),
 
 export const getApprovalsDraftsStoreQueryKey = (storeApprovalDraftRequest?: StoreApprovalDraftRequest,) => {
     return [
-    'PUT', `http://localhost:8000/api/v1/approvals/drafts`, storeApprovalDraftRequest
+    'PUT', `https://procurement.systemsolution.online/api/v1/approvals/drafts`, storeApprovalDraftRequest
     ] as const;
     }
 
@@ -431,7 +431,7 @@ export const getApprovalsInboxUrl = (params?: ApprovalsInboxParams,) => {
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `http://localhost:8000/api/v1/approvals/inbox?${stringifiedParams}` : `http://localhost:8000/api/v1/approvals/inbox`
+  return stringifiedParams.length > 0 ? `https://procurement.systemsolution.online/api/v1/approvals/inbox?${stringifiedParams}` : `https://procurement.systemsolution.online/api/v1/approvals/inbox`
 }
 
 export const approvalsInbox = async (params?: ApprovalsInboxParams, options?: RequestInit): Promise<approvalsInboxResponse> => {
@@ -458,7 +458,7 @@ export const approvalsInbox = async (params?: ApprovalsInboxParams, options?: Re
 
 export const getApprovalsInboxQueryKey = (params?: ApprovalsInboxParams,) => {
     return [
-    `http://localhost:8000/api/v1/approvals/inbox`, ...(params ? [params] : [])
+    `https://procurement.systemsolution.online/api/v1/approvals/inbox`, ...(params ? [params] : [])
     ] as const;
     }
 
@@ -620,7 +620,7 @@ export const getApprovalsInboxCountUrl = (params?: ApprovalsInboxCountParams,) =
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `http://localhost:8000/api/v1/approvals/inbox/count?${stringifiedParams}` : `http://localhost:8000/api/v1/approvals/inbox/count`
+  return stringifiedParams.length > 0 ? `https://procurement.systemsolution.online/api/v1/approvals/inbox/count?${stringifiedParams}` : `https://procurement.systemsolution.online/api/v1/approvals/inbox/count`
 }
 
 export const approvalsInboxCount = async (params?: ApprovalsInboxCountParams, options?: RequestInit): Promise<approvalsInboxCountResponse> => {
@@ -647,7 +647,7 @@ export const approvalsInboxCount = async (params?: ApprovalsInboxCountParams, op
 
 export const getApprovalsInboxCountQueryKey = (params?: ApprovalsInboxCountParams,) => {
     return [
-    `http://localhost:8000/api/v1/approvals/inbox/count`, ...(params ? [params] : [])
+    `https://procurement.systemsolution.online/api/v1/approvals/inbox/count`, ...(params ? [params] : [])
     ] as const;
     }
 
@@ -809,7 +809,7 @@ export const getApprovalsOutboxUrl = (params?: ApprovalsOutboxParams,) => {
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `http://localhost:8000/api/v1/approvals/outbox?${stringifiedParams}` : `http://localhost:8000/api/v1/approvals/outbox`
+  return stringifiedParams.length > 0 ? `https://procurement.systemsolution.online/api/v1/approvals/outbox?${stringifiedParams}` : `https://procurement.systemsolution.online/api/v1/approvals/outbox`
 }
 
 export const approvalsOutbox = async (params?: ApprovalsOutboxParams, options?: RequestInit): Promise<approvalsOutboxResponse> => {
@@ -836,7 +836,7 @@ export const approvalsOutbox = async (params?: ApprovalsOutboxParams, options?: 
 
 export const getApprovalsOutboxQueryKey = (params?: ApprovalsOutboxParams,) => {
     return [
-    `http://localhost:8000/api/v1/approvals/outbox`, ...(params ? [params] : [])
+    `https://procurement.systemsolution.online/api/v1/approvals/outbox`, ...(params ? [params] : [])
     ] as const;
     }
 
@@ -998,7 +998,7 @@ export const getApprovalsRequestsIndexUrl = (params?: ApprovalsRequestsIndexPara
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `http://localhost:8000/api/v1/approvals/requests?${stringifiedParams}` : `http://localhost:8000/api/v1/approvals/requests`
+  return stringifiedParams.length > 0 ? `https://procurement.systemsolution.online/api/v1/approvals/requests?${stringifiedParams}` : `https://procurement.systemsolution.online/api/v1/approvals/requests`
 }
 
 export const approvalsRequestsIndex = async (params?: ApprovalsRequestsIndexParams, options?: RequestInit): Promise<approvalsRequestsIndexResponse> => {
@@ -1025,7 +1025,7 @@ export const approvalsRequestsIndex = async (params?: ApprovalsRequestsIndexPara
 
 export const getApprovalsRequestsIndexQueryKey = (params?: ApprovalsRequestsIndexParams,) => {
     return [
-    `http://localhost:8000/api/v1/approvals/requests`, ...(params ? [params] : [])
+    `https://procurement.systemsolution.online/api/v1/approvals/requests`, ...(params ? [params] : [])
     ] as const;
     }
 
@@ -1180,7 +1180,7 @@ export const getApprovalsRequestsStoreUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/approvals/requests`
+  return `https://procurement.systemsolution.online/api/v1/approvals/requests`
 }
 
 export const approvalsRequestsStore = async (storeApprovalRequest: StoreApprovalRequest, options?: RequestInit): Promise<approvalsRequestsStoreResponse> => {
@@ -1213,7 +1213,7 @@ const res = await fetch(getApprovalsRequestsStoreUrl(),
 
 export const getApprovalsRequestsStoreQueryKey = (storeApprovalRequest?: StoreApprovalRequest,) => {
     return [
-    'POST', `http://localhost:8000/api/v1/approvals/requests`, storeApprovalRequest
+    'POST', `https://procurement.systemsolution.online/api/v1/approvals/requests`, storeApprovalRequest
     ] as const;
     }
 
@@ -1316,7 +1316,7 @@ export const getApprovalsRequestsShowUrl = (request: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/approvals/requests/${request}`
+  return `https://procurement.systemsolution.online/api/v1/approvals/requests/${request}`
 }
 
 export const approvalsRequestsShow = async (request: string, options?: RequestInit): Promise<approvalsRequestsShowResponse> => {
@@ -1343,7 +1343,7 @@ export const approvalsRequestsShow = async (request: string, options?: RequestIn
 
 export const getApprovalsRequestsShowQueryKey = (request: string,) => {
     return [
-    `http://localhost:8000/api/v1/approvals/requests/${request}`
+    `https://procurement.systemsolution.online/api/v1/approvals/requests/${request}`
     ] as const;
     }
 
@@ -1503,7 +1503,7 @@ export const getApprovalsRequestsActionsUrl = (approval: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/approvals/requests/${approval}/actions`
+  return `https://procurement.systemsolution.online/api/v1/approvals/requests/${approval}/actions`
 }
 
 export const approvalsRequestsActions = async (approval: string,
@@ -1538,7 +1538,7 @@ const res = await fetch(getApprovalsRequestsActionsUrl(approval),
 export const getApprovalsRequestsActionsQueryKey = (approval: string,
     storeApprovalActionRequest?: StoreApprovalActionRequest,) => {
     return [
-    'POST', `http://localhost:8000/api/v1/approvals/requests/${approval}/actions`, storeApprovalActionRequest
+    'POST', `https://procurement.systemsolution.online/api/v1/approvals/requests/${approval}/actions`, storeApprovalActionRequest
     ] as const;
     }
 

@@ -78,7 +78,7 @@ export const getProductsBrandsIndexUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/products/brands`
+  return `https://procurement.systemsolution.online/api/v1/products/brands`
 }
 
 export const productsBrandsIndex = async ( options?: RequestInit): Promise<productsBrandsIndexResponse> => {
@@ -105,7 +105,7 @@ export const productsBrandsIndex = async ( options?: RequestInit): Promise<produ
 
 export const getProductsBrandsIndexQueryKey = () => {
     return [
-    `http://localhost:8000/api/v1/products/brands`
+    `https://procurement.systemsolution.online/api/v1/products/brands`
     ] as const;
     }
 
@@ -255,7 +255,7 @@ export const getProductsBrandsStoreUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/products/brands`
+  return `https://procurement.systemsolution.online/api/v1/products/brands`
 }
 
 export const productsBrandsStore = async (storeBrandRequest: StoreBrandRequest, options?: RequestInit): Promise<productsBrandsStoreResponse> => {
@@ -288,7 +288,7 @@ const res = await fetch(getProductsBrandsStoreUrl(),
 
 export const getProductsBrandsStoreQueryKey = (storeBrandRequest?: StoreBrandRequest,) => {
     return [
-    'POST', `http://localhost:8000/api/v1/products/brands`, storeBrandRequest
+    'POST', `https://procurement.systemsolution.online/api/v1/products/brands`, storeBrandRequest
     ] as const;
     }
 
@@ -391,7 +391,7 @@ export const getProductsBrandsShowUrl = (brand: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/products/brands/${brand}`
+  return `https://procurement.systemsolution.online/api/v1/products/brands/${brand}`
 }
 
 export const productsBrandsShow = async (brand: string, options?: RequestInit): Promise<productsBrandsShowResponse> => {
@@ -418,7 +418,7 @@ export const productsBrandsShow = async (brand: string, options?: RequestInit): 
 
 export const getProductsBrandsShowQueryKey = (brand: string,) => {
     return [
-    `http://localhost:8000/api/v1/products/brands/${brand}`
+    `https://procurement.systemsolution.online/api/v1/products/brands/${brand}`
     ] as const;
     }
 
@@ -573,7 +573,7 @@ export const getProductsBrandsUpdateUrl = (brand: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/products/brands/${brand}`
+  return `https://procurement.systemsolution.online/api/v1/products/brands/${brand}`
 }
 
 export const productsBrandsUpdate = async (brand: string,
@@ -608,7 +608,7 @@ const res = await fetch(getProductsBrandsUpdateUrl(brand),
 export const getProductsBrandsUpdateQueryKey = (brand: string,
     updateBrandRequest?: UpdateBrandRequest,) => {
     return [
-    'PUT', `http://localhost:8000/api/v1/products/brands/${brand}`, updateBrandRequest
+    'PUT', `https://procurement.systemsolution.online/api/v1/products/brands/${brand}`, updateBrandRequest
     ] as const;
     }
 
@@ -711,7 +711,7 @@ export const getProductsBrandsDestroyUrl = (brand: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/products/brands/${brand}`
+  return `https://procurement.systemsolution.online/api/v1/products/brands/${brand}`
 }
 
 export const productsBrandsDestroy = async (brand: string, options?: RequestInit): Promise<productsBrandsDestroyResponse> => {
@@ -738,7 +738,7 @@ export const productsBrandsDestroy = async (brand: string, options?: RequestInit
 
 export const getProductsBrandsDestroyQueryKey = (brand: string,) => {
     return [
-    'DELETE', `http://localhost:8000/api/v1/products/brands/${brand}`
+    'DELETE', `https://procurement.systemsolution.online/api/v1/products/brands/${brand}`
     ] as const;
     }
 

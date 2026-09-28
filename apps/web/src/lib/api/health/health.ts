@@ -58,7 +58,7 @@ export const getHealthUrl = () => {
 
 
 
-  return `http://localhost:8000/api/health`
+  return `https://procurement.systemsolution.online/api/health`
 }
 
 export const health = async ( options?: RequestInit): Promise<healthResponse> => {
@@ -85,7 +85,7 @@ export const health = async ( options?: RequestInit): Promise<healthResponse> =>
 
 export const getHealthQueryKey = () => {
     return [
-    `http://localhost:8000/api/health`
+    `https://procurement.systemsolution.online/api/health`
     ] as const;
     }
 

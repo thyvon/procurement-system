@@ -78,7 +78,7 @@ export const getProductsImportTemplateUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/products/import/template`
+  return `https://procurement.systemsolution.online/api/v1/products/import/template`
 }
 
 export const productsImportTemplate = async ( options?: RequestInit): Promise<productsImportTemplateResponse> => {
@@ -105,7 +105,7 @@ export const productsImportTemplate = async ( options?: RequestInit): Promise<pr
 
 export const getProductsImportTemplateQueryKey = () => {
     return [
-    `http://localhost:8000/api/v1/products/import/template`
+    `https://procurement.systemsolution.online/api/v1/products/import/template`
     ] as const;
     }
 
@@ -260,7 +260,7 @@ export const getProductsImportStoreUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/products/import`
+  return `https://procurement.systemsolution.online/api/v1/products/import`
 }
 
 export const productsImportStore = async (productsImportStoreBody: ProductsImportStoreBody, options?: RequestInit): Promise<productsImportStoreResponse> => {
@@ -293,7 +293,7 @@ const res = await fetch(getProductsImportStoreUrl(),
 
 export const getProductsImportStoreQueryKey = (productsImportStoreBody?: ProductsImportStoreBody,) => {
     return [
-    'POST', `http://localhost:8000/api/v1/products/import`, productsImportStoreBody
+    'POST', `https://procurement.systemsolution.online/api/v1/products/import`, productsImportStoreBody
     ] as const;
     }
 

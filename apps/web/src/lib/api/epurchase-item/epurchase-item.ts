@@ -90,7 +90,7 @@ export const getEpurchaseItemsIndexUrl = (params?: EpurchaseItemsIndexParams,) =
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `http://localhost:8000/api/v1/epurchase/items?${stringifiedParams}` : `http://localhost:8000/api/v1/epurchase/items`
+  return stringifiedParams.length > 0 ? `https://procurement.systemsolution.online/api/v1/epurchase/items?${stringifiedParams}` : `https://procurement.systemsolution.online/api/v1/epurchase/items`
 }
 
 /**
@@ -120,7 +120,7 @@ export const epurchaseItemsIndex = async (params?: EpurchaseItemsIndexParams, op
 
 export const getEpurchaseItemsIndexQueryKey = (params?: EpurchaseItemsIndexParams,) => {
     return [
-    `http://localhost:8000/api/v1/epurchase/items`, ...(params ? [params] : [])
+    `https://procurement.systemsolution.online/api/v1/epurchase/items`, ...(params ? [params] : [])
     ] as const;
     }
 

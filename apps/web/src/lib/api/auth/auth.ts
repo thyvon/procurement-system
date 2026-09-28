@@ -87,7 +87,7 @@ export const getAuthLoginUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/auth/login`
+  return `https://procurement.systemsolution.online/api/v1/auth/login`
 }
 
 export const authLogin = async (loginRequest: LoginRequest, options?: RequestInit): Promise<authLoginResponse> => {
@@ -120,7 +120,7 @@ const res = await fetch(getAuthLoginUrl(),
 
 export const getAuthLoginQueryKey = (loginRequest?: LoginRequest,) => {
     return [
-    'POST', `http://localhost:8000/api/v1/auth/login`, loginRequest
+    'POST', `https://procurement.systemsolution.online/api/v1/auth/login`, loginRequest
     ] as const;
     }
 
@@ -223,7 +223,7 @@ export const getAuthCompanyLoginUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/auth/company-login`
+  return `https://procurement.systemsolution.online/api/v1/auth/company-login`
 }
 
 export const authCompanyLogin = async (companyLoginRequest: CompanyLoginRequest, options?: RequestInit): Promise<authCompanyLoginResponse> => {
@@ -256,7 +256,7 @@ const res = await fetch(getAuthCompanyLoginUrl(),
 
 export const getAuthCompanyLoginQueryKey = (companyLoginRequest?: CompanyLoginRequest,) => {
     return [
-    'POST', `http://localhost:8000/api/v1/auth/company-login`, companyLoginRequest
+    'POST', `https://procurement.systemsolution.online/api/v1/auth/company-login`, companyLoginRequest
     ] as const;
     }
 
@@ -354,7 +354,7 @@ export const getAuthRefreshUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/auth/refresh`
+  return `https://procurement.systemsolution.online/api/v1/auth/refresh`
 }
 
 export const authRefresh = async (refreshRequest: RefreshRequest, options?: RequestInit): Promise<authRefreshResponse> => {
@@ -387,7 +387,7 @@ const res = await fetch(getAuthRefreshUrl(),
 
 export const getAuthRefreshQueryKey = (refreshRequest?: RefreshRequest,) => {
     return [
-    'POST', `http://localhost:8000/api/v1/auth/refresh`, refreshRequest
+    'POST', `https://procurement.systemsolution.online/api/v1/auth/refresh`, refreshRequest
     ] as const;
     }
 
@@ -480,7 +480,7 @@ export const getAuthLogoutUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/auth/logout`
+  return `https://procurement.systemsolution.online/api/v1/auth/logout`
 }
 
 export const authLogout = async ( options?: RequestInit): Promise<authLogoutResponse> => {
@@ -507,7 +507,7 @@ export const authLogout = async ( options?: RequestInit): Promise<authLogoutResp
 
 export const getAuthLogoutQueryKey = () => {
     return [
-    'POST', `http://localhost:8000/api/v1/auth/logout`
+    'POST', `https://procurement.systemsolution.online/api/v1/auth/logout`
     ] as const;
     }
 
@@ -600,7 +600,7 @@ export const getAuthMeUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/auth/me`
+  return `https://procurement.systemsolution.online/api/v1/auth/me`
 }
 
 export const authMe = async ( options?: RequestInit): Promise<authMeResponse> => {
@@ -627,7 +627,7 @@ export const authMe = async ( options?: RequestInit): Promise<authMeResponse> =>
 
 export const getAuthMeQueryKey = () => {
     return [
-    `http://localhost:8000/api/v1/auth/me`
+    `https://procurement.systemsolution.online/api/v1/auth/me`
     ] as const;
     }
 

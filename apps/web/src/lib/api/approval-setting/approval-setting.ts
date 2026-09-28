@@ -76,7 +76,7 @@ export const getApprovalsSettingsIndexUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/approvals/settings`
+  return `https://procurement.systemsolution.online/api/v1/approvals/settings`
 }
 
 /**
@@ -108,7 +108,7 @@ export const approvalsSettingsIndex = async ( options?: RequestInit): Promise<ap
 
 export const getApprovalsSettingsIndexQueryKey = () => {
     return [
-    `http://localhost:8000/api/v1/approvals/settings`
+    `https://procurement.systemsolution.online/api/v1/approvals/settings`
     ] as const;
     }
 

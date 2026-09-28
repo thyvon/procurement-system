@@ -84,7 +84,7 @@ export const getProductsCategoriesTreeUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/products/categories/tree`
+  return `https://procurement.systemsolution.online/api/v1/products/categories/tree`
 }
 
 export const productsCategoriesTree = async ( options?: RequestInit): Promise<productsCategoriesTreeResponse> => {
@@ -111,7 +111,7 @@ export const productsCategoriesTree = async ( options?: RequestInit): Promise<pr
 
 export const getProductsCategoriesTreeQueryKey = () => {
     return [
-    `http://localhost:8000/api/v1/products/categories/tree`
+    `https://procurement.systemsolution.online/api/v1/products/categories/tree`
     ] as const;
     }
 
@@ -256,7 +256,7 @@ export const getProductsCategoriesIndexUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/products/categories`
+  return `https://procurement.systemsolution.online/api/v1/products/categories`
 }
 
 export const productsCategoriesIndex = async ( options?: RequestInit): Promise<productsCategoriesIndexResponse> => {
@@ -283,7 +283,7 @@ export const productsCategoriesIndex = async ( options?: RequestInit): Promise<p
 
 export const getProductsCategoriesIndexQueryKey = () => {
     return [
-    `http://localhost:8000/api/v1/products/categories`
+    `https://procurement.systemsolution.online/api/v1/products/categories`
     ] as const;
     }
 
@@ -433,7 +433,7 @@ export const getProductsCategoriesStoreUrl = () => {
 
 
 
-  return `http://localhost:8000/api/v1/products/categories`
+  return `https://procurement.systemsolution.online/api/v1/products/categories`
 }
 
 export const productsCategoriesStore = async (storeProductCategoryRequest: StoreProductCategoryRequest, options?: RequestInit): Promise<productsCategoriesStoreResponse> => {
@@ -466,7 +466,7 @@ const res = await fetch(getProductsCategoriesStoreUrl(),
 
 export const getProductsCategoriesStoreQueryKey = (storeProductCategoryRequest?: StoreProductCategoryRequest,) => {
     return [
-    'POST', `http://localhost:8000/api/v1/products/categories`, storeProductCategoryRequest
+    'POST', `https://procurement.systemsolution.online/api/v1/products/categories`, storeProductCategoryRequest
     ] as const;
     }
 
@@ -569,7 +569,7 @@ export const getProductsCategoriesShowUrl = (category: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/products/categories/${category}`
+  return `https://procurement.systemsolution.online/api/v1/products/categories/${category}`
 }
 
 export const productsCategoriesShow = async (category: string, options?: RequestInit): Promise<productsCategoriesShowResponse> => {
@@ -596,7 +596,7 @@ export const productsCategoriesShow = async (category: string, options?: Request
 
 export const getProductsCategoriesShowQueryKey = (category: string,) => {
     return [
-    `http://localhost:8000/api/v1/products/categories/${category}`
+    `https://procurement.systemsolution.online/api/v1/products/categories/${category}`
     ] as const;
     }
 
@@ -751,7 +751,7 @@ export const getProductsCategoriesUpdateUrl = (category: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/products/categories/${category}`
+  return `https://procurement.systemsolution.online/api/v1/products/categories/${category}`
 }
 
 export const productsCategoriesUpdate = async (category: string,
@@ -786,7 +786,7 @@ const res = await fetch(getProductsCategoriesUpdateUrl(category),
 export const getProductsCategoriesUpdateQueryKey = (category: string,
     updateProductCategoryRequest?: UpdateProductCategoryRequest,) => {
     return [
-    'PUT', `http://localhost:8000/api/v1/products/categories/${category}`, updateProductCategoryRequest
+    'PUT', `https://procurement.systemsolution.online/api/v1/products/categories/${category}`, updateProductCategoryRequest
     ] as const;
     }
 
@@ -889,7 +889,7 @@ export const getProductsCategoriesDestroyUrl = (category: string,) => {
 
 
 
-  return `http://localhost:8000/api/v1/products/categories/${category}`
+  return `https://procurement.systemsolution.online/api/v1/products/categories/${category}`
 }
 
 export const productsCategoriesDestroy = async (category: string, options?: RequestInit): Promise<productsCategoriesDestroyResponse> => {
@@ -916,7 +916,7 @@ export const productsCategoriesDestroy = async (category: string, options?: Requ
 
 export const getProductsCategoriesDestroyQueryKey = (category: string,) => {
     return [
-    'DELETE', `http://localhost:8000/api/v1/products/categories/${category}`
+    'DELETE', `https://procurement.systemsolution.online/api/v1/products/categories/${category}`
     ] as const;
     }
 
