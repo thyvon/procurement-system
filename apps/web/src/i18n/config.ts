@@ -2,3 +2,4 @@ export const locales = ["en", "km"] as const;
 export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = "en";
 export const LOCALE_COOKIE = "procurement.locale";
+export const timeZone = "Asia/Phnom_Penh";

@@ -9,6 +9,7 @@ import type {
   ApprovalStepSnapshot,
 } from "@/features/approvals/approval-types";
 import { useEntity } from "@/hooks/use-entity";
+import { timeZone } from "@/i18n/config";
 import { EvaluationMatrixReadOnly } from "./evaluation-matrix-readonly";
 import type { EvaluationMatrixValue } from "./evaluation-matrix";
 
@@ -178,7 +179,7 @@ export function EvaluationPrint(props: EvaluationPrintProps) {
 
   return (
     <div className="print-area hidden print:block">
-      <NextIntlClientProvider locale="en" messages={enMessages}>
+      <NextIntlClientProvider locale="en" messages={enMessages} timeZone={timeZone}>
         <PrintSheet {...props} logo={logo} />
       </NextIntlClientProvider>
     </div>
