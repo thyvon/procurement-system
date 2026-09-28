@@ -25,18 +25,25 @@ class ApprovalRequestRepository extends BaseRepository implements ApprovalReques
             ->paginate($perPage, ['*'], 'page', $page);
     }
 
+    /**
+     * The tray is actionable work only: decisions the user owes plus the
+     * documents returned to them. Decided history lives in the outbox and the
+     * full request list, so the list always matches `inboxCount()`.
+     *
+     * @param  array{status?: string, subject_type?: string, subject_id?: string, search?: string, date_from?: ?string, date_to?: ?string}  $filters
+     */
     public function inbox(int $userId, array $filters = [], int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
         $query = $this->query()
             ->with(['creator'])
             ->where(function (Builder $q) use ($userId): void {
-                $q->where('current_assignee_id', $userId)
-                    ->orWhere(function (Builder $decided) use ($userId): void {
-                        $decided->where('status', '!=', ApprovalRequest::STATUS_PENDING)
-                            ->whereHas('actions', function (Builder $action) use ($userId): void {
-                                $action->where('acted_by', $userId);
-                            });
-                    });
+                $q->where(function (Builder $assignee) use ($userId): void {
+                    $assignee->where('status', ApprovalRequest::STATUS_PENDING)
+                        ->where('current_assignee_id', $userId);
+                })->orWhere(function (Builder $returned) use ($userId): void {
+                    $returned->where('status', ApprovalRequest::STATUS_RETURNED)
+                        ->where('created_by', $userId);
+                });
             });
 
         $this->applyFilters($query, $filters);
@@ -59,11 +66,18 @@ class ApprovalRequestRepository extends BaseRepository implements ApprovalReques
             ->paginate($perPage, ['*'], 'page', $page);
     }
 
-    public function pendingCount(int $userId): int
+    public function inboxCount(int $userId): int
     {
         return $this->query()
-            ->where('status', ApprovalRequest::STATUS_PENDING)
-            ->where('current_assignee_id', $userId)
+            ->where(function (Builder $q) use ($userId): void {
+                $q->where(function (Builder $pending) use ($userId): void {
+                    $pending->where('status', ApprovalRequest::STATUS_PENDING)
+                        ->where('current_assignee_id', $userId);
+                })->orWhere(function (Builder $returned) use ($userId): void {
+                    $returned->where('status', ApprovalRequest::STATUS_RETURNED)
+                        ->where('created_by', $userId);
+                });
+            })
             ->count();
     }
 

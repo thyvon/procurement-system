@@ -15,8 +15,10 @@ interface ApprovalRequestRepositoryInterface extends RepositoryInterface
     public function filtered(array $filters, int $perPage = 20, int $page = 1): LengthAwarePaginator;
 
     /**
-     * Document tray: requests waiting on the given user's decision, plus the
-     * decided requests the given user acted on.
+     * Document tray: actionable work only — requests waiting on the given
+     * user's decision plus their own returned documents. Decided history lives
+     * in the outbox and the full request list, so this always matches
+     * `inboxCount()`.
      *
      * @param  array{status?: string, subject_type?: string, subject_id?: string, search?: string, date_from?: ?string, date_to?: ?string}  $filters
      */
@@ -29,5 +31,9 @@ interface ApprovalRequestRepositoryInterface extends RepositoryInterface
      */
     public function outbox(int $userId, array $filters = [], int $perPage = 20, int $page = 1): LengthAwarePaginator;
 
-    public function pendingCount(int $userId): int;
+    /**
+     * Open work for the given user: decisions they owe plus their own returned
+     * documents. Drives the sidebar badge.
+     */
+    public function inboxCount(int $userId): int;
 }

@@ -180,16 +180,18 @@ function useRequestColumns({
   ] as ColumnDef<DataTableFeatures, RequestRow>[];
 }
 
-function defaultStatusFor(scope: TrayScope): string {
-  return scope === "inbox" ? "pending" : "all";
-}
+/**
+ * The tray lists actionable work only (decisions owed + documents returned to
+ * you), so no status is narrowed by default and the list matches the badge.
+ */
+const DEFAULT_STATUS = "all";
 
 export function RequestsTab() {
   const t = useTranslations("approvals");
   const router = useRouter();
   const [scope, setScope] = useState<TrayScope>("inbox");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("pending");
+  const [statusFilter, setStatusFilter] = useState(DEFAULT_STATUS);
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
@@ -197,7 +199,6 @@ export function RequestsTab() {
   const [perPage, setPerPage] = useState(20);
 
   const debouncedSearch = useDebouncedValue(search, 300);
-  const defaultStatus = defaultStatusFor(scope);
 
   const columns = useRequestColumns({
     onViewRequest: (request) => router.push(`/approvals/${request.id}`),
@@ -261,18 +262,18 @@ export function RequestsTab() {
 
   const handleScopeChange = (value: string) => {
     setScope(value as TrayScope);
-    setStatusFilter(defaultStatusFor(value as TrayScope));
+    setStatusFilter(DEFAULT_STATUS);
     setPage(0);
   };
 
   const filtersTouched =
-    statusFilter !== defaultStatus ||
+    statusFilter !== DEFAULT_STATUS ||
     subjectFilter !== "all" ||
     Boolean(dateFrom) ||
     Boolean(dateTo);
 
   const clearFilters = () => {
-    setStatusFilter(defaultStatus);
+    setStatusFilter(DEFAULT_STATUS);
     setSubjectFilter("all");
     setDateFrom(undefined);
     setDateTo(undefined);

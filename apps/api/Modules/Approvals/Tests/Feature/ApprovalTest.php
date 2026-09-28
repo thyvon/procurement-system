@@ -778,6 +778,35 @@ it('lists only my pending requests in the inbox with a pending count', function 
         ->assertJsonPath('data.count', 1);
 });
 
+it('shows a returned request in the inbox and badge count of its owner', function () {
+    $request = approvalsPending(approvalsEvaluation());
+
+    approvalsAct($request, 'return', 'Fix the awarded total.', $this->firstApprover)->assertOk();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/inbox')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.id', $request->getKey())
+        ->assertJsonPath('data.0.status', 'returned');
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/inbox?status=returned')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/inbox/count')
+        ->assertOk()
+        ->assertJsonPath('data.count', 1);
+
+    // The approver who returned it owes no further decision.
+    $this->actingAs($this->firstApprover, 'sanctum')
+        ->getJson('/api/v1/approvals/inbox/count')
+        ->assertOk()
+        ->assertJsonPath('data.count', 0);
+});
+
 it('searches the inbox by document code', function () {
     approvalsPending(approvalsEvaluation(44, 'EVAL-26-001'));
     approvalsPending(approvalsEvaluation(80, 'EVAL-26-002'));
@@ -931,11 +960,32 @@ it('lists only my submissions in the outbox', function () {
         ->assertJsonPath('meta.total', 0);
 });
 
-it('keeps decided requests in the inbox of whoever acted on them', function () {
+it('keeps decided requests out of the inbox and in the trays that show history', function () {
     $request = approvalsPending(approvalsEvaluation());
 
     approvalsAct($request, 'approve', null, $this->firstApprover)->assertOk();
 
+    // A step already decided is no longer this approver's work.
+    $this->actingAs($this->firstApprover, 'sanctum')
+        ->getJson('/api/v1/approvals/inbox')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 0);
+
+    $this->actingAs($this->firstApprover, 'sanctum')
+        ->getJson('/api/v1/approvals/inbox/count')
+        ->assertOk()
+        ->assertJsonPath('data.count', 0);
+
+    // The next assignee still has it.
+    $this->actingAs($this->secondApprover, 'sanctum')
+        ->getJson('/api/v1/approvals/inbox')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.status', 'pending');
+
+    approvalsAct($request, 'approve', null, $this->secondApprover)->assertOk();
+
+    // Fully decided → out of everyone's inbox ...
     $this->actingAs($this->firstApprover, 'sanctum')
         ->getJson('/api/v1/approvals/inbox')
         ->assertOk()
@@ -944,25 +994,20 @@ it('keeps decided requests in the inbox of whoever acted on them', function () {
     $this->actingAs($this->secondApprover, 'sanctum')
         ->getJson('/api/v1/approvals/inbox')
         ->assertOk()
-        ->assertJsonPath('meta.total', 1);
+        ->assertJsonPath('meta.total', 0);
 
-    approvalsAct($request, 'approve', null, $this->secondApprover)->assertOk();
-
-    $this->actingAs($this->firstApprover, 'sanctum')
-        ->getJson('/api/v1/approvals/inbox')
+    // ... while the history stays in the owner's outbox and the full list.
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/outbox')
         ->assertOk()
         ->assertJsonPath('meta.total', 1)
         ->assertJsonPath('data.0.status', 'approved');
 
-    $this->actingAs($this->firstApprover, 'sanctum')
-        ->getJson('/api/v1/approvals/inbox?status=pending')
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/requests?status=approved')
         ->assertOk()
-        ->assertJsonPath('meta.total', 0);
-
-    $this->actingAs($this->firstApprover, 'sanctum')
-        ->getJson('/api/v1/approvals/inbox?status=approved')
-        ->assertOk()
-        ->assertJsonPath('meta.total', 1);
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.status', 'approved');
 });
 
 it('filters the tray by status, subject type and date', function () {

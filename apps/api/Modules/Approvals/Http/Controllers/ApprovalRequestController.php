@@ -150,7 +150,7 @@ class ApprovalRequestController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        return ApiResponse::success(['count' => $this->repo->pendingCount((int) $user->getKey())]);
+        return ApiResponse::success(['count' => $this->repo->inboxCount((int) $user->getKey())]);
     }
 
     private function paginated(IndexApprovalRequestsRequest $request, LengthAwarePaginator $paginator): JsonResponse
