@@ -4,7 +4,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { UserMenu } from "@/components/layout/user-menu"
-import { NotificationsMenu } from "@/components/layout/notifications-menu"
+import { NotificationsDrawer } from "@/components/layout/notifications-drawer"
 import type { UserResource } from "@/lib/api/model"
 
 type Props = {
@@ -21,7 +21,7 @@ export function Topbar({ user }: Props) {
 
       <div className="flex items-center gap-1.5">
         <ThemeToggle />
-        <NotificationsMenu />
+        <NotificationsDrawer />
         <UserMenu user={user} />
       </div>
     </header>

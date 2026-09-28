@@ -272,7 +272,13 @@
     "approved": "{code} was approved.",
     "rejected": "{code} was rejected.",
     "returned": "{code} was returned for changes.",
-    "openRequest": "Open approval request"
+    "openRequest": "Open approval request",
+    "close": "Close",
+    "filterAll": "All",
+    "filterUnread": "Unread",
+    "emptyUnread": "You're all caught up.",
+    "emptyHint": "New activity will show up here.",
+    "loadFailed": "Could not load notifications."
   },
   "dashboard": {
     "greeting": "Welcome back",
@@ -295,6 +301,11 @@
     "description": "Products from the company e-purchase catalog.",
     "searchPlaceholder": "Filter by code or description...",
     "loadFailed": "Could not load company items.",
+    "loginRequired": {
+      "title": "This page requires an E-Purchase login",
+      "description": "You signed in with Email. Sign out and choose the E-Purchase option to view E-Purchase items.",
+      "switchAccount": "Switch account"
+    },
     "table": {
       "active": "Active",
       "inactive": "Inactive"
@@ -448,11 +459,17 @@
   },
   "profile": {
     "title": "Profile",
+    "name": "Name",
+    "email": "Email",
+    "position": "Position",
+    "password": "Password",
+    "passwordPlaceholder": "Leave blank to keep current password",
     "changePhoto": "Profile photo",
     "photoHint": "JPG, PNG or WebP. Max 2 MB.",
     "cancel": "Cancel",
-    "upload": "Upload",
-    "uploading": "Uploading…"
+    "save": "Save",
+    "saving": "Saving...",
+    "updated": "Profile updated."
   },
   "products": {
     "columns": {

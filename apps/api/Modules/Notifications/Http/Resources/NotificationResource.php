@@ -19,8 +19,8 @@ class NotificationResource extends JsonResource
             'id' => $this->id,
             'type' => $this->data['type'] ?? null,
             'data' => $this->data,
-            'readAt' => $this->read_at?->format('Y-m-d H:i'),
-            'createdAt' => $this->created_at?->format('Y-m-d H:i'),
+            'readAt' => $this->read_at?->toISOString(),
+            'createdAt' => $this->created_at?->toISOString(),
         ];
     }
 }

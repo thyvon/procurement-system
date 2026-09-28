@@ -34,9 +34,9 @@
   "nav": {
     "dashboard": "ផ្ទាំងគ្រប់គ្រង",
     "products": "ផលិតផល",
-    "categories": "ប្រភេទ",
-    "brands": "ម៉ាក",
-    "groups": "ក្រុម",
+    "categories": "ប្រភេទផលិតផល",
+    "brands": "ម៉ាកផលិតផល",
+    "groups": "ក្រុមផលិតផល",
     "uoms": "ឯកតា",
     "variationTemplates": "ទម្រង់ភាពប្រែប្រួល",
     "purchaseOrders": "ការបញ្ជាទិញ",
@@ -272,7 +272,13 @@
     "approved": "{code} បានយល់ព្រម។",
     "rejected": "{code} បានបដិសេធ។",
     "returned": "{code} បានត្រឡប់មកវិញដើម្បីកែប្រែ។",
-    "openRequest": "បើកសំណើអនុម័ត"
+    "openRequest": "បើកសំណើអនុម័ត",
+    "close": "បិទ",
+    "filterAll": "ទាំងអស់",
+    "filterUnread": "មិនទាន់អាន",
+    "emptyUnread": "អ្នកបានអានរួចរាល់អស់ហើយ។",
+    "emptyHint": "សកម្មភាពថ្មីៗនឹងបង្ហាញនៅទីនេះ។",
+    "loadFailed": "មិនអាចផ្ទុកការជូនដំណឹងបាន។"
   },
   "dashboard": {
     "greeting": "សូមស្វាគមន៍មកវិញ",
@@ -295,6 +301,11 @@
     "description": "ផលិតផលពីបញ្ជីទិញអេឡិចត្រូនិករបស់ក្រុមហ៊ុន។",
     "searchPlaceholder": "តម្រង់តាមកូដ ឬការពិពណ៌នា...",
     "loadFailed": "មិនអាចផ្ទុកទំនិញក្រុមហ៊ុនបានទេ។",
+    "loginRequired": {
+      "title": "ទំព័រនេះតម្រូវឲ្យចូលតាម E-Purchase",
+      "description": "អ្នកបានចូលតាមអ៊ីមែល។ សូមចេញចូលឡើងវិញ ហើយជ្រើសរើសជម្រើស E-Purchase ដើម្បីមើលទំនិញ E-Purchase។",
+      "switchAccount": "ប្តូរគណនី"
+    },
     "table": {
       "active": "សកម្ម",
       "inactive": "អសកម្ម"
@@ -448,11 +459,17 @@
   },
   "profile": {
     "title": "ប្រវត្តិរូប",
+    "name": "ឈ្មោះ",
+    "email": "អ៊ីមែល",
+    "position": "តួនាទី",
+    "password": "ពាក្យសម្ងាត់",
+    "passwordPlaceholder": "ទុកឲ្យនៅទំនេរដើម្បីរក្សាពាក្យសម្ងាត់បច្ចុប្បន្ន",
     "changePhoto": "រូបភាពប្រវត្តិរូប",
     "photoHint": "JPG, PNG ឬ WebP។ អតិបរមា 2 MB។",
     "cancel": "បោះបង់",
-    "upload": "បញ្ចូល",
-    "uploading": "កំពុងបញ្ចូល…"
+    "save": "រក្សាទុក",
+    "saving": "កំពុងរក្សាទុក...",
+    "updated": "បានធ្វើបច្ចុប្បន្នភាពប្រវត្តិរូប។"
   },
   "products": {
     "columns": {
