@@ -76,7 +76,7 @@ export const getApprovalsSettingsIndexUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/approvals/settings`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/settings`
 }
 
 /**
@@ -108,7 +108,7 @@ export const approvalsSettingsIndex = async ( options?: RequestInit): Promise<ap
 
 export const getApprovalsSettingsIndexQueryKey = () => {
     return [
-    `https://procurement.systemsolution.online/api/v1/approvals/settings`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/settings`
     ] as const;
     }
 

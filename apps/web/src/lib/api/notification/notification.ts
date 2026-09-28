@@ -74,7 +74,7 @@ export const getNotificationsUnreadCountUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/notifications/unread-count`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications/unread-count`
 }
 
 export const notificationsUnreadCount = async ( options?: RequestInit): Promise<notificationsUnreadCountResponse> => {
@@ -101,7 +101,7 @@ export const notificationsUnreadCount = async ( options?: RequestInit): Promise<
 
 export const getNotificationsUnreadCountQueryKey = () => {
     return [
-    `https://procurement.systemsolution.online/api/v1/notifications/unread-count`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications/unread-count`
     ] as const;
     }
 
@@ -246,7 +246,7 @@ export const getNotificationsReadAllUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/notifications/read-all`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications/read-all`
 }
 
 export const notificationsReadAll = async ( options?: RequestInit): Promise<notificationsReadAllResponse> => {
@@ -273,7 +273,7 @@ export const notificationsReadAll = async ( options?: RequestInit): Promise<noti
 
 export const getNotificationsReadAllQueryKey = () => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/notifications/read-all`
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications/read-all`
     ] as const;
     }
 
@@ -366,7 +366,7 @@ export const getNotificationsIndexUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/notifications`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications`
 }
 
 export const notificationsIndex = async ( options?: RequestInit): Promise<notificationsIndexResponse> => {
@@ -393,7 +393,7 @@ export const notificationsIndex = async ( options?: RequestInit): Promise<notifi
 
 export const getNotificationsIndexQueryKey = () => {
     return [
-    `https://procurement.systemsolution.online/api/v1/notifications`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications`
     ] as const;
     }
 
@@ -543,7 +543,7 @@ export const getNotificationsReadUrl = (notification: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/notifications/${notification}/read`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications/${notification}/read`
 }
 
 export const notificationsRead = async (notification: string, options?: RequestInit): Promise<notificationsReadResponse> => {
@@ -570,7 +570,7 @@ export const notificationsRead = async (notification: string, options?: RequestI
 
 export const getNotificationsReadQueryKey = (notification: string,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/notifications/${notification}/read`
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/notifications/${notification}/read`
     ] as const;
     }
 

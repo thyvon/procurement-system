@@ -87,7 +87,7 @@ export const getProductsVariationTemplatesIndexUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/variation-templates`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/variation-templates`
 }
 
 export const productsVariationTemplatesIndex = async ( options?: RequestInit): Promise<productsVariationTemplatesIndexResponse> => {
@@ -114,7 +114,7 @@ export const productsVariationTemplatesIndex = async ( options?: RequestInit): P
 
 export const getProductsVariationTemplatesIndexQueryKey = () => {
     return [
-    `https://procurement.systemsolution.online/api/v1/products/variation-templates`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/variation-templates`
     ] as const;
     }
 
@@ -269,7 +269,7 @@ export const getProductsVariationTemplatesStoreUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/variation-templates`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/variation-templates`
 }
 
 export const productsVariationTemplatesStore = async (storeVariationTemplateRequest: StoreVariationTemplateRequest, options?: RequestInit): Promise<productsVariationTemplatesStoreResponse> => {
@@ -302,7 +302,7 @@ const res = await fetch(getProductsVariationTemplatesStoreUrl(),
 
 export const getProductsVariationTemplatesStoreQueryKey = (storeVariationTemplateRequest?: StoreVariationTemplateRequest,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/products/variation-templates`, storeVariationTemplateRequest
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/variation-templates`, storeVariationTemplateRequest
     ] as const;
     }
 
@@ -405,7 +405,7 @@ export const getProductsVariationTemplatesShowUrl = (variationTemplate: string,)
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/variation-templates/${variationTemplate}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/variation-templates/${variationTemplate}`
 }
 
 export const productsVariationTemplatesShow = async (variationTemplate: string, options?: RequestInit): Promise<productsVariationTemplatesShowResponse> => {
@@ -432,7 +432,7 @@ export const productsVariationTemplatesShow = async (variationTemplate: string, 
 
 export const getProductsVariationTemplatesShowQueryKey = (variationTemplate: string,) => {
     return [
-    `https://procurement.systemsolution.online/api/v1/products/variation-templates/${variationTemplate}`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/variation-templates/${variationTemplate}`
     ] as const;
     }
 
@@ -592,7 +592,7 @@ export const getProductsVariationTemplatesUpdateUrl = (variationTemplate: string
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/variation-templates/${variationTemplate}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/variation-templates/${variationTemplate}`
 }
 
 export const productsVariationTemplatesUpdate = async (variationTemplate: string,
@@ -627,7 +627,7 @@ const res = await fetch(getProductsVariationTemplatesUpdateUrl(variationTemplate
 export const getProductsVariationTemplatesUpdateQueryKey = (variationTemplate: string,
     updateVariationTemplateRequest?: UpdateVariationTemplateRequest,) => {
     return [
-    'PUT', `https://procurement.systemsolution.online/api/v1/products/variation-templates/${variationTemplate}`, updateVariationTemplateRequest
+    'PUT', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/variation-templates/${variationTemplate}`, updateVariationTemplateRequest
     ] as const;
     }
 
@@ -740,7 +740,7 @@ export const getProductsVariationTemplatesDestroyUrl = (variationTemplate: strin
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/variation-templates/${variationTemplate}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/variation-templates/${variationTemplate}`
 }
 
 export const productsVariationTemplatesDestroy = async (variationTemplate: string, options?: RequestInit): Promise<productsVariationTemplatesDestroyResponse> => {
@@ -767,7 +767,7 @@ export const productsVariationTemplatesDestroy = async (variationTemplate: strin
 
 export const getProductsVariationTemplatesDestroyQueryKey = (variationTemplate: string,) => {
     return [
-    'DELETE', `https://procurement.systemsolution.online/api/v1/products/variation-templates/${variationTemplate}`
+    'DELETE', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/variation-templates/${variationTemplate}`
     ] as const;
     }
 
@@ -870,7 +870,7 @@ export const getProductsMergeVariationUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/merge-variation`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/merge-variation`
 }
 
 export const productsMergeVariation = async (storeMergeVariationRequest: StoreMergeVariationRequest, options?: RequestInit): Promise<productsMergeVariationResponse> => {
@@ -903,7 +903,7 @@ const res = await fetch(getProductsMergeVariationUrl(),
 
 export const getProductsMergeVariationQueryKey = (storeMergeVariationRequest?: StoreMergeVariationRequest,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/products/merge-variation`, storeMergeVariationRequest
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/merge-variation`, storeMergeVariationRequest
     ] as const;
     }
 

@@ -70,7 +70,7 @@ export const getProductsRefsUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/refs`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/refs`
 }
 
 export const productsRefs = async ( options?: RequestInit): Promise<productsRefsResponse> => {
@@ -97,7 +97,7 @@ export const productsRefs = async ( options?: RequestInit): Promise<productsRefs
 
 export const getProductsRefsQueryKey = () => {
     return [
-    `https://procurement.systemsolution.online/api/v1/products/refs`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/refs`
     ] as const;
     }
 

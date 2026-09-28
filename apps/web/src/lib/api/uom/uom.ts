@@ -84,7 +84,7 @@ export const getProductsUomsIndexUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/uoms`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/uoms`
 }
 
 export const productsUomsIndex = async ( options?: RequestInit): Promise<productsUomsIndexResponse> => {
@@ -111,7 +111,7 @@ export const productsUomsIndex = async ( options?: RequestInit): Promise<product
 
 export const getProductsUomsIndexQueryKey = () => {
     return [
-    `https://procurement.systemsolution.online/api/v1/products/uoms`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/uoms`
     ] as const;
     }
 
@@ -266,7 +266,7 @@ export const getProductsUomsStoreUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/uoms`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/uoms`
 }
 
 export const productsUomsStore = async (storeUomRequest: StoreUomRequest, options?: RequestInit): Promise<productsUomsStoreResponse> => {
@@ -299,7 +299,7 @@ const res = await fetch(getProductsUomsStoreUrl(),
 
 export const getProductsUomsStoreQueryKey = (storeUomRequest?: StoreUomRequest,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/products/uoms`, storeUomRequest
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/uoms`, storeUomRequest
     ] as const;
     }
 
@@ -402,7 +402,7 @@ export const getProductsUomsShowUrl = (uom: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/uoms/${uom}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/uoms/${uom}`
 }
 
 export const productsUomsShow = async (uom: string, options?: RequestInit): Promise<productsUomsShowResponse> => {
@@ -429,7 +429,7 @@ export const productsUomsShow = async (uom: string, options?: RequestInit): Prom
 
 export const getProductsUomsShowQueryKey = (uom: string,) => {
     return [
-    `https://procurement.systemsolution.online/api/v1/products/uoms/${uom}`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/uoms/${uom}`
     ] as const;
     }
 
@@ -589,7 +589,7 @@ export const getProductsUomsUpdateUrl = (uom: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/uoms/${uom}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/uoms/${uom}`
 }
 
 export const productsUomsUpdate = async (uom: string,
@@ -624,7 +624,7 @@ const res = await fetch(getProductsUomsUpdateUrl(uom),
 export const getProductsUomsUpdateQueryKey = (uom: string,
     updateUomRequest?: UpdateUomRequest,) => {
     return [
-    'PUT', `https://procurement.systemsolution.online/api/v1/products/uoms/${uom}`, updateUomRequest
+    'PUT', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/uoms/${uom}`, updateUomRequest
     ] as const;
     }
 
@@ -732,7 +732,7 @@ export const getProductsUomsDestroyUrl = (uom: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/uoms/${uom}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/uoms/${uom}`
 }
 
 export const productsUomsDestroy = async (uom: string, options?: RequestInit): Promise<productsUomsDestroyResponse> => {
@@ -759,7 +759,7 @@ export const productsUomsDestroy = async (uom: string, options?: RequestInit): P
 
 export const getProductsUomsDestroyQueryKey = (uom: string,) => {
     return [
-    'DELETE', `https://procurement.systemsolution.online/api/v1/products/uoms/${uom}`
+    'DELETE', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/uoms/${uom}`
     ] as const;
     }
 

@@ -97,7 +97,7 @@ export const getProductsItemsIndexUrl = (params?: ProductsItemsIndexParams,) => 
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `https://procurement.systemsolution.online/api/v1/products/items?${stringifiedParams}` : `https://procurement.systemsolution.online/api/v1/products/items`
+  return stringifiedParams.length > 0 ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/items?${stringifiedParams}` : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/items`
 }
 
 export const productsItemsIndex = async (params?: ProductsItemsIndexParams, options?: RequestInit): Promise<productsItemsIndexResponse> => {
@@ -124,7 +124,7 @@ export const productsItemsIndex = async (params?: ProductsItemsIndexParams, opti
 
 export const getProductsItemsIndexQueryKey = (params?: ProductsItemsIndexParams,) => {
     return [
-    `https://procurement.systemsolution.online/api/v1/products/items`, ...(params ? [params] : [])
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/items`, ...(params ? [params] : [])
     ] as const;
     }
 
@@ -279,7 +279,7 @@ export const getProductsItemsStoreUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/items`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/items`
 }
 
 export const productsItemsStore = async (storeProductRequest: StoreProductRequest, options?: RequestInit): Promise<productsItemsStoreResponse> => {
@@ -312,7 +312,7 @@ const res = await fetch(getProductsItemsStoreUrl(),
 
 export const getProductsItemsStoreQueryKey = (storeProductRequest?: StoreProductRequest,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/products/items`, storeProductRequest
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/items`, storeProductRequest
     ] as const;
     }
 
@@ -415,7 +415,7 @@ export const getProductsItemsShowUrl = (product: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/items/${product}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/items/${product}`
 }
 
 export const productsItemsShow = async (product: string, options?: RequestInit): Promise<productsItemsShowResponse> => {
@@ -442,7 +442,7 @@ export const productsItemsShow = async (product: string, options?: RequestInit):
 
 export const getProductsItemsShowQueryKey = (product: string,) => {
     return [
-    `https://procurement.systemsolution.online/api/v1/products/items/${product}`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/items/${product}`
     ] as const;
     }
 
@@ -602,7 +602,7 @@ export const getProductsItemsUpdateUrl = (product: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/items/${product}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/items/${product}`
 }
 
 export const productsItemsUpdate = async (product: string,
@@ -637,7 +637,7 @@ const res = await fetch(getProductsItemsUpdateUrl(product),
 export const getProductsItemsUpdateQueryKey = (product: string,
     updateProductRequest?: UpdateProductRequest,) => {
     return [
-    'PUT', `https://procurement.systemsolution.online/api/v1/products/items/${product}`, updateProductRequest
+    'PUT', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/items/${product}`, updateProductRequest
     ] as const;
     }
 
@@ -745,7 +745,7 @@ export const getProductsItemsDestroyUrl = (product: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/products/items/${product}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/items/${product}`
 }
 
 export const productsItemsDestroy = async (product: string, options?: RequestInit): Promise<productsItemsDestroyResponse> => {
@@ -772,7 +772,7 @@ export const productsItemsDestroy = async (product: string, options?: RequestIni
 
 export const getProductsItemsDestroyQueryKey = (product: string,) => {
     return [
-    'DELETE', `https://procurement.systemsolution.online/api/v1/products/items/${product}`
+    'DELETE', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/products/items/${product}`
     ] as const;
     }
 

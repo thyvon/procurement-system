@@ -23,10 +23,6 @@ class EPurchaseClient
 
     private const SUPPLIERS_PATH = '/suppliers-master-list';
 
-    private const VENDOR_SEARCH_PATH = '/api/po/getVentors';
-
-    private const VENDOR_INFO_PATH = '/api/po/getVendorInfo';
-
     /**
      * Exchange company credentials for a company session and profile.
      *
@@ -173,85 +169,6 @@ class EPurchaseClient
         ));
 
         return $result;
-    }
-
-    /**
-     * Search company vendors by free-text term (autocomplete).
-     *
-     * @return array<int, array<string, mixed>>
-     *
-     * @throws EPurchaseSessionExpiredException when the cached session is rejected upstream
-     * @throws EPurchaseUnavailableException when the company system is unreachable or malformed
-     */
-    public function vendorSearch(EPurchaseSession $session, string $term): array
-    {
-        $body = $this->vendorRequest($session, self::VENDOR_SEARCH_PATH, json: ['term' => $term]);
-        $rows = is_array($body['data'] ?? null) ? $body['data'] : [];
-
-        return array_values(array_filter($rows, 'is_array'));
-    }
-
-    /**
-     * Fetch one vendor's full profile by numeric id (upstream `SupplierCode`).
-     *
-     * @return array<string, mixed>
-     *
-     * @throws EPurchaseSessionExpiredException when the cached session is rejected upstream
-     * @throws EPurchaseUnavailableException when the company system is unreachable or malformed
-     */
-    public function vendorInfo(EPurchaseSession $session, string $supplierCode): array
-    {
-        $body = $this->vendorRequest(
-            $session,
-            self::VENDOR_INFO_PATH,
-            json: ['SupplierCode' => $supplierCode],
-        );
-        $data = $body['data'] ?? null;
-
-        if (! is_array($data)) {
-            throw new EPurchaseUnavailableException('E-Purchase returned an unexpected response.');
-        }
-
-        return $data;
-    }
-
-    /**
-     * Authenticated POST against /api/po/* endpoints ({result, msg, data} envelope).
-     * Upstream routes (getVentors, getVendorInfo) only accept POST.
-     *
-     * @param  array<string, mixed>  $json
-     * @return array<string, mixed>
-     *
-     * @throws EPurchaseSessionExpiredException
-     * @throws EPurchaseUnavailableException
-     */
-    private function vendorRequest(
-        EPurchaseSession $session,
-        string $path,
-        array $json = [],
-    ): array {
-        $response = $this->send(
-            $session,
-            fn (PendingRequest $http) => $http->asJson()->post($path, $json),
-        );
-
-        if ($response->status() === 401 || $response->status() === 419) {
-            throw new EPurchaseSessionExpiredException('Company session expired. Please log in again.');
-        }
-
-        if (! $response->successful()) {
-            throw new EPurchaseUnavailableException(
-                'E-Purchase vendor request failed with status '.$response->status().'.'
-            );
-        }
-
-        $body = $response->json();
-
-        if (! is_array($body) || ($body['result'] ?? null) !== 'success' || ! array_key_exists('data', $body)) {
-            throw new EPurchaseUnavailableException('E-Purchase returned an unexpected response.');
-        }
-
-        return $body;
     }
 
     /**

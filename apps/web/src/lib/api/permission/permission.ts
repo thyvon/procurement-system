@@ -76,7 +76,7 @@ export const getPermissionsIndexUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/permissions`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/permissions`
 }
 
 export const permissionsIndex = async ( options?: RequestInit): Promise<permissionsIndexResponse> => {
@@ -103,7 +103,7 @@ export const permissionsIndex = async ( options?: RequestInit): Promise<permissi
 
 export const getPermissionsIndexQueryKey = () => {
     return [
-    `https://procurement.systemsolution.online/api/v1/permissions`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/permissions`
     ] as const;
     }
 

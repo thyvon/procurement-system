@@ -86,7 +86,7 @@ export const getUsersUsersIndexUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/users`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users`
 }
 
 export const usersUsersIndex = async ( options?: RequestInit): Promise<usersUsersIndexResponse> => {
@@ -113,7 +113,7 @@ export const usersUsersIndex = async ( options?: RequestInit): Promise<usersUser
 
 export const getUsersUsersIndexQueryKey = () => {
     return [
-    `https://procurement.systemsolution.online/api/v1/users`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users`
     ] as const;
     }
 
@@ -268,7 +268,7 @@ export const getUsersUsersStoreUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/users`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users`
 }
 
 export const usersUsersStore = async (storeUserRequest: StoreUserRequest, options?: RequestInit): Promise<usersUsersStoreResponse> => {
@@ -301,7 +301,7 @@ const res = await fetch(getUsersUsersStoreUrl(),
 
 export const getUsersUsersStoreQueryKey = (storeUserRequest?: StoreUserRequest,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/users`, storeUserRequest
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users`, storeUserRequest
     ] as const;
     }
 
@@ -404,7 +404,7 @@ export const getUsersUsersShowUrl = (user: number,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/users/${user}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/${user}`
 }
 
 export const usersUsersShow = async (user: number, options?: RequestInit): Promise<usersUsersShowResponse> => {
@@ -431,7 +431,7 @@ export const usersUsersShow = async (user: number, options?: RequestInit): Promi
 
 export const getUsersUsersShowQueryKey = (user: number,) => {
     return [
-    `https://procurement.systemsolution.online/api/v1/users/${user}`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/${user}`
     ] as const;
     }
 
@@ -591,7 +591,7 @@ export const getUsersUsersUpdateUrl = (user: number,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/users/${user}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/${user}`
 }
 
 export const usersUsersUpdate = async (user: number,
@@ -626,7 +626,7 @@ const res = await fetch(getUsersUsersUpdateUrl(user),
 export const getUsersUsersUpdateQueryKey = (user: number,
     updateUserRequest?: UpdateUserRequest,) => {
     return [
-    'PUT', `https://procurement.systemsolution.online/api/v1/users/${user}`, updateUserRequest
+    'PUT', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/${user}`, updateUserRequest
     ] as const;
     }
 
@@ -734,7 +734,7 @@ export const getUsersUsersDestroyUrl = (user: number,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/users/${user}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/${user}`
 }
 
 export const usersUsersDestroy = async (user: number, options?: RequestInit): Promise<usersUsersDestroyResponse> => {
@@ -761,7 +761,7 @@ export const usersUsersDestroy = async (user: number, options?: RequestInit): Pr
 
 export const getUsersUsersDestroyQueryKey = (user: number,) => {
     return [
-    'DELETE', `https://procurement.systemsolution.online/api/v1/users/${user}`
+    'DELETE', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/${user}`
     ] as const;
     }
 
@@ -869,7 +869,7 @@ export const getUsersAvatarUrl = (user: number,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/users/${user}/avatar`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/${user}/avatar`
 }
 
 export const usersAvatar = async (user: number,
@@ -900,7 +900,7 @@ formData.append(`image`, updateAvatarRequest.image);
 export const getUsersAvatarQueryKey = (user: number,
     updateAvatarRequest?: UpdateAvatarRequest,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/users/${user}/avatar`, updateAvatarRequest
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/${user}/avatar`, updateAvatarRequest
     ] as const;
     }
 

@@ -90,7 +90,7 @@ export const getEpurchaseSuppliersIndexUrl = (params?: EpurchaseSuppliersIndexPa
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `https://procurement.systemsolution.online/api/v1/epurchase/suppliers?${stringifiedParams}` : `https://procurement.systemsolution.online/api/v1/epurchase/suppliers`
+  return stringifiedParams.length > 0 ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/epurchase/suppliers?${stringifiedParams}` : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/epurchase/suppliers`
 }
 
 /**
@@ -120,7 +120,7 @@ export const epurchaseSuppliersIndex = async (params?: EpurchaseSuppliersIndexPa
 
 export const getEpurchaseSuppliersIndexQueryKey = (params?: EpurchaseSuppliersIndexParams,) => {
     return [
-    `https://procurement.systemsolution.online/api/v1/epurchase/suppliers`, ...(params ? [params] : [])
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/epurchase/suppliers`, ...(params ? [params] : [])
     ] as const;
     }
 

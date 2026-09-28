@@ -86,7 +86,7 @@ export const getEntitiesEntitiesIndexUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/entities`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/entities`
 }
 
 export const entitiesEntitiesIndex = async ( options?: RequestInit): Promise<entitiesEntitiesIndexResponse> => {
@@ -113,7 +113,7 @@ export const entitiesEntitiesIndex = async ( options?: RequestInit): Promise<ent
 
 export const getEntitiesEntitiesIndexQueryKey = () => {
     return [
-    `https://procurement.systemsolution.online/api/v1/entities`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/entities`
     ] as const;
     }
 
@@ -268,7 +268,7 @@ export const getEntitiesEntitiesStoreUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/entities`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/entities`
 }
 
 export const entitiesEntitiesStore = async (storeEntityRequest: StoreEntityRequest, options?: RequestInit): Promise<entitiesEntitiesStoreResponse> => {
@@ -301,7 +301,7 @@ const res = await fetch(getEntitiesEntitiesStoreUrl(),
 
 export const getEntitiesEntitiesStoreQueryKey = (storeEntityRequest?: StoreEntityRequest,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/entities`, storeEntityRequest
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/entities`, storeEntityRequest
     ] as const;
     }
 
@@ -404,7 +404,7 @@ export const getEntitiesEntitiesShowUrl = (entity: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/entities/${entity}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/entities/${entity}`
 }
 
 export const entitiesEntitiesShow = async (entity: string, options?: RequestInit): Promise<entitiesEntitiesShowResponse> => {
@@ -431,7 +431,7 @@ export const entitiesEntitiesShow = async (entity: string, options?: RequestInit
 
 export const getEntitiesEntitiesShowQueryKey = (entity: string,) => {
     return [
-    `https://procurement.systemsolution.online/api/v1/entities/${entity}`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/entities/${entity}`
     ] as const;
     }
 
@@ -591,7 +591,7 @@ export const getEntitiesEntitiesUpdateUrl = (entity: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/entities/${entity}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/entities/${entity}`
 }
 
 export const entitiesEntitiesUpdate = async (entity: string,
@@ -626,7 +626,7 @@ const res = await fetch(getEntitiesEntitiesUpdateUrl(entity),
 export const getEntitiesEntitiesUpdateQueryKey = (entity: string,
     updateEntityRequest?: UpdateEntityRequest,) => {
     return [
-    'PUT', `https://procurement.systemsolution.online/api/v1/entities/${entity}`, updateEntityRequest
+    'PUT', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/entities/${entity}`, updateEntityRequest
     ] as const;
     }
 
@@ -734,7 +734,7 @@ export const getEntitiesEntitiesDestroyUrl = (entity: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/entities/${entity}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/entities/${entity}`
 }
 
 export const entitiesEntitiesDestroy = async (entity: string, options?: RequestInit): Promise<entitiesEntitiesDestroyResponse> => {
@@ -761,7 +761,7 @@ export const entitiesEntitiesDestroy = async (entity: string, options?: RequestI
 
 export const getEntitiesEntitiesDestroyQueryKey = (entity: string,) => {
     return [
-    'DELETE', `https://procurement.systemsolution.online/api/v1/entities/${entity}`
+    'DELETE', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/entities/${entity}`
     ] as const;
     }
 
@@ -869,7 +869,7 @@ export const getEntitiesLogoUrl = (entity: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/entities/${entity}/logo`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/entities/${entity}/logo`
 }
 
 export const entitiesLogo = async (entity: string,
@@ -900,7 +900,7 @@ formData.append(`image`, updateLogoRequest.image);
 export const getEntitiesLogoQueryKey = (entity: string,
     updateLogoRequest?: UpdateLogoRequest,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/entities/${entity}/logo`, updateLogoRequest
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/entities/${entity}/logo`, updateLogoRequest
     ] as const;
     }
 

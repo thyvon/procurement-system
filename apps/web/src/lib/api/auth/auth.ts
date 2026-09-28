@@ -87,7 +87,7 @@ export const getAuthLoginUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/auth/login`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`
 }
 
 export const authLogin = async (loginRequest: LoginRequest, options?: RequestInit): Promise<authLoginResponse> => {
@@ -120,7 +120,7 @@ const res = await fetch(getAuthLoginUrl(),
 
 export const getAuthLoginQueryKey = (loginRequest?: LoginRequest,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/auth/login`, loginRequest
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`, loginRequest
     ] as const;
     }
 
@@ -223,7 +223,7 @@ export const getAuthCompanyLoginUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/auth/company-login`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/company-login`
 }
 
 export const authCompanyLogin = async (companyLoginRequest: CompanyLoginRequest, options?: RequestInit): Promise<authCompanyLoginResponse> => {
@@ -256,7 +256,7 @@ const res = await fetch(getAuthCompanyLoginUrl(),
 
 export const getAuthCompanyLoginQueryKey = (companyLoginRequest?: CompanyLoginRequest,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/auth/company-login`, companyLoginRequest
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/company-login`, companyLoginRequest
     ] as const;
     }
 
@@ -354,7 +354,7 @@ export const getAuthRefreshUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/auth/refresh`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/refresh`
 }
 
 export const authRefresh = async (refreshRequest: RefreshRequest, options?: RequestInit): Promise<authRefreshResponse> => {
@@ -387,7 +387,7 @@ const res = await fetch(getAuthRefreshUrl(),
 
 export const getAuthRefreshQueryKey = (refreshRequest?: RefreshRequest,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/auth/refresh`, refreshRequest
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/refresh`, refreshRequest
     ] as const;
     }
 
@@ -480,7 +480,7 @@ export const getAuthLogoutUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/auth/logout`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/logout`
 }
 
 export const authLogout = async ( options?: RequestInit): Promise<authLogoutResponse> => {
@@ -507,7 +507,7 @@ export const authLogout = async ( options?: RequestInit): Promise<authLogoutResp
 
 export const getAuthLogoutQueryKey = () => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/auth/logout`
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/logout`
     ] as const;
     }
 
@@ -600,7 +600,7 @@ export const getAuthMeUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/auth/me`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me`
 }
 
 export const authMe = async ( options?: RequestInit): Promise<authMeResponse> => {
@@ -627,7 +627,7 @@ export const authMe = async ( options?: RequestInit): Promise<authMeResponse> =>
 
 export const getAuthMeQueryKey = () => {
     return [
-    `https://procurement.systemsolution.online/api/v1/auth/me`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me`
     ] as const;
     }
 

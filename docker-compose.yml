@@ -132,12 +132,15 @@ services:
     build:
       context: .
       dockerfile: docker/web/Dockerfile
+      args:
+        # Browser-reachable API origin, inlined into the bundle at build time
+        # (the generated client carries no domain). Override with
+        # NEXT_PUBLIC_API_URL in the shell/.env when building.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://procurement.systemsolution.online}
     container_name: procurement-web
     restart: unless-stopped
     ports:
       - "127.0.0.1:3003:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: https://procurement.systemsolution.online
     depends_on:
       - api
     networks:

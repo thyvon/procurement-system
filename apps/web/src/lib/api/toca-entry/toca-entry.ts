@@ -84,7 +84,7 @@ export const getApprovalsTocaEntriesIndexUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/approvals/toca-entries`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/toca-entries`
 }
 
 export const approvalsTocaEntriesIndex = async ( options?: RequestInit): Promise<approvalsTocaEntriesIndexResponse> => {
@@ -111,7 +111,7 @@ export const approvalsTocaEntriesIndex = async ( options?: RequestInit): Promise
 
 export const getApprovalsTocaEntriesIndexQueryKey = () => {
     return [
-    `https://procurement.systemsolution.online/api/v1/approvals/toca-entries`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/toca-entries`
     ] as const;
     }
 
@@ -266,7 +266,7 @@ export const getApprovalsTocaEntriesStoreUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/approvals/toca-entries`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/toca-entries`
 }
 
 export const approvalsTocaEntriesStore = async (storeTocaEntryRequest: StoreTocaEntryRequest, options?: RequestInit): Promise<approvalsTocaEntriesStoreResponse> => {
@@ -299,7 +299,7 @@ const res = await fetch(getApprovalsTocaEntriesStoreUrl(),
 
 export const getApprovalsTocaEntriesStoreQueryKey = (storeTocaEntryRequest?: StoreTocaEntryRequest,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/approvals/toca-entries`, storeTocaEntryRequest
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/toca-entries`, storeTocaEntryRequest
     ] as const;
     }
 
@@ -402,7 +402,7 @@ export const getApprovalsTocaEntriesShowUrl = (entry: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/approvals/toca-entries/${entry}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/toca-entries/${entry}`
 }
 
 export const approvalsTocaEntriesShow = async (entry: string, options?: RequestInit): Promise<approvalsTocaEntriesShowResponse> => {
@@ -429,7 +429,7 @@ export const approvalsTocaEntriesShow = async (entry: string, options?: RequestI
 
 export const getApprovalsTocaEntriesShowQueryKey = (entry: string,) => {
     return [
-    `https://procurement.systemsolution.online/api/v1/approvals/toca-entries/${entry}`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/toca-entries/${entry}`
     ] as const;
     }
 
@@ -589,7 +589,7 @@ export const getApprovalsTocaEntriesUpdateUrl = (entry: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/approvals/toca-entries/${entry}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/toca-entries/${entry}`
 }
 
 export const approvalsTocaEntriesUpdate = async (entry: string,
@@ -624,7 +624,7 @@ const res = await fetch(getApprovalsTocaEntriesUpdateUrl(entry),
 export const getApprovalsTocaEntriesUpdateQueryKey = (entry: string,
     updateTocaEntryRequest?: UpdateTocaEntryRequest,) => {
     return [
-    'PUT', `https://procurement.systemsolution.online/api/v1/approvals/toca-entries/${entry}`, updateTocaEntryRequest
+    'PUT', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/toca-entries/${entry}`, updateTocaEntryRequest
     ] as const;
     }
 
@@ -732,7 +732,7 @@ export const getApprovalsTocaEntriesDestroyUrl = (entry: string,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/approvals/toca-entries/${entry}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/toca-entries/${entry}`
 }
 
 export const approvalsTocaEntriesDestroy = async (entry: string, options?: RequestInit): Promise<approvalsTocaEntriesDestroyResponse> => {
@@ -759,7 +759,7 @@ export const approvalsTocaEntriesDestroy = async (entry: string, options?: Reque
 
 export const getApprovalsTocaEntriesDestroyQueryKey = (entry: string,) => {
     return [
-    'DELETE', `https://procurement.systemsolution.online/api/v1/approvals/toca-entries/${entry}`
+    'DELETE', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/toca-entries/${entry}`
     ] as const;
     }
 

@@ -11,6 +11,13 @@ RUN pnpm install --frozen-lockfile
 
 COPY apps/web apps/web
 
+# The generated API client resolves its origin at build time from
+# NEXT_PUBLIC_API_URL (no domain is baked into src/lib/api), so the image
+# build must receive it — docker-compose passes it as a build arg.
+ARG NEXT_PUBLIC_API_URL
+RUN test -n "$NEXT_PUBLIC_API_URL" || (echo "missing build arg: NEXT_PUBLIC_API_URL" >&2 && exit 1)
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 RUN pnpm --filter web build
 
 EXPOSE 3000

@@ -84,7 +84,7 @@ export const getRolesRolesIndexUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/roles`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/roles`
 }
 
 export const rolesRolesIndex = async ( options?: RequestInit): Promise<rolesRolesIndexResponse> => {
@@ -111,7 +111,7 @@ export const rolesRolesIndex = async ( options?: RequestInit): Promise<rolesRole
 
 export const getRolesRolesIndexQueryKey = () => {
     return [
-    `https://procurement.systemsolution.online/api/v1/roles`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/roles`
     ] as const;
     }
 
@@ -266,7 +266,7 @@ export const getRolesRolesStoreUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/roles`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/roles`
 }
 
 export const rolesRolesStore = async (storeRoleRequest: StoreRoleRequest, options?: RequestInit): Promise<rolesRolesStoreResponse> => {
@@ -299,7 +299,7 @@ const res = await fetch(getRolesRolesStoreUrl(),
 
 export const getRolesRolesStoreQueryKey = (storeRoleRequest?: StoreRoleRequest,) => {
     return [
-    'POST', `https://procurement.systemsolution.online/api/v1/roles`, storeRoleRequest
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/roles`, storeRoleRequest
     ] as const;
     }
 
@@ -402,7 +402,7 @@ export const getRolesRolesShowUrl = (role: number,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/roles/${role}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/roles/${role}`
 }
 
 export const rolesRolesShow = async (role: number, options?: RequestInit): Promise<rolesRolesShowResponse> => {
@@ -429,7 +429,7 @@ export const rolesRolesShow = async (role: number, options?: RequestInit): Promi
 
 export const getRolesRolesShowQueryKey = (role: number,) => {
     return [
-    `https://procurement.systemsolution.online/api/v1/roles/${role}`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/roles/${role}`
     ] as const;
     }
 
@@ -589,7 +589,7 @@ export const getRolesRolesUpdateUrl = (role: number,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/roles/${role}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/roles/${role}`
 }
 
 export const rolesRolesUpdate = async (role: number,
@@ -624,7 +624,7 @@ const res = await fetch(getRolesRolesUpdateUrl(role),
 export const getRolesRolesUpdateQueryKey = (role: number,
     updateRoleRequest?: UpdateRoleRequest,) => {
     return [
-    'PUT', `https://procurement.systemsolution.online/api/v1/roles/${role}`, updateRoleRequest
+    'PUT', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/roles/${role}`, updateRoleRequest
     ] as const;
     }
 
@@ -732,7 +732,7 @@ export const getRolesRolesDestroyUrl = (role: number,) => {
 
 
 
-  return `https://procurement.systemsolution.online/api/v1/roles/${role}`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/roles/${role}`
 }
 
 export const rolesRolesDestroy = async (role: number, options?: RequestInit): Promise<rolesRolesDestroyResponse> => {
@@ -759,7 +759,7 @@ export const rolesRolesDestroy = async (role: number, options?: RequestInit): Pr
 
 export const getRolesRolesDestroyQueryKey = (role: number,) => {
     return [
-    'DELETE', `https://procurement.systemsolution.online/api/v1/roles/${role}`
+    'DELETE', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/roles/${role}`
     ] as const;
     }
 

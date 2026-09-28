@@ -58,7 +58,7 @@ export const getHealthUrl = () => {
 
 
 
-  return `https://procurement.systemsolution.online/api/health`
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/health`
 }
 
 export const health = async ( options?: RequestInit): Promise<healthResponse> => {
@@ -85,7 +85,7 @@ export const health = async ( options?: RequestInit): Promise<healthResponse> =>
 
 export const getHealthQueryKey = () => {
     return [
-    `https://procurement.systemsolution.online/api/health`
+    `${process.env.NEXT_PUBLIC_API_URL}/api/health`
     ] as const;
     }
 
