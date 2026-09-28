@@ -90,7 +90,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    key: "users",
+    key: "userMgt",
     icon: Users,
     enabled: true,
     children: [
