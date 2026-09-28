@@ -1,61 +1,111 @@
 services:
   mariadb:
     image: mariadb:12.3
+    container_name: procurement-mariadb
+    restart: unless-stopped
     environment:
-      MARIADB_DATABASE: ${DB_DATABASE:-procurement}
-      MARIADB_USER: ${DB_USERNAME:-procurement}
-      MARIADB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?set MARIADB_ROOT_PASSWORD}
-    ports:
-      - "3306:3306"
+      MARIADB_DATABASE: procurement
+      MARIADB_USER: procurement
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - procurement_mariadb_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - procurement-network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   redis:
     image: redis:7.4-alpine
-    ports:
-      - "6379:6379"
+    container_name: procurement-redis
+    restart: unless-stopped
     volumes:
-      - redis_data:/data
+      - procurement_redis_data:/data
+    networks:
+      - procurement-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   meilisearch:
     image: getmeili/meilisearch:v1.13
+    container_name: procurement-meilisearch
+    restart: unless-stopped
     environment:
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY}
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
       MEILI_ENV: production
-    ports:
-      - "7700:7700"
     volumes:
-      - meilisearch_data:/meili_data
+      - procurement_meilisearch_data:/meili_data
+    networks:
+      - procurement-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
+    container_name: procurement-minio
     command: server /data --console-address ":9001"
+    restart: unless-stopped
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
-      - minio_data:/data
+      - procurement_minio_data:/data
+    networks:
+      - procurement-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   api:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+    container_name: procurement-api
+    restart: unless-stopped
     working_dir: /var/www/html
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    ports:
+      - "127.0.0.1:8086:8000"
     volumes:
       - ./apps/api:/var/www/html
-    ports:
-      - "8000:8000"
     env_file:
-      - ./apps/api/.env.docker.example
+      - ./apps/api/.env
     depends_on:
       mariadb:
         condition: service_healthy
@@ -63,20 +113,52 @@ services:
         condition: service_started
       meilisearch:
         condition: service_started
+      minio:
+        condition: service_started
+    networks:
+      - procurement-network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   web:
     build:
       context: .
       dockerfile: docker/web/Dockerfile
+    container_name: procurement-web
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3003:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: https://procurement.systemsolution.online
     depends_on:
       - api
+    networks:
+      - procurement-network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
-  mariadb_data:
-  redis_data:
-  meilisearch_data:
-  minio_data:
+  procurement_mariadb_data:
+  procurement_redis_data:
+  procurement_meilisearch_data:
+  procurement_minio_data:
+
+networks:
+  procurement-network:
+    driver: bridge
