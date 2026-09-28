@@ -1,7 +1,8 @@
 "use client";
 
 import { format, isValid, parseISO } from "date-fns";
-import { useTranslations } from "next-intl";
+import { NextIntlClientProvider, useTranslations } from "next-intl";
+import enMessages from "../../../../messages/en.json";
 import type { EvaluationResource } from "@/lib/api/model/evaluationResource";
 import type {
   ApprovalRequestView,
@@ -93,15 +94,14 @@ function SignLine({ label, value }: { label: string; value?: string }) {
   );
 }
 
-export function EvaluationPrint({
+function PrintSheet({
   evaluation,
   value,
   approvalRequest,
-}: EvaluationPrintProps) {
+  logo,
+}: EvaluationPrintProps & { logo: string | null }) {
   const tf = useTranslations("purchaseOrders.form");
   const tp = useTranslations("purchaseOrders.print");
-  const entity = useEntity();
-  const logo = entity.data?.logo ?? null;
 
   const columns = signatureColumns(approvalRequest, [
     { key: "prepared", title: tp("prepared"), name: "", position: "", date: "", signature: null },
@@ -110,63 +110,77 @@ export function EvaluationPrint({
   ]);
 
   return (
-    <div className="print-area hidden print:block">
-      <div className="flex min-h-[186mm] flex-col gap-3 text-xs text-foreground">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-4">
-          {logo ? (
-            <img
-              src={logo}
-              alt=""
-              className="h-14 w-28 shrink-0 object-contain"
-            />
-          ) : (
-            <div aria-hidden className="h-14 w-28 shrink-0" />
-          )}
-          <h1 className="place-self-center text-center text-lg font-bold tracking-tight">
-            {tf("title")}
-          </h1>
-          <div className="justify-self-end text-left leading-relaxed">
-            <div>
-              {tp("code")}: {tp("formCode")}
-            </div>
-            <div>{tp("version")}</div>
+    <div className="flex min-h-[186mm] flex-col gap-3 text-xs text-foreground">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-4">
+        {logo ? (
+          <img
+            src={logo}
+            alt=""
+            className="h-14 w-28 shrink-0 object-contain"
+          />
+        ) : (
+          <div aria-hidden className="h-14 w-28 shrink-0" />
+        )}
+        <h1 className="place-self-center text-center text-lg font-bold tracking-tight">
+          {tf("title")}
+        </h1>
+        <div className="justify-self-end text-left leading-relaxed">
+          <div>
+            {tp("code")}: {tp("formCode")}
           </div>
-        </div>
-
-        <EvaluationMatrixReadOnly value={value} currency={evaluation.currency} />
-
-        <div className="border border-border px-2 py-1.5">
-          <span className="font-semibold">{tf("basis")}:</span>{" "}
-          {evaluation.recommendationBasis || "—"}
-        </div>
-
-        <div
-          className="print-signature mt-auto grid gap-8 pt-4"
-          style={{
-            gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-          }}
-        >
-          {columns.map((column) => (
-            <div key={column.key} className="flex flex-col gap-1.5">
-              <div className="mb-1 text-center font-semibold">
-                {column.title}
-              </div>
-              {column.signature ? (
-                <div className="flex h-12 items-end justify-center">
-                  <img
-                    src={column.signature}
-                    alt=""
-                    className="max-h-12 w-auto max-w-full object-contain"
-                  />
-                </div>
-              ) : null}
-              <SignLine label={tp("name")} value={column.name} />
-              <SignLine label={tp("position")} value={column.position} />
-              <SignLine label={tp("date")} value={column.date} />
-            </div>
-          ))}
+          <div>{tp("version")}</div>
         </div>
       </div>
+
+      <EvaluationMatrixReadOnly
+        value={value}
+        currency={evaluation.currency}
+      />
+
+      <div className="border border-border px-2 py-1.5">
+        <span className="font-semibold">{tf("basis")}:</span>{" "}
+        {evaluation.recommendationBasis || "—"}
+      </div>
+
+      <div
+        className="print-signature mt-auto grid gap-8 pt-4"
+        style={{
+          gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
+        }}
+      >
+        {columns.map((column) => (
+          <div key={column.key} className="flex flex-col gap-1.5">
+            <div className="mb-1 text-center font-semibold">
+              {column.title}
+            </div>
+            {column.signature ? (
+              <div className="flex h-12 items-end justify-center">
+                <img
+                  src={column.signature}
+                  alt=""
+                  className="max-h-12 w-auto max-w-full object-contain"
+                />
+              </div>
+            ) : null}
+            <SignLine label={tp("name")} value={column.name} />
+            <SignLine label={tp("position")} value={column.position} />
+            <SignLine label={tp("date")} value={column.date} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function EvaluationPrint(props: EvaluationPrintProps) {
+  const entity = useEntity();
+  const logo = entity.data?.logo ?? null;
+
+  return (
+    <div className="print-area hidden print:block">
+      <NextIntlClientProvider locale="en" messages={enMessages}>
+        <PrintSheet {...props} logo={logo} />
+      </NextIntlClientProvider>
     </div>
   );
 }
