@@ -10,6 +10,10 @@ import { DataTable } from "@/components/ui/data-table"
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton"
 import { DataTableColumnHeader } from "@/components/ui/data-table-column-header"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
+import {
+  EPurchaseLoginRequired,
+  requiresEPurchaseLogin,
+} from "@/features/epurchase/components/login-required"
 
 type EPurchaseSupplier = {
   code: string
@@ -136,6 +140,10 @@ export function EPurchaseSuppliersPage() {
   }
 
   if (query.isError) {
+    if (requiresEPurchaseLogin(query.error)) {
+      return <EPurchaseLoginRequired />
+    }
+
     return (
       <div className="mt-1 rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
         {query.error instanceof Error && query.error.message
