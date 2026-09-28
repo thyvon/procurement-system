@@ -160,14 +160,7 @@ function NavGroup({ item }: { item: NavItem }) {
   };
 
   if (!item.enabled) {
-    return (
-      <SidebarMenuItem>
-        <SidebarMenuButton disabled tooltip={t(item.key)}>
-          <item.icon />
-          <span>{t(item.key)}</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    );
+    return null;
   }
 
   return (
@@ -188,8 +181,9 @@ function NavGroup({ item }: { item: NavItem }) {
         </Collapsible.Trigger>
         <Collapsible.Panel>
           <SidebarMenuSub>
-            {(item.children ?? []).map((child) =>
-              child.enabled ? (
+            {(item.children ?? [])
+              .filter((child) => child.enabled)
+              .map((child) => (
                 <SidebarMenuSubItem key={child.key}>
                   <SidebarMenuSubButton
                     render={<Link href={child.href} />}
@@ -198,16 +192,7 @@ function NavGroup({ item }: { item: NavItem }) {
                     <span>{t(child.key)}</span>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
-              ) : (
-                <SidebarMenuSubItem key={child.key}>
-                  <SidebarMenuSubButton
-                    render={<button type="button" disabled />}
-                  >
-                    <span>{t(child.key)}</span>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              )
-            )}
+              ))}
           </SidebarMenuSub>
         </Collapsible.Panel>
       </Collapsible.Root>
@@ -223,20 +208,12 @@ function NavLinkItem({
   badge?: number | null;
 }) {
   const t = useTranslations("nav");
-  const tCommon = useTranslations("common");
   const pathname = usePathname();
   const href = item.href ?? "#";
   const active = item.enabled && isPathActive(href, pathname);
 
   if (!item.enabled) {
-    return (
-      <SidebarMenuItem>
-        <SidebarMenuButton disabled tooltip={`${t(item.key)} — ${tCommon("soon")}`}>
-          <item.icon />
-          <span>{t(item.key)}</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    );
+    return null;
   }
 
   return (
