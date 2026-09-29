@@ -72,11 +72,14 @@ export function createMockClient(options = {}) {
  */
 export async function createRealClient(config) {
   const tdl = (await import('tdl')).default;
+  const prebuilt = await import('prebuilt-tdlib');
+  const getTdjson = prebuilt.getTdjson ?? prebuilt.default.getTdjson;
   const fs = await import('node:fs');
   const path = await import('node:path');
 
   fs.mkdirSync(config.tg.sessionDir, { recursive: true });
-  tdl.configure({ verbosityLevel: 0 });
+  // Point tdl at the prebuilt libtdjson.so (its default lookup finds nothing).
+  tdl.configure({ verbosityLevel: 0, tdjson: getTdjson() });
 
   const client = tdl.createClient({
     apiId: config.tg.apiId,
@@ -88,56 +91,63 @@ export async function createRealClient(config) {
 
   let state = 'connecting';
   let connection = 'connecting';
+  let stateSeq = 0;
   const messageListeners = [];
+  let codeResolver = null;
+  let passwordResolver = null;
 
   const setState = (next) => {
     state = next;
+    stateSeq += 1;
   };
 
-  const handleAuthState = async (authState) => {
-    switch (authState._) {
-      case 'authorizationStateWaitPhoneNumber': {
-        if (config.tg.phone) {
-          setState('sending_phone');
-          await client.invoke({ _: 'setAuthenticationPhoneNumber', phone_number: config.tg.phone });
-        } else {
-          setState('waiting_phone');
-        }
-        break;
-      }
-      case 'authorizationStateWaitCode':
-        setState('waiting_code');
-        break;
-      case 'authorizationStateWaitPassword':
-        setState('waiting_password');
-        break;
-      case 'authorizationStateReady':
-        setState('ready');
-        connection = 'ready';
-        break;
-      case 'authorizationStateClosing':
-      case 'authorizationStateClosed':
-      case 'authorizationStateLoggingOut':
-        setState('disconnected');
-        connection = 'disconnected';
-        break;
-      case 'authorizationStateWaitEncryptionKey':
-        await client.invoke({ _: 'checkDatabaseEncryptionKey', key: config.tg.dbKey });
-        break;
-      default:
-        break;
+  /**
+   * The auth flow is driven by tdl's login(): it blocks on these callbacks
+   * and our HTTP endpoints (/auth/code, /auth/password) resolve them.
+   */
+  const waitForCode = () => {
+    setState('waiting_code');
+    return new Promise((resolve) => {
+      codeResolver = resolve;
+    });
+  };
+
+  const waitForPassword = (hint) => {
+    setState('waiting_password');
+    return new Promise((resolve) => {
+      passwordResolver = resolve;
+    });
+  };
+
+  /** Wait until TDLib reacts to a submitted credential (or time out). */
+  const waitForStateChange = async (seqBefore, timeoutMs = 10_000) => {
+    const deadline = Date.now() + timeoutMs;
+    while (stateSeq === seqBefore && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
+    return stateSeq !== seqBefore;
   };
 
   client.on('update', (update) => {
     if (update._ === 'updateAuthorizationState') {
-      handleAuthState(update.authorization_state).catch((err) => {
-        console.error(JSON.stringify({ event: 'tdlib_auth_state_error', error: String(err) }));
-      });
+      const authState = update.authorization_state._;
+      if (authState === 'authorizationStateReady') {
+        setState('ready');
+        connection = 'ready';
+      } else if (
+        authState === 'authorizationStateClosing' ||
+        authState === 'authorizationStateClosed' ||
+        authState === 'authorizationStateLoggingOut'
+      ) {
+        setState('disconnected');
+        connection = 'disconnected';
+      }
       return;
     }
     if (update._ === 'updateConnectionState') {
-      connection = String(update.state).replace('connectionState', '').toLowerCase();
+      // New TDLib sends an object {_: 'connectionStateReady'}; older ones a string.
+      const raw = typeof update.state === 'string' ? update.state : update.state?._;
+      connection = String(raw ?? 'unknown').replace('connectionState', '').toLowerCase();
       return;
     }
     if (update._ === 'updateNewMessage') {
@@ -152,7 +162,31 @@ export async function createRealClient(config) {
     }
   });
 
-  await client.connect();
+  // Kick off the authorization flow; resolves when the account is Ready.
+  client
+    .login({
+      type: 'user',
+      getPhoneNumber: () => {
+        if (!config.tg.phone) throw new Error('TG_PHONE is not set');
+        setState('sending_phone');
+        return config.tg.phone;
+      },
+      getAuthCode: () => waitForCode(),
+      getPassword: (hint) => waitForPassword(hint),
+      getName: () => ({ firstName: 'Supplier', lastName: 'Assistant' }),
+      getEmailAddress: () => Promise.reject(new Error('email_login_unsupported')),
+      getEmailCode: () => Promise.reject(new Error('email_login_unsupported')),
+      confirmOnAnotherDevice: (link) =>
+        console.log(JSON.stringify({ event: 'tdlib_confirm_on_another_device', link })),
+    })
+    .then(() => {
+      setState('ready');
+      connection = 'ready';
+    })
+    .catch((err) => {
+      setState('disconnected');
+      console.error(JSON.stringify({ event: 'tdlib_login_error', error: String(err) }));
+    });
 
   const resolveChatId = async ({ chatId, phone }) => {
     if (chatId) return chatId;
@@ -200,22 +234,27 @@ export async function createRealClient(config) {
       return { state };
     },
     async checkCode(code) {
-      try {
-        await client.invoke({ _: 'checkAuthenticationCode', code });
-        return { ok: true };
-      } catch (err) {
-        const classified = classifyTelegramError(err);
-        return { ok: false, error: classified.message };
-      }
+      if (!codeResolver) return { ok: false, error: 'not_awaiting_code' };
+      const seqBefore = stateSeq;
+      const resolve = codeResolver;
+      codeResolver = null;
+      resolve(code);
+      const changed = await waitForStateChange(seqBefore);
+      if (!changed) return { ok: false, error: 'auth_timeout' };
+      // A rejected code makes login() re-enter getAuthCode() → same state.
+      if (state === 'waiting_code') return { ok: false, error: 'invalid_code' };
+      return { ok: true, state };
     },
     async checkPassword(password) {
-      try {
-        await client.invoke({ _: 'checkAuthenticationPassword', password });
-        return { ok: true };
-      } catch (err) {
-        const classified = classifyTelegramError(err);
-        return { ok: false, error: classified.message };
-      }
+      if (!passwordResolver) return { ok: false, error: 'not_awaiting_password' };
+      const seqBefore = stateSeq;
+      const resolve = passwordResolver;
+      passwordResolver = null;
+      resolve(password);
+      const changed = await waitForStateChange(seqBefore);
+      if (!changed) return { ok: false, error: 'auth_timeout' };
+      if (state === 'waiting_password') return { ok: false, error: 'invalid_password' };
+      return { ok: true, state };
     },
     onMessage(cb) {
       messageListeners.push(cb);
