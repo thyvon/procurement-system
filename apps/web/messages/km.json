@@ -51,6 +51,7 @@
     "suppliers": "អ្នកផ្គត់ផ្គង់",
     "requisitions": "សំណើទិញ",
     "approvals": "ការអនុម័ត",
+    "telegram": "តេឡេក្រាម",
     "reports": "របាយការណ៍",
     "settings": "ការកំណត់"
   },
@@ -826,5 +827,54 @@
     "uploadHint": "JPG, PNG ឬ WebP។ អតិបរមា 2 MB។",
     "upload": "បញ្ចូល",
     "uploading": "កំពុងបញ្ចូល…"
+  },
+  "telegram": {
+    "contacts": {
+      "title": "ទំនាក់ទំនង",
+      "new": "ថ្មី",
+      "searchPlaceholder": "ស្វែងរកតាមឈ្មោះ លេខទូរស័ព្ទ ឬ @username...",
+      "empty": "មិនទាន់មានទំនាក់ទំនងទេ។ បង្កើតមួយដើម្បីចាប់ផ្តើមជជែក។",
+      "noMatches": "មិនមានទំនាក់ទំនងត្រូវនឹងការស្វែងរករបស់អ្នកទេ។",
+      "openMenu": "បើកម៉ឺនុយ",
+      "edit": "កែសម្រួល",
+      "delete": "លុប",
+      "name": "ឈ្មោះ",
+      "namePlaceholder": "ឈ្មោះអ្នកផ្គត់ផ្គង់ ឬអ្នកបុគ្គល",
+      "phone": "លេខទូរស័ព្ទ",
+      "phonePlaceholder": "+85512345678",
+      "username": "ឈ្មោះអ្នកប្រើ",
+      "usernamePlaceholder": "@handle",
+      "identifierHint": "ត្រូវការលេខទូរស័ព្ទ ឬ @username យ៉ាងតិចមួយ។",
+      "language": "ភាសា",
+      "languageEn": "អង់គ្លេស",
+      "languageKm": "ខ្មែរ",
+      "supplierCode": "លេខកូដអ្នកផ្គត់ផ្គង់",
+      "supplierCodePlaceholder": "SUP-001",
+      "newTitle": "ទំនាក់ទំនងថ្មី",
+      "newDescription": "បន្ថែមទំនាក់ទំនងតេឡេក្រាមតាមលេខទូរស័ព្ទ ឬ @username។",
+      "editTitle": "កែសម្រួលទំនាក់ទំនង",
+      "editDescription": "ធ្វើបច្ចុប្បន្នភាពព័ត៌មានទំនាក់ទំនង។",
+      "cancel": "បោះបង់",
+      "saving": "កំពុងរក្សាទុក...",
+      "save": "រក្សាទុក",
+      "created": "បានបង្កើតទំនាក់ទំនង",
+      "updated": "បានធ្វើបច្ចុប្បន្នភាពទំនាក់ទំនង",
+      "deleted": "បានលុបទំនាក់ទំនង",
+      "deleteTitle": "លុបទំនាក់ទំនង",
+      "deleteDescription": "តើអ្នកប្រាកដថាចង់លុប <strong>{name}</strong> ឬទេ? ការសន្ទនាតេឡេក្រាមនៅតែបន្តនៅក្រៅប្រព័ន្ធនេះ។",
+      "confirmDelete": "លុប",
+      "deleting": "កំពុងលុប..."
+    },
+    "chat": {
+      "selectPrompt": "ជ្រើសរើសការសន្ទនា",
+      "placeholder": "វាយសារ...",
+      "send": "ផ្ញើ",
+      "sending": "កំពុងផ្ញើ...",
+      "noMessages": "មិនទាន់មានសារទេ។ សួស្តី!",
+      "failed": "បរាជ័យ",
+      "queued": "កំពុងរង់ចាំ",
+      "sent": "បានផ្ញើ",
+      "needsReview": "ត្រូវការពិនិត្យ"
+    }
   }
 }

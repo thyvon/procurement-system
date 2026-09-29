@@ -15,6 +15,7 @@ import {
   FileText,
   LayoutDashboard,
   Settings,
+  Send,
   ShoppingBag,
   Store,
   Users,
@@ -101,6 +102,7 @@ const navItems: NavItem[] = [
   { key: "suppliers", href: "#", icon: Store, enabled: false },
   { key: "requisitions", href: "#", icon: ClipboardList, enabled: false },
   { key: "approvals", href: "/approvals", icon: FileCheck2, enabled: true },
+  { key: "telegram", href: "/telegram", icon: Send, enabled: true },
   { key: "reports", href: "#", icon: BarChart3, enabled: false },
   { key: "settings", href: "/settings", icon: Settings, enabled: true },
 ];

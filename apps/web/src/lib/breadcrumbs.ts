@@ -41,6 +41,7 @@ export const ROUTE_CRUMBS: Record<string, (string | null)[]> = {
   ],
   "/approvals": ["nav.approvals"],
   "/approvals/[id]": ["nav.approvals", "breadcrumb.details"],
+  "/telegram": ["nav.telegram"],
   "/users": ["nav.users"],
   "/users/roles": ["nav.users", "nav.roles"],
   "/settings": ["nav.settings"],

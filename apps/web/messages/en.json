@@ -51,6 +51,7 @@
     "suppliers": "Suppliers",
     "requisitions": "Requisitions",
     "approvals": "Approvals",
+    "telegram": "Telegram",
     "reports": "Reports",
     "settings": "Settings"
   },
@@ -826,5 +827,54 @@
     "uploadHint": "JPG, PNG or WebP. Max 2 MB.",
     "upload": "Upload",
     "uploading": "Uploading…"
+  },
+  "telegram": {
+    "contacts": {
+      "title": "Contacts",
+      "new": "New",
+      "searchPlaceholder": "Search name, phone, or @username...",
+      "empty": "No contacts yet. Create one to start chatting.",
+      "noMatches": "No contacts match your search.",
+      "openMenu": "Open menu",
+      "edit": "Edit",
+      "delete": "Delete",
+      "name": "Name",
+      "namePlaceholder": "Supplier or person name",
+      "phone": "Phone",
+      "phonePlaceholder": "+85512345678",
+      "username": "Username",
+      "usernamePlaceholder": "@handle",
+      "identifierHint": "At least one of phone or @username is required.",
+      "language": "Language",
+      "languageEn": "English",
+      "languageKm": "Khmer",
+      "supplierCode": "Supplier code",
+      "supplierCodePlaceholder": "SUP-001",
+      "newTitle": "New contact",
+      "newDescription": "Add a Telegram contact by phone number or @username.",
+      "editTitle": "Edit contact",
+      "editDescription": "Update the contact details.",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "save": "Save",
+      "created": "Contact created",
+      "updated": "Contact updated",
+      "deleted": "Contact deleted",
+      "deleteTitle": "Delete contact",
+      "deleteDescription": "Are you sure you want to delete <strong>{name}</strong>? The Telegram conversation continues outside this system.",
+      "confirmDelete": "Delete",
+      "deleting": "Deleting..."
+    },
+    "chat": {
+      "selectPrompt": "Select a conversation",
+      "placeholder": "Type a message...",
+      "send": "Send",
+      "sending": "Sending...",
+      "noMessages": "No messages yet. Say hello!",
+      "failed": "Failed",
+      "queued": "Queued",
+      "sent": "Sent",
+      "needsReview": "Needs review"
+    }
   }
 }
