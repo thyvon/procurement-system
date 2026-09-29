@@ -27,6 +27,7 @@ import type {
   AuthorizationExceptionResponse,
   ModelNotFoundExceptionResponse,
   PurchaseOrdersEvaluationsDestroy200,
+  PurchaseOrdersEvaluationsDuplicate201,
   PurchaseOrdersEvaluationsIndex200,
   PurchaseOrdersEvaluationsIndexParams,
   PurchaseOrdersEvaluationsShow200,
@@ -830,6 +831,136 @@ export function usePurchaseOrdersEvaluationsDestroy<TData = Awaited<ReturnType<t
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getPurchaseOrdersEvaluationsDestroyQueryOptions(evaluation,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type purchaseOrdersEvaluationsDuplicateResponse201 = {
+  data: PurchaseOrdersEvaluationsDuplicate201
+  status: 201
+}
+
+export type purchaseOrdersEvaluationsDuplicateResponse401 = {
+  data: AuthenticationExceptionResponse
+  status: 401
+}
+
+export type purchaseOrdersEvaluationsDuplicateResponse403 = {
+  data: AuthorizationExceptionResponse
+  status: 403
+}
+
+export type purchaseOrdersEvaluationsDuplicateResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
+export type purchaseOrdersEvaluationsDuplicateResponseSuccess = (purchaseOrdersEvaluationsDuplicateResponse201) & {
+  headers: Headers;
+};
+export type purchaseOrdersEvaluationsDuplicateResponseError = (purchaseOrdersEvaluationsDuplicateResponse401 | purchaseOrdersEvaluationsDuplicateResponse403 | purchaseOrdersEvaluationsDuplicateResponse404) & {
+  headers: Headers;
+};
+
+export type purchaseOrdersEvaluationsDuplicateResponse = (purchaseOrdersEvaluationsDuplicateResponseSuccess | purchaseOrdersEvaluationsDuplicateResponseError)
+
+export const getPurchaseOrdersEvaluationsDuplicateUrl = (evaluation: string,) => {
+
+
+
+
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/purchase-orders/evaluations/${evaluation}/duplicate`
+}
+
+export const purchaseOrdersEvaluationsDuplicate = async (evaluation: string, options?: RequestInit): Promise<purchaseOrdersEvaluationsDuplicateResponse> => {
+
+  const res = await fetch(getPurchaseOrdersEvaluationsDuplicateUrl(evaluation),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: purchaseOrdersEvaluationsDuplicateResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as purchaseOrdersEvaluationsDuplicateResponse
+}
+
+
+
+
+
+export const getPurchaseOrdersEvaluationsDuplicateQueryKey = (evaluation: string,) => {
+    return [
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/purchase-orders/evaluations/${evaluation}/duplicate`
+    ] as const;
+    }
+
+
+export const getPurchaseOrdersEvaluationsDuplicateQueryOptions = <TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(evaluation: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPurchaseOrdersEvaluationsDuplicateQueryKey(evaluation);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>> = ({ signal }) => purchaseOrdersEvaluationsDuplicate(evaluation, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: evaluation !== null && evaluation !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PurchaseOrdersEvaluationsDuplicateQueryResult = NonNullable<Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>>
+export type PurchaseOrdersEvaluationsDuplicateQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
+
+
+export function usePurchaseOrdersEvaluationsDuplicate<TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ evaluation: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>,
+          TError,
+          Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePurchaseOrdersEvaluationsDuplicate<TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ evaluation: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>,
+          TError,
+          Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePurchaseOrdersEvaluationsDuplicate<TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ evaluation: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function usePurchaseOrdersEvaluationsDuplicate<TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ evaluation: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsDuplicate>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPurchaseOrdersEvaluationsDuplicateQueryOptions(evaluation,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

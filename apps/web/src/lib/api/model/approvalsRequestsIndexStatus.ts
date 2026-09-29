@@ -13,4 +13,5 @@ export const ApprovalsRequestsIndexStatus = {
   approved: 'approved',
   rejected: 'rejected',
   returned: 'returned',
+  cancelled: 'cancelled',
 } as const;

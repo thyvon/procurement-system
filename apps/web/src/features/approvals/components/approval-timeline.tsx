@@ -3,7 +3,11 @@ import { useTranslations } from "next-intl";
 import { CheckCircle2, ChevronDown, Circle, CircleDot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { ApprovalRequestView, ApprovalStatus } from "../approval-types";
+import type {
+  ApprovalDocumentSnapshot,
+  ApprovalRequestView,
+  ApprovalStatus,
+} from "../approval-types";
 
 const STATUS_VARIANT: Record<
   ApprovalStatus,
@@ -13,6 +17,7 @@ const STATUS_VARIANT: Record<
   approved: "default",
   rejected: "destructive",
   returned: "outline",
+  cancelled: "outline",
 };
 
 export function ApprovalStatusBadge({ status }: { status: ApprovalStatus }) {
@@ -33,9 +38,57 @@ function actionLabelKey(action: string): string {
       return "actionReject";
     case "return":
       return "actionReturn";
+    case "cancel":
+      return "actionCancel";
     default:
       return "actionRecord";
   }
+}
+
+type DocumentChangeKey =
+  | "awardedTotal"
+  | "currency"
+  | "basis"
+  | "items"
+  | "suppliers";
+
+type DocumentChange = { key: DocumentChangeKey; from: string; to: string };
+
+function listText(values: string[]): string {
+  return values.length > 0 ? values.join(", ") : "—";
+}
+
+/**
+ * The frozen document of two consecutive rounds, field by field — only what
+ * actually moved. A return/resubmit then reads as a diff instead of asking
+ * the approver to re-read the whole document.
+ */
+function diffDocuments(
+  previous: ApprovalDocumentSnapshot | null,
+  current: ApprovalDocumentSnapshot | null
+): DocumentChange[] {
+  if (!previous || !current) return [];
+
+  const changes: DocumentChange[] = [];
+  const compare = (key: DocumentChangeKey, from: string, to: string) => {
+    if (from !== to) changes.push({ key, from, to });
+  };
+
+  compare("awardedTotal", previous.awardedTotal, current.awardedTotal);
+  compare("currency", previous.currency, current.currency);
+  compare(
+    "basis",
+    previous.recommendationBasis,
+    current.recommendationBasis
+  );
+  compare("items", listText(previous.items), listText(current.items));
+  compare(
+    "suppliers",
+    listText(previous.selectedSuppliers),
+    listText(current.selectedSuppliers)
+  );
+
+  return changes;
 }
 
 export function ApprovalTimeline({
@@ -46,6 +99,13 @@ export function ApprovalTimeline({
   rounds?: ApprovalRequestView[];
 }) {
   const t = useTranslations("approvals.detail");
+  const changeLabels: Record<DocumentChangeKey, string> = {
+    awardedTotal: t("doc.awardedTotal"),
+    currency: t("doc.currency"),
+    basis: t("doc.basis"),
+    items: t("doc.items"),
+    suppliers: t("doc.suppliers"),
+  };
   const actions = request.actions ?? [];
   const current = request.currentStep;
   // Steps only tell a live story while a decision is pending; once decided,
@@ -136,6 +196,10 @@ export function ApprovalTimeline({
                 const roundActions = round.actions ?? [];
                 const isLast = index === historyRounds.length - 1;
                 const open = isRoundOpen(round.id, isLast);
+                const changes = diffDocuments(
+                  historyRounds[index - 1]?.document ?? null,
+                  round.document
+                );
 
                 return (
                   <tbody key={round.id}>
@@ -174,6 +238,32 @@ export function ApprovalTimeline({
                         </button>
                       </td>
                     </tr>
+
+                    {open && changes.length > 0 ? (
+                      <tr>
+                        <td />
+                        <td colSpan={4} className="pb-2.5">
+                          <div className="rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-xs">
+                            <p className="mb-1 font-medium text-muted-foreground">
+                              {t("changesSince", { n: index })}
+                            </p>
+                            <ul className="space-y-0.5">
+                              {changes.map((change) => (
+                                <li
+                                  key={change.key}
+                                  className="flex flex-wrap gap-x-1.5"
+                                >
+                                  <span>{changeLabels[change.key]}</span>
+                                  <span className="text-muted-foreground">
+                                    {change.from} → {change.to}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
 
                     {open && roundActions.length === 0 ? (
                       <tr>

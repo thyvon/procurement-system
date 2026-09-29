@@ -9,6 +9,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Modules\Approvals\Models\TocaEntry;
 use Modules\PurchaseOrders\Models\Evaluation;
+use Modules\PurchaseOrders\Models\EvaluationItem;
+use Modules\PurchaseOrders\Models\EvaluationQuotation;
 
 /**
  * Maps a subject_type (the "module" being approved) to the metadata the
@@ -120,6 +122,57 @@ class ApprovalSubjectRegistry
         $code = $subject->getAttribute($definition['code_column']);
 
         return $code === null ? null : (string) $code;
+    }
+
+    /**
+     * The document fields a round freezes at submit time. Every later round
+     * snapshots its own copy, so approvers can see exactly what the owner
+     * changed after a return instead of re-reading the whole document.
+     *
+     * @return array<string, mixed>
+     */
+    public function documentSnapshot(string $subjectType, Model $subject): array
+    {
+        if ($subjectType !== 'evaluation') {
+            return [];
+        }
+
+        /** @var Evaluation $subject */
+        $items = $subject->items()
+            ->orderBy('position')
+            ->get()
+            ->map(fn (EvaluationItem $item): string => sprintf(
+                '%s × %s %s',
+                $item->item_code,
+                self::trimNumber((float) $item->qty),
+                (string) $item->uom,
+            ))
+            ->values()
+            ->all();
+
+        $selectedSuppliers = $subject->quotations()
+            ->with('lines')
+            ->get()
+            ->filter(fn (EvaluationQuotation $quotation): bool => $quotation->lines->contains('is_selected', true))
+            ->pluck('supplier_name')
+            ->values()
+            ->all();
+
+        return [
+            'awardedTotal' => number_format((float) $subject->getAttribute('awarded_total'), 2, '.', ''),
+            'currency' => (string) $subject->getAttribute('currency'),
+            'recommendationBasis' => (string) $subject->getAttribute('recommendation_basis'),
+            'items' => $items,
+            'selectedSuppliers' => $selectedSuppliers,
+        ];
+    }
+
+    /**
+     * `decimal:4` columns arrive as "10.0000"; human diffs read better.
+     */
+    private static function trimNumber(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 4, '.', ''), '0'), '.') ?: '0';
     }
 
     public static function permission(string $subjectType): ?string

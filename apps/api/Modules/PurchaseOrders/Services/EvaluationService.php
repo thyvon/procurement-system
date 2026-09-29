@@ -68,6 +68,82 @@ class EvaluationService
     }
 
     /**
+     * Rejected documents are frozen for good — the owner gets a fresh copy to
+     * correct instead: a new draft, its own server-generated code and no link
+     * to the rejected round.
+     */
+    public function duplicate(Evaluation $evaluation, User $user): Evaluation
+    {
+        if ($evaluation->status !== 'rejected') {
+            throw ValidationException::withMessages([
+                'status' => "Only a rejected evaluation can be duplicated, this one is '{$evaluation->status}'.",
+            ]);
+        }
+
+        return $this->create($this->payloadFrom($evaluation), $user);
+    }
+
+    /**
+     * Rebuild the stored matrix in the shape `create()` consumes, so the copy
+     * is written through the same path (server-owned code/status/totals).
+     *
+     * @return array<string, mixed>
+     */
+    private function payloadFrom(Evaluation $evaluation): array
+    {
+        $evaluation->load(['items', 'quotations.lines']);
+
+        $itemPositions = $evaluation->items
+            ->values()
+            ->mapWithKeys(fn (EvaluationItem $item, int $index): array => [$item->getKey() => $index]);
+
+        $items = $evaluation->items
+            ->map(fn (EvaluationItem $item): array => [
+                'item_code' => $item->item_code,
+                'description' => $item->description,
+                'qty' => $item->qty,
+                'uom' => $item->uom,
+            ])
+            ->all();
+
+        $quotations = $evaluation->quotations
+            ->map(function (EvaluationQuotation $quotation) use ($itemPositions): array {
+                return [
+                    'supplier_code' => $quotation->supplier_code,
+                    'supplier_name' => $quotation->supplier_name,
+                    'supplier_phone' => $quotation->supplier_phone,
+                    'supplier_address' => $quotation->supplier_address,
+                    'discount' => $quotation->discount,
+                    'vat' => $quotation->vat,
+                    'price' => $quotation->price,
+                    'quality' => $quotation->quality,
+                    'lead_time' => $quotation->lead_time,
+                    'warranty' => $quotation->warranty,
+                    'payment_terms' => $quotation->payment_terms,
+                    'other_remarks' => $quotation->other_remarks,
+                    'lines' => $quotation->lines
+                        ->map(fn (EvaluationQuotationItem $line): array => [
+                            'item_index' => $itemPositions[$line->evaluation_item_id],
+                            'brand' => $line->brand,
+                            'unit_cost' => $line->unit_cost,
+                            'is_selected' => $line->is_selected,
+                        ])
+                        ->values()
+                        ->all(),
+                ];
+            })
+            ->all();
+
+        return [
+            'currency' => $evaluation->currency,
+            'exchange_rate' => $evaluation->exchange_rate,
+            'recommendation_basis' => $evaluation->recommendation_basis,
+            'items' => $items,
+            'quotations' => $quotations,
+        ];
+    }
+
+    /**
      * An evaluation is editable only while it is not part of an active or
      * finished approval — approvals freeze the document so approvers decide
      * on exactly what they were shown.

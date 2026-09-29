@@ -33,6 +33,7 @@ import type {
   ApprovalsPreview200,
   ApprovalsPreviewParams,
   ApprovalsRequestsActions200,
+  ApprovalsRequestsCancel200,
   ApprovalsRequestsIndex200,
   ApprovalsRequestsIndexParams,
   ApprovalsRequestsShow200,
@@ -1601,6 +1602,136 @@ export function useApprovalsRequestsActions<TData = Awaited<ReturnType<typeof ap
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getApprovalsRequestsActionsQueryOptions(approval,storeApprovalActionRequest,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type approvalsRequestsCancelResponse200 = {
+  data: ApprovalsRequestsCancel200
+  status: 200
+}
+
+export type approvalsRequestsCancelResponse401 = {
+  data: AuthenticationExceptionResponse
+  status: 401
+}
+
+export type approvalsRequestsCancelResponse403 = {
+  data: AuthorizationExceptionResponse
+  status: 403
+}
+
+export type approvalsRequestsCancelResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
+export type approvalsRequestsCancelResponseSuccess = (approvalsRequestsCancelResponse200) & {
+  headers: Headers;
+};
+export type approvalsRequestsCancelResponseError = (approvalsRequestsCancelResponse401 | approvalsRequestsCancelResponse403 | approvalsRequestsCancelResponse404) & {
+  headers: Headers;
+};
+
+export type approvalsRequestsCancelResponse = (approvalsRequestsCancelResponseSuccess | approvalsRequestsCancelResponseError)
+
+export const getApprovalsRequestsCancelUrl = (approval: string,) => {
+
+
+
+
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/requests/${approval}/cancel`
+}
+
+export const approvalsRequestsCancel = async (approval: string, options?: RequestInit): Promise<approvalsRequestsCancelResponse> => {
+
+  const res = await fetch(getApprovalsRequestsCancelUrl(approval),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: approvalsRequestsCancelResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as approvalsRequestsCancelResponse
+}
+
+
+
+
+
+export const getApprovalsRequestsCancelQueryKey = (approval: string,) => {
+    return [
+    'POST', `${process.env.NEXT_PUBLIC_API_URL}/api/v1/approvals/requests/${approval}/cancel`
+    ] as const;
+    }
+
+
+export const getApprovalsRequestsCancelQueryOptions = <TData = Awaited<ReturnType<typeof approvalsRequestsCancel>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(approval: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof approvalsRequestsCancel>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getApprovalsRequestsCancelQueryKey(approval);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof approvalsRequestsCancel>>> = ({ signal }) => approvalsRequestsCancel(approval, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: approval !== null && approval !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof approvalsRequestsCancel>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ApprovalsRequestsCancelQueryResult = NonNullable<Awaited<ReturnType<typeof approvalsRequestsCancel>>>
+export type ApprovalsRequestsCancelQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
+
+
+export function useApprovalsRequestsCancel<TData = Awaited<ReturnType<typeof approvalsRequestsCancel>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ approval: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof approvalsRequestsCancel>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof approvalsRequestsCancel>>,
+          TError,
+          Awaited<ReturnType<typeof approvalsRequestsCancel>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useApprovalsRequestsCancel<TData = Awaited<ReturnType<typeof approvalsRequestsCancel>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ approval: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof approvalsRequestsCancel>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof approvalsRequestsCancel>>,
+          TError,
+          Awaited<ReturnType<typeof approvalsRequestsCancel>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useApprovalsRequestsCancel<TData = Awaited<ReturnType<typeof approvalsRequestsCancel>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ approval: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof approvalsRequestsCancel>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useApprovalsRequestsCancel<TData = Awaited<ReturnType<typeof approvalsRequestsCancel>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ approval: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof approvalsRequestsCancel>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getApprovalsRequestsCancelQueryOptions(approval,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

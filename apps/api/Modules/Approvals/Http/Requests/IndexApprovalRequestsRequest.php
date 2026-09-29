@@ -18,7 +18,7 @@ class IndexApprovalRequestsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['sometimes', 'nullable', Rule::in(['pending', 'approved', 'rejected', 'returned'])],
+            'status' => ['sometimes', 'nullable', Rule::in(['pending', 'approved', 'rejected', 'returned', 'cancelled'])],
             'subject_type' => ['sometimes', 'string', 'max:64'],
             'subject_id' => ['sometimes', 'string', 'max:26'],
             'search' => ['sometimes', 'string', 'max:255'],

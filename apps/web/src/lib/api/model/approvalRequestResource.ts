@@ -24,5 +24,8 @@ export interface ApprovalRequestResource {
   submittedAt: string | null;
   /** @nullable */
   decidedAt: string | null;
+  /** @nullable */
+  createdById: number | null;
+  document: unknown;
   actions?: ApprovalActionResource[];
 }

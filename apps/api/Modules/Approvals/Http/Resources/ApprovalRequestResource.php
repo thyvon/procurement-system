@@ -44,6 +44,8 @@ class ApprovalRequestResource extends JsonResource
             'submittedBy' => $this->creator?->name,
             'submittedAt' => $this->created_at?->format('Y-m-d H:i'),
             'decidedAt' => $this->decided_at?->format('Y-m-d H:i'),
+            'createdById' => $this->created_by,
+            'document' => $this->snapshot['document'] ?? null,
             'actions' => ApprovalActionResource::collection($this->whenLoaded('actions')),
         ];
     }

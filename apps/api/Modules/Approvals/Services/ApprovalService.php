@@ -211,6 +211,7 @@ class ApprovalService
                 'status' => ApprovalRequest::STATUS_PENDING,
                 'snapshot' => [
                     'documentCode' => $this->subjects->code($subjectType, $subject),
+                    'document' => $this->subjects->documentSnapshot($subjectType, $subject),
                     'flow' => $this->flowPayload($flow),
                     'steps' => $snapshotSteps,
                 ],
@@ -232,6 +233,55 @@ class ApprovalService
             }
 
             return $request;
+        });
+    }
+
+    /**
+     * The submitter pulls their own request back before anyone decides it.
+     * The subject returns to draft so it can be corrected and submitted again;
+     * the cancelled row stays as the audit trail of the withdrawn round.
+     */
+    public function cancel(ApprovalRequest $approval, User $user): ApprovalRequest
+    {
+        return DB::transaction(function () use ($approval, $user): ApprovalRequest {
+            $request = ApprovalRequest::query()
+                ->whereKey($approval->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $request->isPending()) {
+                throw ValidationException::withMessages([
+                    'status' => "Only a pending approval request can be cancelled, this one is '{$request->status}'.",
+                ]);
+            }
+
+            if ((int) $request->created_by !== (int) $user->getKey()) {
+                abort(403, 'Only the submitter can cancel this approval request.');
+            }
+
+            $current = collect($request->snapshot['steps'])
+                ->firstWhere('position', $request->current_position);
+
+            $this->recordAction($request, [
+                'position' => (int) ($current['position'] ?? $request->current_position ?? 0),
+                'key' => $current['key'] ?? 'cancel',
+                'label' => $current['label'] ?? 'Cancelled',
+            ], 'cancel', $user);
+
+            // Read the assignee before the update clears the step.
+            $this->notifyCancelled($request);
+
+            $request->update([
+                'status' => ApprovalRequest::STATUS_CANCELLED,
+                'current_position' => null,
+                'current_assignee_id' => null,
+                'decided_at' => null,
+                'updated_by' => $user->getKey(),
+            ]);
+
+            $this->dispatchStatusChanged($request, (int) $user->getKey());
+
+            return $request->refresh();
         });
     }
 
@@ -402,6 +452,24 @@ class ApprovalService
             'subjectId' => $request->subject_id,
             'documentCode' => $request->snapshot['documentCode'] ?? null,
             'status' => $status,
+            'amount' => number_format((float) $request->amount_snapshot, 2, '.', ''),
+        ]));
+    }
+
+    /**
+     * The assignee loses a task they never acted on — without this the step
+     * would silently vanish from their tray.
+     */
+    private function notifyCancelled(ApprovalRequest $request): void
+    {
+        $assignee = User::query()->find($request->current_assignee_id);
+
+        $assignee?->notify(new ApprovalResultNotification([
+            'requestId' => $request->getKey(),
+            'subjectType' => $request->subject_type,
+            'subjectId' => $request->subject_id,
+            'documentCode' => $request->snapshot['documentCode'] ?? null,
+            'status' => ApprovalRequest::STATUS_CANCELLED,
             'amount' => number_format((float) $request->amount_snapshot, 2, '.', ''),
         ]));
     }

@@ -78,6 +78,9 @@ function appearanceFor(data: NotificationData): {
     if (data.status === "returned") {
       return { icon: Undo2, tone: "muted" };
     }
+    if (data.status === "cancelled") {
+      return { icon: Undo2, tone: "muted" };
+    }
   }
   return { icon: Bell, tone: "muted" };
 }
@@ -143,6 +146,7 @@ export function NotificationsDrawer() {
       if (data.status === "approved") return t("approved", { code });
       if (data.status === "rejected") return t("rejected", { code });
       if (data.status === "returned") return t("returned", { code });
+      if (data.status === "cancelled") return t("cancelled", { code });
     }
     return data.type ?? t("title");
   };

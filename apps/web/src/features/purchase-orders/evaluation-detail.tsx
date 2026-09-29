@@ -1,11 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { ArrowLeft, Pencil, Printer } from "lucide-react";
+import { toast } from "sonner";
+import { ArrowLeft, Copy, Pencil, Printer } from "lucide-react";
 import { unwrap, withAuth } from "@/lib/api-client";
-import { purchaseOrdersEvaluationsShow } from "@/lib/api/evaluation/evaluation";
+import {
+  purchaseOrdersEvaluationsDuplicate,
+  purchaseOrdersEvaluationsShow,
+} from "@/lib/api/evaluation/evaluation";
 import type { EvaluationResource } from "@/lib/api/model/evaluationResource";
 import { Button } from "@/components/ui/button";
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton";
@@ -41,13 +45,27 @@ export function EvaluationDetail({
   const tf = useTranslations("purchaseOrders.form");
   const tt = useTranslations("purchaseOrders.table");
   const td = useTranslations("purchaseOrders.detail");
+  const te = useTranslations("purchaseOrders.evaluations");
   const ta = useTranslations("approvals.form");
   const meQuery = useMe();
+  const qc = useQueryClient();
 
   const showQuery = useQuery({
     queryKey: ["evaluations", "detail", evaluationId],
     queryFn: async (): Promise<EvaluationResource> =>
       unwrap(await purchaseOrdersEvaluationsShow(evaluationId, withAuth())),
+  });
+
+  // A rejected evaluation can never be edited again — the owner starts over
+  // from a copy (the API's duplicate endpoint).
+  const duplicateMutation = useMutation({
+    mutationFn: async (id: string): Promise<EvaluationResource> =>
+      unwrap(await purchaseOrdersEvaluationsDuplicate(id, withAuth())),
+    onSuccess: (evaluation) => {
+      qc.invalidateQueries({ queryKey: ["evaluations"] });
+      toast.success(te("duplicated", { code: evaluation.code }));
+      router.push(`/purchase-orders/evaluations/${evaluation.id}`);
+    },
   });
 
   // Shared key/queryFn with evaluation-form and approval-detail: every
@@ -99,6 +117,8 @@ export function EvaluationDetail({
     canManage &&
     isOwner &&
     (status === "draft" || status === "returned");
+  // Rejected is terminal — the only way forward is a copy as a new draft.
+  const canDuplicate = canManage && isOwner && status === "rejected";
 
   const handlePrint = () => {
     const originalTitle = document.title;
@@ -227,6 +247,15 @@ export function EvaluationDetail({
               <Printer />
               {td("print")}
             </Button>
+            {canDuplicate ? (
+              <Button
+                onClick={() => duplicateMutation.mutate(evaluation.id)}
+                disabled={duplicateMutation.isPending}
+              >
+                <Copy />
+                {tt("duplicate")}
+              </Button>
+            ) : null}
             {canEdit ? (
               <Button
                 onClick={() =>

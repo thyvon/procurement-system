@@ -79,6 +79,18 @@ function storeEvaluation(array $overrides = [], ?User $user = null): TestRespons
 
 it('requires authentication', function () {
     $this->getJson('/api/v1/purchase-orders/evaluations')->assertStatus(401);
+
+    // Built directly so no actingAs() guard lingers for the guest request.
+    $evaluation = Evaluation::create([
+        'entity_id' => $this->entity->getKey(),
+        'code' => 'EVAL-26-001',
+        'status' => 'rejected',
+        'recommendation_basis' => 'Best value for money.',
+        'created_by' => $this->admin->getKey(),
+    ]);
+
+    $this->postJson("/api/v1/purchase-orders/evaluations/{$evaluation->getKey()}/duplicate")
+        ->assertStatus(401);
 });
 
 it('creates an evaluation with a server-generated code and recomputed totals', function () {
@@ -385,6 +397,66 @@ it('forbids a manage holder from editing or deleting a draft owned by someone el
 
     expect(Evaluation::query()->find($id))->not->toBeNull()
         ->and(Evaluation::onlyTrashed()->find($id))->toBeNull();
+});
+
+it('duplicates a rejected evaluation into a fresh draft with its own code', function () {
+    $source = storeEvaluation()->assertStatus(201);
+    $sourceId = $source->json('data.id');
+    $sourceCode = $source->json('data.code');
+    Evaluation::query()->find($sourceId)->update(['status' => 'rejected']);
+
+    $copy = $this->actingAs($this->admin, 'sanctum')
+        ->postJson("/api/v1/purchase-orders/evaluations/{$sourceId}/duplicate")
+        ->assertStatus(201)
+        ->assertJsonPath('data.status', 'draft')
+        ->assertJsonPath('data.createdBy', $this->admin->name)
+        ->assertJsonPath('data.recommendationBasis', 'Best value for money.')
+        ->assertJsonCount(2, 'data.items')
+        ->assertJsonCount(2, 'data.quotations')
+        ->assertJsonPath('data.quotations.0.supplierCode', 'SUP-00055')
+        ->assertJsonPath('data.quotations.0.lines.0.isSelected', true)
+        ->assertJsonPath('data.quotations.1.lines.1.isSelected', true)
+        ->assertJsonPath('data.awardedTotal', 47.89);
+
+    expect($copy->json('data.id'))->not->toBe($sourceId)
+        ->and($copy->json('data.code'))->toMatch('/^EVAL-\d{2}-\d{3}$/')
+        ->and($copy->json('data.code'))->not->toBe($sourceCode)
+        ->and(Evaluation::query()->count())->toBe(2);
+
+    // The rejected original stays exactly as approvers saw it.
+    expect(Evaluation::query()->find($sourceId)->status)->toBe('rejected')
+        ->and(Evaluation::query()->find($sourceId)->code)->toBe($sourceCode);
+});
+
+it('blocks duplicating an evaluation that was not rejected', function (string $status) {
+    $id = storeEvaluation()->json('data.id');
+    Evaluation::query()->find($id)->update(['status' => $status]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson("/api/v1/purchase-orders/evaluations/{$id}/duplicate")
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors'])
+        ->assertJsonPath('errors.status.0', "Only a rejected evaluation can be duplicated, this one is '{$status}'.");
+
+    expect(Evaluation::query()->count())->toBe(1);
+})->with(['draft', 'in_review', 'approved', 'returned']);
+
+it('forbids duplicating an evaluation you neither own nor manage', function () {
+    $id = storeEvaluation()->json('data.id');
+    Evaluation::query()->find($id)->update(['status' => 'rejected', 'created_by' => $this->staff->getKey()]);
+
+    // manage without ownership.
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson("/api/v1/purchase-orders/evaluations/{$id}/duplicate")
+        ->assertStatus(403);
+
+    // ownership without manage.
+    $this->actingAs($this->staff, 'sanctum')
+        ->postJson("/api/v1/purchase-orders/evaluations/{$id}/duplicate")
+        ->assertStatus(403);
+
+    expect(Evaluation::query()->count())->toBe(1);
 });
 
 it('rejects a single quotation with a 422 envelope', function () {

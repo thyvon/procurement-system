@@ -23,6 +23,7 @@ class SyncEvaluationApprovalStatus
             'approved' => 'approved',
             'rejected' => 'rejected',
             'returned' => 'draft',
+            'cancelled' => 'draft',
             default => null,
         };
 

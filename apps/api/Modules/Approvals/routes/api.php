@@ -16,6 +16,8 @@ Route::prefix('v1/approvals')->name('approvals.')->middleware(['auth:sanctum'])-
     Route::apiResource('requests', ApprovalRequestController::class)->only(['index', 'store', 'show']);
     Route::post('requests/{approval}/actions', [ApprovalRequestController::class, 'actions'])
         ->name('requests.actions');
+    Route::post('requests/{approval}/cancel', [ApprovalRequestController::class, 'cancel'])
+        ->name('requests.cancel');
 
     Route::apiResource('settings', ApprovalSettingController::class)->only(['index']);
     Route::apiResource('flows', ApprovalFlowController::class)

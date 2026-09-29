@@ -40,4 +40,13 @@ class ApprovalPolicy
     {
         return $user->can('approvals.view', 'sanctum');
     }
+
+    /**
+     * Only the submitter may withdraw a request — that ownership check lives
+     * in the service next to the pending-state guard, exactly like `act`.
+     */
+    public function cancel(User $user, ?Model $model = null): bool
+    {
+        return $user->can('approvals.view', 'sanctum');
+    }
 }

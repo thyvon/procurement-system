@@ -69,9 +69,26 @@ export type ApprovalActionView = {
   actedAt: string | null;
 };
 
-export type ApprovalStatus = "pending" | "approved" | "rejected" | "returned";
+export type ApprovalStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "returned"
+  | "cancelled";
 
 export type ApprovalAction = "approve" | "reject" | "return";
+
+/**
+ * What the document looked like the moment this round was submitted —
+ * frozen server-side, so a later round can show what changed after a return.
+ */
+export type ApprovalDocumentSnapshot = {
+  awardedTotal: string;
+  currency: string;
+  recommendationBasis: string;
+  items: string[];
+  selectedSuppliers: string[];
+};
 
 export type ApprovalRequestView = {
   id: string;
@@ -86,6 +103,8 @@ export type ApprovalRequestView = {
   submittedBy: string | null;
   submittedAt: string | null;
   decidedAt: string | null;
+  createdById: number | null;
+  document: ApprovalDocumentSnapshot | null;
   actions: ApprovalActionView[];
 };
 
@@ -148,6 +167,23 @@ function toNullableNumber(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function parseDocument(raw: unknown): ApprovalDocumentSnapshot | null {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+  const snapshot = raw as Record<string, unknown>;
+  const list = (value: unknown): string[] =>
+    Array.isArray(value) ? value.map((entry) => String(entry)) : [];
+
+  return {
+    awardedTotal: String(snapshot.awardedTotal ?? "0"),
+    currency: String(snapshot.currency ?? ""),
+    recommendationBasis: String(snapshot.recommendationBasis ?? ""),
+    items: list(snapshot.items),
+    selectedSuppliers: list(snapshot.selectedSuppliers),
+  };
+}
+
 export function parseApprovalRequest(raw: unknown): ApprovalRequestView {
   const record = (raw ?? {}) as Record<string, unknown>;
   const steps = Array.isArray(record.steps) ? record.steps : [];
@@ -200,6 +236,8 @@ export function parseApprovalRequest(raw: unknown): ApprovalRequestView {
     submittedBy: (record.submittedBy as string | null) ?? null,
     submittedAt: (record.submittedAt as string | null) ?? null,
     decidedAt: (record.decidedAt as string | null) ?? null,
+    createdById: toNullableNumber(record.createdById),
+    document: parseDocument(record.document),
     actions: actions.map((action) => {
       const entry = action as Record<string, unknown>;
       const actor = (entry.actor ?? {}) as Record<string, unknown>;

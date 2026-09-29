@@ -12,6 +12,9 @@ use Modules\Approvals\Models\ApprovalStep;
 use Modules\Approvals\Models\TocaEntry;
 use Modules\Organization\Models\Entity;
 use Modules\PurchaseOrders\Models\Evaluation;
+use Modules\PurchaseOrders\Models\EvaluationItem;
+use Modules\PurchaseOrders\Models\EvaluationQuotation;
+use Modules\PurchaseOrders\Models\EvaluationQuotationItem;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -142,6 +145,48 @@ function approvalsPending(Evaluation $evaluation, array $assignees = []): Approv
         ->json('data.id');
 
     return ApprovalRequest::query()->findOrFail($id);
+}
+
+/**
+ * `approvalsEvaluation()` is a bare row — give it a matrix so a round can
+ * freeze a meaningful document snapshot.
+ */
+function approvalsMatrix(Evaluation $evaluation): void
+{
+    $items = collect([
+        ['item_code' => 'ITM-1', 'description' => 'A4 Paper', 'qty' => 10, 'uom' => 'Box'],
+        ['item_code' => 'ITM-2', 'description' => 'Stapler', 'qty' => 2, 'uom' => 'Pcs'],
+    ])->map(fn (array $row, int $position) => EvaluationItem::create([
+        'entity_id' => $evaluation->entity_id,
+        'evaluation_id' => $evaluation->getKey(),
+        ...$row,
+        'position' => $position,
+    ]))->values();
+
+    collect([
+        ['supplier_code' => 'SUP-00055', 'supplier_name' => 'Kuy Leng', 'winners' => [0 => true, 1 => false]],
+        ['supplier_code' => 'SUP-00056', 'supplier_name' => 'Acme Trading', 'winners' => [0 => false, 1 => true]],
+    ])->each(function (array $row, int $position) use ($evaluation, $items): void {
+        $quotation = EvaluationQuotation::create([
+            'entity_id' => $evaluation->entity_id,
+            'evaluation_id' => $evaluation->getKey(),
+            'supplier_code' => $row['supplier_code'],
+            'supplier_name' => $row['supplier_name'],
+            'position' => $position,
+        ]);
+
+        foreach ($row['winners'] as $index => $isSelected) {
+            EvaluationQuotationItem::create([
+                'entity_id' => $evaluation->entity_id,
+                'evaluation_id' => $evaluation->getKey(),
+                'evaluation_quotation_id' => $quotation->getKey(),
+                'evaluation_item_id' => $items[$index]->getKey(),
+                'brand' => 'Brand',
+                'unit_cost' => 3.5,
+                'is_selected' => $isSelected,
+            ]);
+        }
+    });
 }
 
 it('requires authentication', function () {
@@ -699,6 +744,148 @@ it('still allows resubmitting after the document was returned', function () {
 
     expect(ApprovalRequest::query()->count())->toBe(2)
         ->and($evaluation->fresh()->status)->toBe('in_review');
+});
+
+it('lets the submitter cancel their pending request and free the document', function () {
+    $evaluation = approvalsEvaluation();
+    $request = approvalsPending($evaluation);
+
+    expect($evaluation->fresh()->status)->toBe('in_review');
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson("/api/v1/approvals/requests/{$request->getKey()}/cancel")
+        ->assertOk()
+        ->assertJsonPath('data.status', 'cancelled');
+
+    expect($request->fresh()->status)->toBe('cancelled')
+        ->and($request->fresh()->current_assignee_id)->toBeNull()
+        ->and($evaluation->fresh()->status)->toBe('draft');
+
+    // The cancelled round stays auditable: who pulled it and at which step.
+    $actions = $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/approvals/requests/{$request->getKey()}")
+        ->assertOk()
+        ->json('data.actions.*.action');
+
+    expect($actions)->toContain('cancel');
+
+    // The assignee is told their task is gone ...
+    expect($this->firstApprover->notifications()->where('data', 'like', '%approval.result%')->count())->toBe(1);
+
+    $this->actingAs($this->firstApprover, 'sanctum')
+        ->getJson('/api/v1/approvals/inbox')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 0);
+
+    // ... while history stays in the submitter's outbox ...
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/outbox')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.status', 'cancelled');
+
+    // ... and the document can go through approval again.
+    approvalsSubmit($evaluation, approvalsAssignees())->assertStatus(201);
+
+    expect(ApprovalRequest::query()->count())->toBe(2)
+        ->and($evaluation->fresh()->status)->toBe('in_review');
+});
+
+it('only the submitter may cancel a pending request', function () {
+    $request = approvalsPending(approvalsEvaluation());
+
+    $this->actingAs($this->firstApprover, 'sanctum')
+        ->postJson("/api/v1/approvals/requests/{$request->getKey()}/cancel")
+        ->assertStatus(403);
+
+    expect($request->fresh()->status)->toBe('pending')
+        ->and($request->fresh()->current_assignee_id)->toBe($this->firstApprover->getKey());
+
+    $viewerless = User::factory()->create(['entity_id' => $this->entity->getKey()]);
+
+    $this->actingAs($viewerless, 'sanctum')
+        ->postJson("/api/v1/approvals/requests/{$request->getKey()}/cancel")
+        ->assertStatus(403);
+
+    expect($request->fresh()->status)->toBe('pending');
+});
+
+it('cannot cancel a request that was already decided', function () {
+    $evaluation = approvalsEvaluation();
+    $request = approvalsPending($evaluation);
+
+    approvalsAct($request, 'approve', null, $this->firstApprover)->assertOk();
+    approvalsAct($request, 'approve', null, $this->secondApprover)->assertOk();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson("/api/v1/approvals/requests/{$request->getKey()}/cancel")
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors'])
+        ->assertJsonPath('errors.status.0', "Only a pending approval request can be cancelled, this one is 'approved'.");
+
+    expect($request->fresh()->status)->toBe('approved')
+        ->and($evaluation->fresh()->status)->toBe('approved');
+});
+
+it('filters the tray by the cancelled status', function () {
+    $request = approvalsPending(approvalsEvaluation());
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson("/api/v1/approvals/requests/{$request->getKey()}/cancel")
+        ->assertOk();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/requests?status=cancelled')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.status', 'cancelled');
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/requests?status=withdrawn')
+        ->assertStatus(422);
+});
+
+it('freezes a document snapshot per round so changes between rounds are visible', function () {
+    $evaluation = approvalsEvaluation();
+    approvalsMatrix($evaluation);
+    $request = approvalsPending($evaluation);
+
+    $first = $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/approvals/requests/{$request->getKey()}")
+        ->assertOk()
+        ->json();
+
+    expect((int) $first['data']['createdById'])->toBe((int) $this->admin->getKey())
+        ->and($first['data']['document'])->toHaveKeys(['awardedTotal', 'currency', 'recommendationBasis', 'items', 'selectedSuppliers'])
+        ->and($first['data']['document']['awardedTotal'])->toBe('44.00')
+        ->and($first['data']['document']['items'])->toBe(['ITM-1 × 10 Box', 'ITM-2 × 2 Pcs'])
+        ->and($first['data']['document']['selectedSuppliers'])->toBe(['Kuy Leng', 'Acme Trading']);
+
+    approvalsAct($request, 'return', 'Wrong winner selected.', $this->firstApprover)->assertOk();
+
+    // The owner corrects the award and submits a second round.
+    Evaluation::query()->whereKey($evaluation->getKey())->update(['awarded_total' => 99.5]);
+    approvalsSubmit($evaluation, approvalsAssignees())->assertStatus(201);
+
+    $rounds = collect(
+        $this->actingAs($this->admin, 'sanctum')
+            ->getJson("/api/v1/approvals/requests?subject_type=evaluation&subject_id={$evaluation->getKey()}")
+            ->assertOk()
+            ->json('data')
+    );
+
+    expect($rounds)->toHaveCount(2);
+
+    $snapshots = $rounds
+        ->pluck('document')
+        ->filter()
+        ->pluck('awardedTotal')
+        ->sort()
+        ->values()
+        ->all();
+
+    expect($snapshots)->toBe(['44.00', '99.50']);
 });
 
 it('forbids acting when you are not the current assignee', function () {

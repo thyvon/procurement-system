@@ -8,4 +8,6 @@ Route::prefix('v1/purchase-orders')
     ->middleware(['auth:sanctum'])
     ->group(function () {
         Route::apiResource('evaluations', EvaluationController::class);
+        Route::post('evaluations/{evaluation}/duplicate', [EvaluationController::class, 'duplicate'])
+            ->name('evaluations.duplicate');
     });

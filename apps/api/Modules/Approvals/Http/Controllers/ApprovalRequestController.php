@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Modules\Approvals\Http\Requests\IndexApprovalRequestsRequest;
 use Modules\Approvals\Http\Requests\PreviewApprovalRequest;
 use Modules\Approvals\Http\Requests\StoreApprovalActionRequest;
@@ -83,6 +84,18 @@ class ApprovalRequestController extends Controller
         );
 
         return ApiResponse::success(new ApprovalRequestResource($approval), 201);
+    }
+
+    public function cancel(Request $request, ApprovalRequest $approval): JsonResponse
+    {
+        $this->authorize('cancel', $approval);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        $approval = $this->service->cancel($approval, $user);
+
+        return ApiResponse::success(new ApprovalRequestResource($approval->load(['actions.actor', 'creator'])));
     }
 
     public function show(ApprovalRequest $request): ApprovalRequestResource

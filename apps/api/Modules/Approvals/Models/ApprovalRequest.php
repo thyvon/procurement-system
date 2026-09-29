@@ -45,6 +45,8 @@ class ApprovalRequest extends Model
 
     public const STATUS_RETURNED = 'returned';
 
+    public const STATUS_CANCELLED = 'cancelled';
+
     protected function casts(): array
     {
         return [

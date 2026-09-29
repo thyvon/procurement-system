@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { Eye, XIcon, Settings2 } from "lucide-react";
+import { Eye, Pencil, XIcon, Settings2 } from "lucide-react";
 import {
   approvalsInbox,
   approvalsOutbox,
@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
+import { useMe } from "@/hooks/use-me";
 import {
   parseApprovalRequest,
   type ApprovalRequestView,
@@ -41,12 +42,15 @@ type RequestRow = {
   id: string;
   code: string;
   subject: string;
+  subjectType: string;
+  subjectId: string;
   step: string;
   assignee: string;
   amount: string;
   status: ApprovalStatus;
   submittedBy: string | null;
   submittedAt: string | null;
+  createdById: number | null;
 };
 
 type TrayPage = {
@@ -65,12 +69,15 @@ function toRow(request: ApprovalRequestView, subjectLabel: string): RequestRow {
     id: request.id,
     code: request.documentCode ?? "—",
     subject: subjectLabel,
+    subjectType: request.subjectType,
+    subjectId: request.subjectId,
     step: request.currentStep?.label ?? "—",
     assignee: request.currentStep?.assigneeName ?? "—",
     amount: money.format(Number(request.amountSnapshot)),
     status: request.status,
     submittedBy: request.submittedBy,
     submittedAt: request.submittedAt,
+    createdById: request.createdById,
   };
 }
 
@@ -88,9 +95,13 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 const columnHelper = createColumnHelper<DataTableFeatures, RequestRow>();
 
 function useRequestColumns({
+  currentUserId,
   onViewRequest,
+  onEditRequest,
 }: {
+  currentUserId: number | null;
   onViewRequest: (request: RequestRow) => void;
+  onEditRequest: (request: RequestRow) => void;
 }): ColumnDef<DataTableFeatures, RequestRow>[] {
   const tc = useTranslations("approvals.columns");
   const tt = useTranslations("approvals.table");
@@ -165,15 +176,34 @@ function useRequestColumns({
       enableHiding: false,
       cell: ({ row }) => {
         const request = row.original;
+        // A returned document sits in draft on its subject again — only its
+        // owner gets the one-click path from the tray back into the form.
+        const canResubmit =
+          request.status === "returned" &&
+          request.subjectType === "evaluation" &&
+          request.createdById !== null &&
+          request.createdById === currentUserId;
         return (
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => onViewRequest(request)}
-          >
-            <Eye className="size-3" />
-            {tt("view")}
-          </Button>
+          <div className="flex items-center justify-end gap-2">
+            {canResubmit ? (
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => onEditRequest(request)}
+              >
+                <Pencil className="size-3" />
+                {tt("editResubmit")}
+              </Button>
+            ) : null}
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => onViewRequest(request)}
+            >
+              <Eye className="size-3" />
+              {tt("view")}
+            </Button>
+          </div>
         );
       },
     }),
@@ -189,6 +219,8 @@ const DEFAULT_STATUS = "all";
 export function RequestsTab() {
   const t = useTranslations("approvals");
   const router = useRouter();
+  const meQuery = useMe();
+  const currentUserId = meQuery.data?.id ?? null;
   const [scope, setScope] = useState<TrayScope>("inbox");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState(DEFAULT_STATUS);
@@ -201,7 +233,10 @@ export function RequestsTab() {
   const debouncedSearch = useDebouncedValue(search, 300);
 
   const columns = useRequestColumns({
+    currentUserId,
     onViewRequest: (request) => router.push(`/approvals/${request.id}`),
+    onEditRequest: (request) =>
+      router.push(`/purchase-orders/evaluations/${request.subjectId}/edit`),
   });
 
   const params = {
@@ -342,6 +377,7 @@ export function RequestsTab() {
           { value: "approved", label: t("statuses.approved") },
           { value: "rejected", label: t("statuses.rejected") },
           { value: "returned", label: t("statuses.returned") },
+          { value: "cancelled", label: t("statuses.cancelled") },
         ]}
         filterPlaceholder={t("table.allStatuses")}
         searchPlaceholder={t("table.searchPlaceholder")}

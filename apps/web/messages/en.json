@@ -89,13 +89,15 @@
       "dateTo": "To",
       "clearFilters": "Clear filters",
       "openMenu": "Open menu",
-      "view": "View"
+      "view": "View",
+      "editResubmit": "Edit & resubmit"
     },
     "statuses": {
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Rejected",
-      "returned": "Returned"
+      "returned": "Returned",
+      "cancelled": "Cancelled"
     },
     "subjects": {
       "evaluation": "Supplier Evaluation"
@@ -121,6 +123,7 @@
       "actionApprove": "Okay",
       "actionReject": "Rejected",
       "actionReturn": "Returned",
+      "actionCancel": "Cancelled",
       "by": "by {name}",
       "approve": "Approve",
       "reject": "Reject",
@@ -132,7 +135,20 @@
       "confirm": "Confirm",
       "cancel": "Cancel",
       "saving": "Saving…",
-      "decided": "Your decision was recorded."
+      "decided": "Your decision was recorded.",
+      "cancelled": "Approval request cancelled.",
+      "cancelRequest": "Cancel request",
+      "cancelRequestTitle": "Withdraw this approval request?",
+      "cancelRequestHint": "The document stops waiting on a decision, returns to draft, and the current assignee is notified. You can submit it again after making changes.",
+      "editResubmit": "Edit & resubmit",
+      "changesSince": "Changed since round {n}",
+      "doc": {
+        "awardedTotal": "Awarded total",
+        "currency": "Currency",
+        "basis": "Recommendation basis",
+        "items": "Items",
+        "suppliers": "Selected suppliers"
+      }
     },
     "submit": {
       "title": "Submit for approval",
@@ -273,6 +289,7 @@
     "approved": "{code} was approved.",
     "rejected": "{code} was rejected.",
     "returned": "{code} was returned for changes.",
+    "cancelled": "{code} was cancelled by its owner.",
     "openRequest": "Open approval request",
     "close": "Close",
     "filterAll": "All",
@@ -364,6 +381,7 @@
       "openMenu": "Open menu",
       "view": "View",
       "edit": "Edit",
+      "duplicate": "Duplicate as draft",
       "delete": "Delete",
       "cancel": "Cancel",
       "confirmDelete": "Delete",
@@ -373,7 +391,8 @@
     "evaluations": {
       "newTitle": "New evaluation",
       "deleteTitle": "Delete evaluation",
-      "deleted": "Evaluation deleted."
+      "deleted": "Evaluation deleted.",
+      "duplicated": "New draft created from {code}."
     },
     "form": {
       "title": "Price Evaluation Form",

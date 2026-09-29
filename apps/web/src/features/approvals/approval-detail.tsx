@@ -2,13 +2,25 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { ArrowLeft, Check, Printer, RotateCcw, X } from "lucide-react";
-import { approvalsRequestsShow } from "@/lib/api/approval-request/approval-request";
+import { toast } from "sonner";
+import { ArrowLeft, Ban, Check, Pencil, Printer, RotateCcw, X } from "lucide-react";
+import {
+  approvalsRequestsCancel,
+  approvalsRequestsShow,
+} from "@/lib/api/approval-request/approval-request";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { useMe } from "@/hooks/use-me";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   fetchApprovalRounds,
   parseApprovalRequest,
@@ -25,7 +37,9 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
   const ta = useTranslations("approvals.form");
   const router = useRouter();
   const me = useMe();
+  const qc = useQueryClient();
   const [action, setAction] = useState<ApprovalAction | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const query = useQuery({
     queryKey: ["approvals", "requests", requestId],
@@ -43,6 +57,19 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
     queryKey: ["approvals", "requests", "subject", subjectType, subjectId],
     enabled: subjectId !== "",
     queryFn: () => fetchApprovalRounds(subjectType, subjectId),
+  });
+
+  // Withdrawn by the submitter while a round is still pending — the API
+  // decides whether that is allowed (pending + owner), we only surface it.
+  const cancelMutation = useMutation({
+    mutationFn: async () =>
+      unwrap(await approvalsRequestsCancel(requestId, withAuth())),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["approvals"] });
+      qc.invalidateQueries({ queryKey: ["evaluations"] });
+      setCancelOpen(false);
+      toast.success(t("cancelled"));
+    },
   });
 
   if (query.isPending) {
@@ -70,6 +97,17 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
   const allowedActions =
     request.steps.find((step) => step.position === currentStep?.position)
       ?.allowedActions ?? [];
+  const isOwner =
+    request.createdById != null &&
+    me.data != null &&
+    request.createdById === me.data.id;
+  // Only the submitter may withdraw a live round; a returned document is
+  // back in draft on its subject, so the fix happens in the subject's form.
+  const canCancel = request.status === "pending" && isOwner;
+  const canResubmit =
+    request.status === "returned" &&
+    isOwner &&
+    request.subjectType === "evaluation";
 
   const handlePrint = () => {
     const originalTitle = document.title;
@@ -117,6 +155,24 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
             <Printer />
             {t("print")}
           </Button>
+          {canResubmit ? (
+            <Button
+              onClick={() =>
+                router.push(
+                  `/purchase-orders/evaluations/${request.subjectId}/edit`
+                )
+              }
+            >
+              <Pencil />
+              {t("editResubmit")}
+            </Button>
+          ) : null}
+          {canCancel ? (
+            <Button variant="outline" onClick={() => setCancelOpen(true)}>
+              <Ban />
+              {t("cancelRequest")}
+            </Button>
+          ) : null}
           {isAssignee ? (
             <>
               {allowedActions.includes("approve") ? (
@@ -173,6 +229,31 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
           }}
         />
       ) : null}
+
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("cancelRequestTitle")}</DialogTitle>
+            <DialogDescription>{t("cancelRequestHint")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCancelOpen(false)}
+              disabled={cancelMutation.isPending}
+            >
+              {t("cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => cancelMutation.mutate()}
+              disabled={cancelMutation.isPending}
+            >
+              {cancelMutation.isPending ? t("saving") : t("confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

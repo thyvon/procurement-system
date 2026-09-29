@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
-import { Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { Copy, Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   purchaseOrdersEvaluationsDestroy,
+  purchaseOrdersEvaluationsDuplicate,
   purchaseOrdersEvaluationsIndex,
 } from "@/lib/api/evaluation/evaluation";
 import type { EvaluationResource } from "@/lib/api/model/evaluationResource";
@@ -91,12 +92,14 @@ function useEvaluationColumns({
   currentUserId,
   onViewRequest,
   onEditRequest,
+  onDuplicateRequest,
   onDeleteRequest,
 }: {
   canManage: boolean;
   currentUserId: number | null;
   onViewRequest: (evaluation: EvaluationRow) => void;
   onEditRequest: (evaluation: EvaluationRow) => void;
+  onDuplicateRequest: (evaluation: EvaluationRow) => void;
   onDeleteRequest: (evaluation: EvaluationRow) => void;
 }): ColumnDef<DataTableFeatures, EvaluationRow>[] {
   const tc = useTranslations("purchaseOrders.columns");
@@ -175,6 +178,9 @@ function useEvaluationColumns({
             evaluation.status ?? "",
           );
         const canDelete = canAct && evaluation.status === "draft";
+        // Rejected is terminal on the original record: the only way forward
+        // is a fresh draft built from it (mirrors the API's duplicate rule).
+        const canDuplicate = canAct && evaluation.status === "rejected";
         return (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="ghost" className="size-8 p-0" />}>
@@ -191,6 +197,14 @@ function useEvaluationColumns({
                   <DropdownMenuItem onClick={() => onEditRequest(evaluation)}>
                     <Pencil className="mr-2 size-4" />
                     {tt("edit")}
+                  </DropdownMenuItem>
+                ) : null}
+                {canDuplicate ? (
+                  <DropdownMenuItem
+                    onClick={() => onDuplicateRequest(evaluation)}
+                  >
+                    <Copy className="mr-2 size-4" />
+                    {tt("duplicate")}
                   </DropdownMenuItem>
                 ) : null}
                 {canDelete ? (
@@ -241,6 +255,17 @@ export function EvaluationsTab() {
     },
   });
 
+  // Rejected documents are frozen; this mints a draft the owner can fix.
+  const duplicateMutation = useMutation({
+    mutationFn: async (id: string): Promise<EvaluationResource> =>
+      unwrap(await purchaseOrdersEvaluationsDuplicate(id, withAuth())),
+    onSuccess: (evaluation) => {
+      qc.invalidateQueries({ queryKey: ["evaluations"] });
+      toast.success(t("duplicated", { code: evaluation.code }));
+      router.push(`/purchase-orders/evaluations/${evaluation.id}`);
+    },
+  });
+
   const columns = useEvaluationColumns({
     canManage,
     currentUserId,
@@ -248,6 +273,8 @@ export function EvaluationsTab() {
       router.push(`/purchase-orders/evaluations/${evaluation.id}`),
     onEditRequest: (evaluation) =>
       router.push(`/purchase-orders/evaluations/${evaluation.id}/edit`),
+    onDuplicateRequest: (evaluation) =>
+      duplicateMutation.mutate(evaluation.id),
     onDeleteRequest: setDeleteTarget,
   });
 

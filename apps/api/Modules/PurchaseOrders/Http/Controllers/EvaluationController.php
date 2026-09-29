@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Modules\PurchaseOrders\Http\Requests\IndexEvaluationsRequest;
 use Modules\PurchaseOrders\Http\Requests\StoreEvaluationRequest;
 use Modules\PurchaseOrders\Http\Requests\UpdateEvaluationRequest;
@@ -74,6 +75,21 @@ class EvaluationController extends Controller
         $evaluation = $this->service->update($evaluation, $request->evaluationData(), $user);
 
         return new EvaluationResource($evaluation->load(['items', 'quotations.lines', 'creator']));
+    }
+
+    public function duplicate(Request $request, Evaluation $evaluation): JsonResponse
+    {
+        $this->authorize('update', $evaluation);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        $copy = $this->service->duplicate($evaluation, $user);
+
+        return ApiResponse::success(
+            new EvaluationResource($copy->load(['items', 'quotations.lines', 'creator'])),
+            201,
+        );
     }
 
     public function destroy(Evaluation $evaluation): JsonResponse
