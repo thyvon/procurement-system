@@ -12,6 +12,15 @@ importers:
         specifier: ^9
         version: 9.1.7
 
+  apps/tdlib-service:
+    dependencies:
+      prebuilt-tdlib:
+        specifier: 0.1008067.0
+        version: 0.1008067.0
+      tdl:
+        specifier: 8.1.0
+        version: 8.1.0(supports-color@7.2.0)
+
   apps/web:
     dependencies:
       '@base-ui/react':
@@ -948,6 +957,48 @@ packages:
   '@parcel/watcher@2.6.0':
     resolution: {integrity: sha512-7FNeNl8NCE7aINx7WXiKQrPYZWC/hvrTsmk6zmxbI7LTXE7hVek/n8AfVgpe2y82zl3w0HvCHN0bVKMBoJcC0w==}
     engines: {node: '>= 10.0.0'}
+
+  '@prebuilt-tdlib/darwin-arm64@0.1008067.0':
+    resolution: {integrity: sha512-dFefumR1NX2SSYf9p6fXyeLxw1+EL00Qe86ECqbtllWdP476gseScqU34hSzaR4RYsIuQZJDjaYGt1v2YiI7HA==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@prebuilt-tdlib/darwin-x64@0.1008067.0':
+    resolution: {integrity: sha512-tqSe7xBg1/5RzzTc7PlzYP45KTC0cwV3ZKvUqZvHHODrDzzWnwqltteQ/+3Fvk386NcwFRI4y5jHot6XvCH/3A==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@prebuilt-tdlib/linux-arm64-glibc@0.1008067.0':
+    resolution: {integrity: sha512-MQbaqIR7Jw5kecmFVoLp82Za/5cHRdjuingQhrM1k85YQ5PC62Pov5i9qSkB+9JQVN97f89MMcbYeBtAliBN1Q==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@prebuilt-tdlib/linux-arm64-musl@0.1008067.0':
+    resolution: {integrity: sha512-j4fZglP7Gx9p2awO+XQU1X/9zV0b2jYVV7PMAyyLjqBQjUqdr28du4Ds9itJFPgHVYAR+8LWpKtRQEjXEefCbQ==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@prebuilt-tdlib/linux-x64-glibc@0.1008067.0':
+    resolution: {integrity: sha512-ILSNFbjP/gRWNc0bTtyTOX1RW854vaUcSpc6GtXJQp7Hgwr/+m1GbzhU4hry4yeRk02EfsmqDaBQVdXSjBXgZg==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@prebuilt-tdlib/linux-x64-musl@0.1008067.0':
+    resolution: {integrity: sha512-sklKbRtHmh6Zc3k7s//hJpAP4+Z581ggETlnBt0WFcaAEdtpJRdiesttPJaWy1BcA/96SSARTBrM65Qf5yu/hg==}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@prebuilt-tdlib/types@0.1008067.0':
+    resolution: {integrity: sha512-mBQaxYsQ9tcZwi10m+eWw4QE5/Ltbu74zbXxXn8QpF3agQGmw6T6wZTHH30tuJAW6woYnLvQzAr0BADBoGGZPQ==}
+
+  '@prebuilt-tdlib/win32-x64@0.1008067.0':
+    resolution: {integrity: sha512-t5zVRgaQYXzoDXdUnLn0j/+MeHCagci3J5Bo2gpHlrqy0EFeNkXXewcyZ/4HduZxVvLSC41dHFt7gAcoV0DBjQ==}
+    cpu: [x64]
+    os: [win32]
 
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
@@ -2885,6 +2936,10 @@ packages:
     resolution: {integrity: sha512-kXs9Go0cah0qHVV2v389IXQLdLCeE1xfFtjOAF+iobu0OIoG1pje8At2vMHyaPMiPMnG/LWP50twML21eMcAag==}
     engines: {node: '>= 0.4'}
 
+  node-gyp-build@4.8.4:
+    resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
+    hasBin: true
+
   node-releases@2.0.53:
     resolution: {integrity: sha512-D9UOmYG3UH1V+ENW56t5QXBwJw1YEY18ruVeus89Rw+SyIgjPkCO84bRzO3uNIYosJbNwiabWVn48o3uJLjxFQ==}
     engines: {node: '>=18'}
@@ -3095,6 +3150,9 @@ packages:
   powershell-utils@0.2.0:
     resolution: {integrity: sha512-ZlsFlG7MtSFCoc5xreOvBAozCJ6Pf06opgJjh9ONEv418xpZSAzNjstD36C6+JwOnfSqOW/9uDkqKjezTdxZhw==}
     engines: {node: '>=20'}
+
+  prebuilt-tdlib@0.1008067.0:
+    resolution: {integrity: sha512-Cixz5A9XXZNoh7N1tJ8VQiAq0ShUjyG0lL0eM3H0XdkOc5WCiRyDT0eeVr8WXbdyydWiRBmczsN54lAwrEwJqw==}
 
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
@@ -3462,6 +3520,10 @@ packages:
   tapable@2.3.3:
     resolution: {integrity: sha512-uxc/zpqFg6x7C8vOE7lh6Lbda8eEL9zmVm/PLeTPBRhh1xCgdWaQ+J1CUieGpIfm2HdtsUpRv+HshiasBMcc6A==}
     engines: {node: '>=6'}
+
+  tdl@8.1.0:
+    resolution: {integrity: sha512-idpw60gjJdiJALQg0+6UbxtJTMxVhzZAgCO6QzL81gqBYCkEFjm9zM9HwTTQGeOaAavw4yRHymR68yUUiCoKrA==}
+    engines: {node: '>=16.14.0'}
 
   tiny-invariant@1.3.3:
     resolution: {integrity: sha512-+FbBPE1o9QAYvviau/qC5SE3caw21q3xkvWKBtja5vgqOWIHHJ3ioaq1VPfn/Szqctz2bU/oYeKd9/z5BL+PVg==}
@@ -4531,6 +4593,30 @@ snapshots:
       '@parcel/watcher-linux-x64-musl': 2.6.0
       '@parcel/watcher-win32-arm64': 2.6.0
       '@parcel/watcher-win32-x64': 2.6.0
+
+  '@prebuilt-tdlib/darwin-arm64@0.1008067.0':
+    optional: true
+
+  '@prebuilt-tdlib/darwin-x64@0.1008067.0':
+    optional: true
+
+  '@prebuilt-tdlib/linux-arm64-glibc@0.1008067.0':
+    optional: true
+
+  '@prebuilt-tdlib/linux-arm64-musl@0.1008067.0':
+    optional: true
+
+  '@prebuilt-tdlib/linux-x64-glibc@0.1008067.0':
+    optional: true
+
+  '@prebuilt-tdlib/linux-x64-musl@0.1008067.0':
+    optional: true
+
+  '@prebuilt-tdlib/types@0.1008067.0':
+    optional: true
+
+  '@prebuilt-tdlib/win32-x64@0.1008067.0':
+    optional: true
 
   '@rtsao/scc@1.1.0': {}
 
@@ -6516,6 +6602,8 @@ snapshots:
       object.entries: 1.1.9
       semver: 6.3.1
 
+  node-gyp-build@4.8.4: {}
+
   node-releases@2.0.53: {}
 
   npm-run-path@4.0.1:
@@ -6759,6 +6847,17 @@ snapshots:
   powershell-utils@0.1.0: {}
 
   powershell-utils@0.2.0: {}
+
+  prebuilt-tdlib@0.1008067.0:
+    optionalDependencies:
+      '@prebuilt-tdlib/darwin-arm64': 0.1008067.0
+      '@prebuilt-tdlib/darwin-x64': 0.1008067.0
+      '@prebuilt-tdlib/linux-arm64-glibc': 0.1008067.0
+      '@prebuilt-tdlib/linux-arm64-musl': 0.1008067.0
+      '@prebuilt-tdlib/linux-x64-glibc': 0.1008067.0
+      '@prebuilt-tdlib/linux-x64-musl': 0.1008067.0
+      '@prebuilt-tdlib/types': 0.1008067.0
+      '@prebuilt-tdlib/win32-x64': 0.1008067.0
 
   prelude-ls@1.2.1: {}
 
@@ -7220,6 +7319,14 @@ snapshots:
   tailwindcss@4.3.3: {}
 
   tapable@2.3.3: {}
+
+  tdl@8.1.0(supports-color@7.2.0):
+    dependencies:
+      debug: 4.4.3(supports-color@7.2.0)
+      node-addon-api: 7.1.1
+      node-gyp-build: 4.8.4
+    transitivePeerDependencies:
+      - supports-color
 
   tiny-invariant@1.3.3: {}
 

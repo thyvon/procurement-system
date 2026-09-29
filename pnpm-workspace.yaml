@@ -1,5 +1,6 @@
 packages:
   - "apps/web"
+  - "apps/tdlib-service"
   - "packages/*"
 
 onlyBuiltDependencies:
@@ -18,4 +19,5 @@ allowBuilds:
   '@parcel/watcher': true
   '@swc/core': true
   esbuild: true
+  tdl: true
   unrs-resolver: true

@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'telegram' => [
+        // TDLib service (internal HTTP, bearer-authenticated).
+        'base_url' => env('TELEGRAM_TDLIB_URL'),
+        'service_token' => env('TELEGRAM_SERVICE_TOKEN'),
+        // Shared secret the TDLib service signs inbound webhooks with.
+        'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
+        // Per-account outbound ceiling (jobs/minute), enforced by queue middleware.
+        'rate_per_minute' => env('TELEGRAM_RATE_PER_MINUTE', 5),
+        // Random pre-send delay ceiling in ms (0 disables — tests).
+        'jitter_max_ms' => env('TELEGRAM_JITTER_MAX_MS', 3000),
+    ],
+
 ];

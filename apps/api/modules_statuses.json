@@ -7,5 +7,6 @@
     "EPurchase": true,
     "PurchaseOrders": true,
     "Approvals": true,
-    "Notifications": true
+    "Notifications": true,
+    "Telegram": true
 }

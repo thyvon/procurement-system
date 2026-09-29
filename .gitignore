@@ -13,6 +13,10 @@ apps/web/.next/
 apps/web/.env.local
 apps/web/.env*.local
 
+# TDLib service (secrets: API hash, phone, tokens)
+apps/tdlib-service/.env
+apps/tdlib-service/session/
+
 # Local tooling (standalone PHP runtime — machine-specific)
 /tools/
 

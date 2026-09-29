@@ -38,6 +38,11 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <env name="TELEGRAM_TDLIB_URL" value="http://tdlib.test"/>
+        <env name="TELEGRAM_SERVICE_TOKEN" value="test-service-token"/>
+        <env name="TELEGRAM_WEBHOOK_SECRET" value="test-webhook-secret"/>
+        <env name="TELEGRAM_JITTER_MAX_MS" value="0"/>
+        <env name="TELEGRAM_RATE_PER_MINUTE" value="5"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
