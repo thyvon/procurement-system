@@ -31,13 +31,21 @@ export function createMockClient(options = {}) {
     async getStatus() {
       return { state, connection, mock: true };
     },
-    async sendMessage({ chatId, phone }) {
+    async sendMessage({ chatId, phone, username }) {
       if (state !== 'ready') {
         return { ok: false, code: 'AUTHORIZATION_PENDING', error: `state:${state}` };
       }
       sentCount += 1;
-      const resolvedChat = chatId ?? (phone ? Number(String(phone).replace(/\D/g, '').slice(-9)) : sentCount);
-      return { ok: true, message_id: sentCount, chat_id: resolvedChat };
+      let resolved = chatId;
+      if (resolved == null && username) {
+        // Deterministic stand-in for searchPublicChat in mock mode.
+        let hash = 7;
+        for (const ch of username) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+        resolved = hash % 900000000 + 100000000;
+      }
+      if (resolved == null && phone) resolved = Number(String(phone).replace(/\D/g, '').slice(-9));
+      if (resolved == null) resolved = sentCount;
+      return { ok: true, message_id: sentCount, chat_id: resolved };
     },
     async requestCode() {
       if (state !== 'ready') state = 'waiting_code';
@@ -152,9 +160,20 @@ export async function createRealClient(config) {
     }
     if (update._ === 'updateNewMessage') {
       const message = update.message;
-      if (message?.is_outgoing) return;
       const content = message?.content;
-      const text = content && content._ === 'messageText' ? content.text : null;
+      console.log(
+        JSON.stringify({
+          event: 'tdlib_new_message',
+          chat_id: message?.chat_id,
+          message_id: message?.id,
+          outgoing: Boolean(message?.is_outgoing),
+          content: content?._,
+        }),
+      );
+      if (message?.is_outgoing) return;
+      // TDLib 1.8.67: messageText.text is a formattedText object (was string).
+      const rawText = content && content._ === 'messageText' ? content.text : null;
+      const text = typeof rawText === 'string' ? rawText : rawText?.text;
       if (!text) return;
       for (const cb of messageListeners) {
         cb({ chatId: message.chat_id, messageId: message.id, text });
@@ -188,17 +207,35 @@ export async function createRealClient(config) {
       console.error(JSON.stringify({ event: 'tdlib_login_error', error: String(err) }));
     });
 
-  const resolveChatId = async ({ chatId, phone }) => {
+  /**
+   * Resolution order: known chat_id → public @username (no contact upload)
+   * → phone via contacts.importContacts.
+   */
+  const resolveChatId = async ({ chatId, phone, username }) => {
     if (chatId) return chatId;
-    if (!phone) throw Object.assign(new Error('chat_id or phone required'), { code: 'MISSING_TARGET' });
-    const hash = String(Date.now());
+    if (username) {
+      try {
+        const chat = await client.invoke({ _: 'searchPublicChat', username: username.replace(/^@/, '') });
+        return chat.id;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (/USERNAME_NOT_OCCUPIED|USERNAME_INVALID/.test(message)) {
+          throw Object.assign(new Error(`username_not_found:${username}`), { code: 'USER_NOT_FOUND' });
+        }
+        throw err;
+      }
+    }
+    if (!phone) throw Object.assign(new Error('chat_id, phone or username required'), { code: 'MISSING_TARGET' });
+    // TDLib 1.8.67: flattened function names — `contacts.importContacts` is
+    // now top-level `importContacts` with `importedContact` items, returning
+    // `user_ids` (0 = not a registered Telegram user).
     const result = await client.invoke({
-      _: 'contacts.importContacts',
-      contacts: [{ _: 'inputPhoneContact', client_input_hash: hash, phone, first_name: 'Supplier', last_name: '' }],
+      _: 'importContacts',
+      contacts: [{ _: 'importedContact', phone_number: phone, first_name: 'Supplier', last_name: '' }],
     });
-    const user = result?.users?.[0];
-    if (!user) throw Object.assign(new Error('PHONE_NUMBER_BANNED'), { code: 'USER_NOT_FOUND' });
-    const chat = await client.invoke({ _: 'createPrivateChat', user_id: user.id, force: false });
+    const userId = result?.user_ids?.[0];
+    if (!userId) throw Object.assign(new Error('PHONE_NUMBER_BANNED'), { code: 'USER_NOT_FOUND' });
+    const chat = await client.invoke({ _: 'createPrivateChat', user_id: userId, force: false });
     return chat.id;
   };
 
@@ -207,18 +244,26 @@ export async function createRealClient(config) {
     async getStatus() {
       return { state, connection, mock: false };
     },
-    async sendMessage({ chatId, phone, text }) {
+    async sendMessage({ chatId, phone, username, text }) {
       try {
-        const target = await resolveChatId({ chatId, phone });
+        const target = await resolveChatId({ chatId, phone, username });
+        // TDLib 1.8.67: inputMessageText.text is a formattedText object and
+        // disable_web_page_preview was replaced by link_preview_options.
         const result = await client.invoke({
           _: 'sendMessage',
           chat_id: target,
-          input_message_content: { _: 'inputMessageText', text, disable_web_page_preview: true },
+          input_message_content: {
+            _: 'inputMessageText',
+            text: { _: 'formattedText', text, entities: [] },
+            link_preview_options: null,
+            clear_draft: false,
+          },
         });
         return {
           ok: true,
-          message_id: result?.message?.id ?? null,
-          chat_id: result?.message?.chat_id ?? target,
+          // 1.8.67 returns the message object itself (legacy wrapped it in {message}).
+          message_id: result?.id ?? result?.message?.id ?? null,
+          chat_id: result?.chat_id ?? result?.message?.chat_id ?? target,
         };
       } catch (err) {
         const classified = classifyTelegramError(err);

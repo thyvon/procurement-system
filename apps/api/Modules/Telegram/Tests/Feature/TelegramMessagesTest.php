@@ -59,6 +59,34 @@ it('sends a message to a contact and marks it sent', function () {
     expect($response->json('data.id'))->toBeString();
 });
 
+it('sends to a username-only contact resolved by the pod', function () {
+    Http::fake([
+        'http://tdlib.test/*' => Http::response(['ok' => true, 'message_id' => 555, 'chat_id' => 777001]),
+    ]);
+
+    $contact = TelegramContact::factory()->withUsername('@vunthypro')->create([
+        'entity_id' => $this->entity->getKey(),
+        'telegram_account_id' => $this->account->id,
+    ]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/telegram/messages', [
+            'telegram_contact_id' => $contact->id,
+            'body' => 'Username-only send test',
+        ])
+        ->assertStatus(201)
+        ->assertJsonPath('data.status', 'sent')
+        ->assertJsonPath('data.telegramChatId', 777001);
+
+    Http::assertSent(function ($request) {
+        return $request['username'] === '@vunthypro'
+            && $request['phone'] === null
+            && $request['chat_id'] === null;
+    });
+
+    expect($contact->refresh()->telegram_chat_id)->toBe(777001);
+});
+
 it('replays an idempotency key without sending twice', function () {
     Http::fake([
         'http://tdlib.test/*' => Http::response(['ok' => true, 'message_id' => 1, 'chat_id' => 424242]),

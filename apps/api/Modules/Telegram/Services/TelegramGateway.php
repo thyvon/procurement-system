@@ -124,18 +124,28 @@ class TelegramGateway
             ->post(rtrim($baseUrl, '/').'/send', [
                 'chat_id' => $contact->telegram_chat_id,
                 'phone' => $contact->phone,
+                'username' => $contact->username,
                 'text' => $message->body,
             ]);
 
         $status = $response->status();
 
         if ($status === 200) {
+            $sentChatId = (int) ($response->json('chat_id') ?? $contact->telegram_chat_id ?? 0);
+
             $message->update([
                 'status' => TelegramMessage::STATUS_SENT,
-                'telegram_chat_id' => (int) ($response->json('chat_id') ?? $contact->telegram_chat_id ?? 0),
+                'telegram_chat_id' => $sentChatId,
                 'telegram_message_id' => (int) $response->json('message_id') ?: null,
                 'error' => null,
             ]);
+
+            // Persist the pod-resolved chat onto the contact so inbound
+            // replies can be matched (InboundTelegramService keys on it).
+            if ($sentChatId && $contact->telegram_chat_id !== $sentChatId) {
+                $contact->update(['telegram_chat_id' => $sentChatId]);
+            }
+
             $account->update(['last_seen_at' => now()]);
 
             return SendOutcome::sent();
