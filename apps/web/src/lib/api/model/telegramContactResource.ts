@@ -8,7 +8,10 @@
 export interface TelegramContactResource {
   id: string;
   name: string;
-  phone: string;
+  /** @nullable */
+  phone: string | null;
+  /** @nullable */
+  username: string | null;
   /** @nullable */
   telegramUserId: number | null;
   /** @nullable */

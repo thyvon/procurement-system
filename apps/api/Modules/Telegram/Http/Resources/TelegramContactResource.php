@@ -20,6 +20,7 @@ class TelegramContactResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'phone' => $this->phone,
+            'username' => $this->username,
             'telegramUserId' => $this->telegram_user_id,
             'telegramChatId' => $this->telegram_chat_id,
             'telegramAccountId' => $this->telegram_account_id,

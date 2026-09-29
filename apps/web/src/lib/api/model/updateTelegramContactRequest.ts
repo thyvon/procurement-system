@@ -11,9 +11,16 @@ export interface UpdateTelegramContactRequest {
   name?: string;
   /**
      * @maxLength 32
+     * @nullable
      * @pattern ^\+?[0-9]{6,15}$
      */
-  phone?: string;
+  phone?: string | null;
+  /**
+     * @maxLength 32
+     * @nullable
+     * @pattern ^@[A-Za-z0-9_]{5,32}$
+     */
+  username?: string | null;
   language?: UpdateTelegramContactRequestLanguage;
   /**
      * @maxLength 64

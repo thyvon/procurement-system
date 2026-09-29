@@ -37,6 +37,18 @@ class TelegramContactFactory extends Factory
         ]);
     }
 
+    /**
+     * Username-only contact (no phone) — resolved by the pod via
+     * searchPublicChat instead of a contact upload.
+     */
+    public function withUsername(string $username): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'phone' => null,
+            'username' => $username,
+        ]);
+    }
+
     private function resolveEntity(): string
     {
         return (Entity::query()->first()

@@ -19,7 +19,8 @@ class UpdateTelegramContactRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:100'],
-            'phone' => ['sometimes', 'string', 'max:32', 'regex:/^\+?[0-9]{6,15}$/'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:32', 'regex:/^\+?[0-9]{6,15}$/'],
+            'username' => ['sometimes', 'nullable', 'string', 'max:32', 'regex:/^@[A-Za-z0-9_]{5,32}$/'],
             'language' => ['sometimes', Rule::in(['km', 'en'])],
             'supplier_code' => ['nullable', 'string', 'max:64'],
             'telegram_account_id' => [

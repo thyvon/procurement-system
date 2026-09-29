@@ -85,11 +85,14 @@ export function createServer(config, client) {
         if (path === '/send') {
           const text = typeof body.text === 'string' ? body.text.trim() : '';
           if (!text) return sendJson(res, 400, { error: 'text_required' });
-          if (!body.chat_id && !body.phone) return sendJson(res, 400, { error: 'chat_id_or_phone_required' });
+          if (!body.chat_id && !body.phone && !body.username) {
+            return sendJson(res, 400, { error: 'chat_id_phone_or_username_required' });
+          }
 
           const result = await client.sendMessage({
             chatId: body.chat_id ?? null,
             phone: body.phone ?? null,
+            username: typeof body.username === 'string' ? body.username : null,
             text,
           });
 

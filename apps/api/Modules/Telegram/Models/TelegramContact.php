@@ -4,6 +4,7 @@ namespace Modules\Telegram\Models;
 
 use App\Support\Concerns\BelongsToEntity;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,7 @@ use Modules\Telegram\Database\Factories\TelegramContactFactory;
     'entity_id',
     'name',
     'phone',
+    'username',
     'telegram_user_id',
     'telegram_chat_id',
     'telegram_account_id',
@@ -32,6 +34,16 @@ class TelegramContact extends Model
     public const LANGUAGE_KM = 'km';
 
     public const LANGUAGE_EN = 'en';
+
+    /**
+     * Telegram usernames are case-insensitive — store them normalized.
+     */
+    protected function username(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value !== null ? strtolower($value) : null,
+        );
+    }
 
     protected function casts(): array
     {

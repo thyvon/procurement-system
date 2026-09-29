@@ -53,7 +53,16 @@ test('POST /send requires text and a target', async () => {
 
   res = await post('/send', { text: 'hello' });
   assert.equal(res.status, 400);
-  assert.equal((await res.json()).error, 'chat_id_or_phone_required');
+  assert.equal((await res.json()).error, 'chat_id_phone_or_username_required');
+});
+
+test('POST /send resolves a username target', async () => {
+  const res = await post('/send', { username: '@vunthypro', text: 'handle test' });
+  assert.equal(res.status, 200);
+  const json = await res.json();
+  assert.equal(json.ok, true);
+  assert.ok(json.chat_id > 0);
+  assert.ok(json.message_id > 0);
 });
 
 test('POST /send delivers through the mock client', async () => {
