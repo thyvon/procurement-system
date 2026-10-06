@@ -541,11 +541,12 @@ it('submits an evaluation, stamps the record step and parks on the first decide 
         ->assertJsonPath('data.currentStep.assigneeId', $this->firstApprover->getKey())
         ->assertJsonPath('data.currentStep.assigneeName', $this->firstApprover->name)
         ->assertJsonPath('data.currentStep.assigneePosition', 'Finance Manager')
-        ->assertJsonPath('data.currentStep.assigneeSignature', Storage::disk('public')->url('signatures/sso_approver.png'))
+        ->assertJsonPath('data.currentStep.assigneeSignature', null)
         ->assertJsonPath('data.flow.code', 'evaluation-test')
         ->assertJsonCount(3, 'data.steps')
         ->assertJsonPath('data.steps.0.showOnPrint', true)
         ->assertJsonPath('data.steps.0.assigneeSignature', Storage::disk('public')->url('signatures/sso_admin.png'))
+        ->assertJsonPath('data.steps.1.assigneeSignature', null)
         ->assertJsonPath('data.steps.1.showOnPrint', false)
         ->assertJsonPath('data.submittedBy', $this->admin->name);
 

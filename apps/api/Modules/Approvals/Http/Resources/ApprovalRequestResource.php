@@ -4,6 +4,7 @@ namespace Modules\Approvals\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
+use Modules\Approvals\Models\ApprovalAction;
 use Modules\Approvals\Models\ApprovalRequest;
 
 /**
@@ -34,10 +35,10 @@ class ApprovalRequestResource extends JsonResource
                 'assigneeId' => $currentStep['assigneeId'] ?? null,
                 'assigneeName' => $currentStep['assigneeName'] ?? null,
                 'assigneePosition' => $currentStep['assigneePosition'] ?? null,
-                'assigneeSignature' => $this->signatureUrl($currentStep['assigneeSignature'] ?? null),
+                'assigneeSignature' => $this->decidedSignature($currentStep),
             ],
             'steps' => array_map(function (array $step): array {
-                $step['assigneeSignature'] = $this->signatureUrl($step['assigneeSignature'] ?? null);
+                $step['assigneeSignature'] = $this->decidedSignature($step);
 
                 return $step;
             }, $steps),
@@ -65,5 +66,35 @@ class ApprovalRequestResource extends JsonResource
         return is_string($path) && $path !== ''
             ? Storage::disk('public')->url($path)
             : null;
+    }
+
+    /**
+     * Snapshots freeze every assignee's signature at submit time, but a
+     * signature only becomes official once its approver has acted on the step
+     * (`approve`/`reject`/`return`, or the automatic `record` stamp; a
+     * `cancel` is the submitter withdrawing, not a decision). Pending steps —
+     * including `currentStep` — therefore expose null.
+     *
+     * Reads the already-loaded `actions` relation only: list endpoints that
+     * skip it hide every signature rather than lazy-loading per row.
+     *
+     * @param  array<string, mixed>  $step
+     *
+     * @scramble-return string|null
+     */
+    private function decidedSignature(array $step): ?string
+    {
+        $position = $step['position'] ?? null;
+
+        if ($position === null || ! $this->relationLoaded('actions')) {
+            return null;
+        }
+
+        $decided = $this->actions->contains(function (ApprovalAction $action) use ($position): bool {
+            return $action->action !== 'cancel'
+                && (int) $action->step_position === (int) $position;
+        });
+
+        return $decided ? $this->signatureUrl($step['assigneeSignature'] ?? null) : null;
     }
 }

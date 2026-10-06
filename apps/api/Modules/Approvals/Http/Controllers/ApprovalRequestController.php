@@ -83,7 +83,7 @@ class ApprovalRequestController extends Controller
             $user,
         );
 
-        return ApiResponse::success(new ApprovalRequestResource($approval), 201);
+        return ApiResponse::success(new ApprovalRequestResource($approval->load(['actions.actor', 'creator'])), 201);
     }
 
     public function cancel(Request $request, ApprovalRequest $approval): JsonResponse

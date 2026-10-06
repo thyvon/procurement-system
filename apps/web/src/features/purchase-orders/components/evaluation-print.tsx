@@ -62,6 +62,7 @@ function signatureColumns(
 
   return visible.map((step) => {
     const action = actionForStep(request, step);
+    const decided = action !== null && action.action !== "cancel";
     const name = step.assigneeName ?? action?.actor.name ?? "";
     const date =
       step.actionMode === "record"
@@ -74,7 +75,7 @@ function signatureColumns(
       name,
       position: step.assigneePosition ?? "",
       date,
-      signature: step.assigneeSignature ?? null,
+      signature: decided ? (step.assigneeSignature ?? null) : null,
     };
   });
 }
