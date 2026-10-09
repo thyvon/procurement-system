@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\EPurchase\Http\Controllers\EPurchaseItemController;
+use Modules\EPurchase\Http\Controllers\EPurchasePoController;
 use Modules\EPurchase\Http\Controllers\EPurchasePrController;
 use Modules\EPurchase\Http\Controllers\EPurchaseSupplierController;
 
@@ -15,4 +16,8 @@ Route::prefix('v1/epurchase')
         Route::get('prs/{prId}', [EPurchasePrController::class, 'show'])
             ->whereNumber('prId')
             ->name('prs.show');
+        Route::get('pos', [EPurchasePoController::class, 'index'])->name('pos.index');
+        Route::get('pos/{poId}', [EPurchasePoController::class, 'show'])
+            ->whereNumber('poId')
+            ->name('pos.show');
     });

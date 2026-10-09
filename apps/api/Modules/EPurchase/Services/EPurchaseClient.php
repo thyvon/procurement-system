@@ -29,6 +29,10 @@ class EPurchaseClient
 
     private const PR_DETAIL_PATH = '/pr-viewDetail/viewDetail';
 
+    private const PO_LIST_PATH = '/api/po/getPOList';
+
+    private const PO_DETAIL_PATH = '/po-viewDetail/viewDetail';
+
     /**
      * Exchange company credentials for a company session and profile.
      *
@@ -249,6 +253,29 @@ class EPurchaseClient
     }
 
     /**
+     * Fetch one page of company purchase orders (DataTables server protocol).
+     * Like the PR list this one is a form-encoded POST instead of a GET.
+     *
+     * @return array{recordsTotal: int, recordsFiltered: int, data: array<int, array<string, mixed>>}
+     *
+     * @throws EPurchaseSessionExpiredException when the cached session is rejected upstream
+     * @throws EPurchaseUnavailableException when the company system is unreachable or malformed
+     */
+    public function pos(EPurchaseSession $session, int $start, int $length, string $search = ''): array
+    {
+        return $this->dataTablePage(
+            $session,
+            self::PO_LIST_PATH,
+            $start,
+            $length,
+            $search,
+            $this->poColumnsQuery(),
+            method: 'post',
+            orderColumn: 7,
+        );
+    }
+
+    /**
      * Fetch the line items of one purchase requisition.
      * Unlike the list endpoints this one answers with a bare JSON array.
      *
@@ -274,6 +301,44 @@ class EPurchaseClient
         if (! $response->successful()) {
             throw new EPurchaseUnavailableException(
                 'E-Purchase PR detail request failed with status '.$response->status().'.'
+            );
+        }
+
+        $body = $response->json();
+
+        if (! is_array($body) || ! array_is_list($body)) {
+            throw new EPurchaseUnavailableException('E-Purchase returned an unexpected response.');
+        }
+
+        return array_values(array_filter($body, fn ($row): bool => is_array($row)));
+    }
+
+    /**
+     * Fetch the line items of one purchase order.
+     * Same bare JSON array shape as the PR detail.
+     *
+     * @return array<int, array<string, mixed>>
+     *
+     * @throws EPurchaseSessionExpiredException when the cached session is rejected upstream
+     * @throws EPurchaseUnavailableException when the company system is unreachable or malformed
+     */
+    public function poDetail(EPurchaseSession $session, int $poId): array
+    {
+        $response = $this->send(
+            $session,
+            fn (PendingRequest $http) => $http->get(self::PO_DETAIL_PATH, [
+                'po_id' => (string) $poId,
+                'getPODetailTable' => '1',
+            ]),
+        );
+
+        if ($response->status() === 401 || $response->status() === 419) {
+            throw new EPurchaseSessionExpiredException('Company session expired. Please log in again.');
+        }
+
+        if (! $response->successful()) {
+            throw new EPurchaseUnavailableException(
+                'E-Purchase PO detail request failed with status '.$response->status().'.'
             );
         }
 
@@ -474,6 +539,27 @@ class EPurchaseClient
             ['data' => 'created_at', 'name' => 'created_at', 'searchable' => 'false', 'orderable' => 'true'],
             ['data' => 'status', 'name' => 'status', 'searchable' => 'true', 'orderable' => 'true'],
             ['data' => 'purchase_status', 'name' => 'purchase_status', 'searchable' => 'true', 'orderable' => 'true'],
+            ['data' => '', 'name' => 'Action', 'searchable' => 'false', 'orderable' => 'false'],
+        ]);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function poColumnsQuery(): array
+    {
+        return $this->columnsQuery([
+            ['data' => 'id', 'name' => 'id', 'searchable' => 'false', 'orderable' => 'false'],
+            ['data' => 'no', 'name' => 'no', 'searchable' => 'false', 'orderable' => 'false'],
+            ['data' => 'poRefNum', 'name' => 'poRefNum', 'searchable' => 'true', 'orderable' => 'true'],
+            ['data' => 'vendorName', 'name' => 'vendorName', 'searchable' => 'true', 'orderable' => 'true'],
+            ['data' => 'purpose', 'name' => 'purpose', 'searchable' => 'true', 'orderable' => 'true'],
+            ['data' => 'amount', 'name' => 'amount', 'searchable' => 'true', 'orderable' => 'true'],
+            ['data' => 'prepareByName', 'name' => 'prepareByName', 'searchable' => 'true', 'orderable' => 'true'],
+            ['data' => 'created_at', 'name' => 'created_at', 'searchable' => 'false', 'orderable' => 'true'],
+            ['data' => 'status', 'name' => 'status', 'searchable' => 'false', 'orderable' => 'true'],
+            ['data' => 'purchase_status', 'name' => 'purchase_status', 'searchable' => 'false', 'orderable' => 'true'],
+            ['data' => 'is_get_xml', 'name' => 'is_get_xml', 'searchable' => 'false', 'orderable' => 'true'],
             ['data' => '', 'name' => 'Action', 'searchable' => 'false', 'orderable' => 'false'],
         ]);
     }

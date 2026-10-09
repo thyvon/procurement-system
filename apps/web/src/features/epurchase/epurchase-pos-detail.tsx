@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { ArrowLeft } from "lucide-react"
 import { unwrap, withAuth } from "@/lib/api-client"
-import { epurchasePrsShow } from "@/lib/api/epurchase-pr/epurchase-pr"
+import { epurchasePosShow } from "@/lib/api/epurchase-po/epurchase-po"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -13,42 +13,47 @@ import {
   requiresEPurchaseLogin,
 } from "@/features/epurchase/components/login-required"
 
-type EPurchasePrLine = {
+type EPurchasePoLine = {
   id: number
+  prRefNum: string
   itemCode: string
   description: string
-  description3: string
+  description2: string
+  poDescription: string | null
+  qty: number | null
+  unit: string
   campusCode: string
   divisionCode: string
   departmentCode: string
-  qty: number | null
-  unitType: string
-  unitPrice: number | null
-  subTotal: number | null
+  location: string
+  unitCost: number | null
+  deliveryFee: number | null
+  discount: number | null
+  vat: number | null
+  usdAmount: number | null
+  purchaseQty: number | null
+  cancelQty: number | null
+  pendingQty: number | null
   currency: string
   status: string | null
-  canceled: number
-  received: number
-  purchaseOrderQty: number
-  remainAfterPo: number
   forceClose: number
 }
 
-export function EPurchasePrDetail({
-  prId,
+export function EPurchasePoDetail({
+  poId,
   refNum,
 }: {
-  prId: string
+  poId: string
   refNum: string | null
 }) {
   const router = useRouter()
-  const t = useTranslations("epurchasePrs")
-  const td = useTranslations("epurchasePrs.detail")
+  const t = useTranslations("epurchasePos")
+  const td = useTranslations("epurchasePos.detail")
 
   const query = useQuery({
-    queryKey: ["epurchasePrs", "detail", prId],
+    queryKey: ["epurchasePos", "detail", poId],
     queryFn: async () =>
-      unwrap<EPurchasePrLine[]>(await epurchasePrsShow(prId, withAuth())),
+      unwrap<EPurchasePoLine[]>(await epurchasePosShow(poId, withAuth())),
     retry: false,
   })
 
@@ -68,7 +73,7 @@ export function EPurchasePrDetail({
             ? query.error.message
             : t("loadFailed")}
         </div>
-        <Button variant="outline" onClick={() => router.push("/epurchase/prs")}>
+        <Button variant="outline" onClick={() => router.push("/epurchase/pos")}>
           <ArrowLeft />
           {td("back")}
         </Button>
@@ -87,7 +92,7 @@ export function EPurchasePrDetail({
     return (
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">{td("notFound")}</p>
-        <Button variant="outline" onClick={() => router.push("/epurchase/prs")}>
+        <Button variant="outline" onClick={() => router.push("/epurchase/pos")}>
           <ArrowLeft />
           {td("back")}
         </Button>
@@ -102,7 +107,7 @@ export function EPurchasePrDetail({
           <Button
             variant="outline"
             size="icon"
-            onClick={() => router.push("/epurchase/prs")}
+            onClick={() => router.push("/epurchase/pos")}
             aria-label={td("back")}
           >
             <ArrowLeft />
@@ -127,11 +132,20 @@ export function EPurchasePrDetail({
             <table className="w-full text-sm">
               <thead className="bg-muted/60">
                 <tr>
+                  <th className="min-w-[160px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    {td("columns.prRefNum")}
+                  </th>
                   <th className="min-w-[120px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                     {td("columns.itemCode")}
                   </th>
                   <th className="min-w-[260px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                     {td("columns.description")}
+                  </th>
+                  <th className="min-w-[80px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    {td("columns.qty")}
+                  </th>
+                  <th className="min-w-[80px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    {td("columns.unit")}
                   </th>
                   <th className="min-w-[90px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                     {td("columns.campusCode")}
@@ -142,29 +156,38 @@ export function EPurchasePrDetail({
                   <th className="min-w-[110px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                     {td("columns.departmentCode")}
                   </th>
-                  <th className="min-w-[80px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                    {td("columns.qty")}
+                  <th className="min-w-[110px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    {td("columns.location")}
                   </th>
                   <th className="min-w-[110px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                    {td("columns.canceled")}
-                  </th>
-                  <th className="min-w-[150px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                    {td("columns.purchaseOrderQty")}
+                    {td("columns.unitCost")}
                   </th>
                   <th className="min-w-[120px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                    {td("columns.remainAfterPo")}
-                  </th>
-                  <th className="min-w-[80px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                    {td("columns.unitType")}
+                    {td("columns.deliveryFee")}
                   </th>
                   <th className="min-w-[100px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                    {td("columns.unitPrice")}
+                    {td("columns.discount")}
+                  </th>
+                  <th className="min-w-[80px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    {td("columns.vat")}
                   </th>
                   <th className="min-w-[120px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
-                    {td("columns.subTotal")}
+                    {td("columns.usdAmount")}
+                  </th>
+                  <th className="min-w-[115px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    {td("columns.purchaseQty")}
+                  </th>
+                  <th className="min-w-[115px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    {td("columns.cancelQty")}
+                  </th>
+                  <th className="min-w-[115px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    {td("columns.pendingQty")}
                   </th>
                   <th className="min-w-[100px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                     {td("columns.status")}
+                  </th>
+                  <th className="min-w-[90px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    {td("columns.currency")}
                   </th>
                 </tr>
               </thead>
@@ -172,12 +195,31 @@ export function EPurchasePrDetail({
                 {lines.map((line) => (
                   <tr key={line.id} className="border-t border-border">
                     <td className="whitespace-nowrap px-3 py-2 font-mono text-xs">
+                      {line.prRefNum || "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 font-mono text-xs">
                       {line.itemCode || "—"}
                     </td>
                     <td className="px-3 py-2">
                       <span className="whitespace-normal break-words">
                         {line.description || "—"}
                       </span>
+                      {line.description2 ? (
+                        <span className="block whitespace-normal break-words text-xs text-muted-foreground">
+                          {line.description2}
+                        </span>
+                      ) : null}
+                      {line.poDescription ? (
+                        <span className="block whitespace-pre-line break-words text-xs text-muted-foreground">
+                          {line.poDescription}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 font-mono">
+                      {line.qty ?? "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      {line.unit || "—"}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2">
                       {line.campusCode || "—"}
@@ -188,29 +230,38 @@ export function EPurchasePrDetail({
                     <td className="whitespace-nowrap px-3 py-2">
                       {line.departmentCode || "—"}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 font-mono">
-                      {line.qty ?? "—"}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 font-mono">
-                      {line.canceled}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 font-mono">
-                      {line.purchaseOrderQty}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 font-mono">
-                      {line.remainAfterPo}
-                    </td>
                     <td className="whitespace-nowrap px-3 py-2">
-                      {line.unitType || "—"}
+                      {line.location || "—"}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 font-mono">
-                      {money(line.unitPrice, line.currency)}
+                      {money(line.unitCost, line.currency)}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 font-mono">
-                      {money(line.subTotal, line.currency)}
+                      {money(line.deliveryFee, line.currency)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 font-mono">
+                      {money(line.discount, line.currency)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 font-mono">
+                      {line.vat !== null ? `${line.vat}%` : "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 font-mono">
+                      {money(line.usdAmount, line.currency)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 font-mono">
+                      {line.purchaseQty ?? "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 font-mono">
+                      {line.cancelQty ?? "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 font-mono">
+                      {line.pendingQty ?? "—"}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2">
                       {line.status || "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      {line.currency || "—"}
                     </td>
                   </tr>
                 ))}

@@ -46,6 +46,7 @@
     "epurchaseItems": "Items",
     "epurchaseSuppliers": "Suppliers",
     "epurchasePrs": "PR List",
+    "epurchasePos": "PO List",
     "userMgt": "User Mgt",
     "users": "Users",
     "roles": "Roles",
@@ -385,12 +386,65 @@
       "notFound": "Purchase requisition not found.",
       "lines": "Line Items",
       "columns": {
-        "itemCode": "Item Code",
+        "itemCode": "Item code",
+        "description": "Description",
+        "campusCode": "Campus",
+        "divisionCode": "Division",
+        "departmentCode": "Department",
+        "qty": "Qty",
+        "canceled": "Qty Cancel",
+        "purchaseOrderQty": "Qty Purchase order",
+        "remainAfterPo": "Qty Pending",
+        "unitType": "UOM",
+        "unitPrice": "Price",
+        "subTotal": "Total Price",
+        "status": "Status"
+      }
+    }
+  },
+  "epurchasePos": {
+    "title": "PO List",
+    "description": "Purchase orders from the company e-purchase system.",
+    "searchPlaceholder": "Filter by PO number, vendor or purpose...",
+    "loadFailed": "Could not load purchase orders.",
+    "columns": {
+      "poRefNum": "PO No.",
+      "vendorName": "Vendor",
+      "purpose": "Purpose",
+      "amount": "Amount",
+      "prepareByName": "Prepared By",
+      "createdAt": "Created At",
+      "status": "Status",
+      "purchaseStatus": "Purchase Status"
+    },
+    "table": {
+      "openMenu": "Open menu",
+      "view": "View"
+    },
+    "detail": {
+      "title": "Purchase Order",
+      "back": "Back to PO list",
+      "notFound": "Purchase order not found.",
+      "lines": "Line Items",
+      "columns": {
+        "currency": "Currency",
+        "prRefNum": "PR Number",
+        "itemCode": "Item code",
         "description": "Description",
         "qty": "Qty",
-        "unitType": "Unit",
-        "unitPrice": "Unit Price",
-        "subTotal": "Sub Total",
+        "unit": "UOM",
+        "campusCode": "Campus",
+        "divisionCode": "Division",
+        "departmentCode": "Department",
+        "location": "Location",
+        "unitCost": "Unit Price",
+        "deliveryFee": "Delivery fee",
+        "discount": "Discount",
+        "vat": "VAT%",
+        "usdAmount": "Total Price",
+        "purchaseQty": "Received Qty",
+        "cancelQty": "Cancelled Qty",
+        "pendingQty": "Pending Qty",
         "status": "Status"
       }
     }

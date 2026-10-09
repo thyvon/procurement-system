@@ -46,6 +46,7 @@
     "epurchaseItems": "ផលិតផល",
     "epurchaseSuppliers": "អ្នកផ្គត់ផ្គង់",
     "epurchasePrs": "បញ្ជី PR",
+    "epurchasePos": "បញ្ជី PO",
     "userMgt": "គ្រប់គ្រងអ្នកប្រើប្រាស់",
     "users": "អ្នកប្រើប្រាស់",
     "roles": "តួនាទី",
@@ -387,10 +388,63 @@
       "columns": {
         "itemCode": "លេខទំនិញ",
         "description": "ការពិពណ៌នា",
+        "campusCode": "សាខា",
+        "divisionCode": "ផ្នែក",
+        "departmentCode": "នាយកដ្ឋាន",
         "qty": "ចំនួន",
+        "canceled": "ចំនួនបោះបង់",
+        "purchaseOrderQty": "ចំនួនកម្មង់ទិញ",
+        "remainAfterPo": "ចំនួននៅសេស",
         "unitType": "ឯកតា",
-        "unitPrice": "តម្លៃឯកតា",
-        "subTotal": "សរុប",
+        "unitPrice": "តម្លៃ",
+        "subTotal": "តម្លៃសរុប",
+        "status": "ស្ថានភាព"
+      }
+    }
+  },
+  "epurchasePos": {
+    "title": "បញ្ជី PO",
+    "description": "ការបញ្ជាទិញពីប្រព័ន្ធទិញអេឡិចត្រូនិករបស់ក្រុមហ៊ុន។",
+    "searchPlaceholder": "តម្រង់តាមលេខ PO ឬអ្នកផ្គត់ផ្គង់ ឬគោលបំណង...",
+    "loadFailed": "មិនអាចផ្ទុកការបញ្ជាទិញបានទេ។",
+    "columns": {
+      "poRefNum": "លេខ PO",
+      "vendorName": "អ្នកផ្គត់ផ្គង់",
+      "purpose": "គោលបំណង",
+      "amount": "ចំនួនទឹកប្រាក់",
+      "prepareByName": "អ្នករៀបចំ",
+      "createdAt": "ថ្ងៃបង្កើត",
+      "status": "ស្ថានភាព",
+      "purchaseStatus": "ស្ថានភាពទិញ"
+    },
+    "table": {
+      "openMenu": "បើកម៉ឺនុយ",
+      "view": "មើល"
+    },
+    "detail": {
+      "title": "ការបញ្ជាទិញ",
+      "back": "ត្រឡប់ទៅបញ្ជី PO",
+      "notFound": "រកមិនឃើញការបញ្ជាទិញទេ។",
+      "lines": "បន្ទាត់ទំនិញ",
+      "columns": {
+        "currency": "រូបិយប័ណ្ណ",
+        "prRefNum": "លេខ PR",
+        "itemCode": "លេខទំនិញ",
+        "description": "ការពិពណ៌នា",
+        "qty": "ចំនួន",
+        "unit": "ឯកតា",
+        "campusCode": "សាខា",
+        "divisionCode": "ផ្នែក",
+        "departmentCode": "នាយកដ្ឋាន",
+        "location": "ទីតាំង",
+        "unitCost": "តម្លៃឯកតា",
+        "deliveryFee": "ថ្លៃដឹកជញ្ជូន",
+        "discount": "បញ្ចុះតម្លៃ",
+        "vat": "អាករ (%)",
+        "usdAmount": "តម្លៃសរុប",
+        "purchaseQty": "ចំនួនទទួលបាន",
+        "cancelQty": "ចំនួនបោះបង់",
+        "pendingQty": "ចំនួននៅសេស",
         "status": "ស្ថានភាព"
       }
     }

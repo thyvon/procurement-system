@@ -4,10 +4,10 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
-import type { ApprovalRequestResource } from './approvalRequestResource';
+import type { ApprovalsRequestsStore201Data } from './approvalsRequestsStore201Data';
 
 export type ApprovalsRequestsStore201 = {
-  data: ApprovalRequestResource;
+  data: ApprovalsRequestsStore201Data;
   /** @nullable */
   meta: null;
 };
