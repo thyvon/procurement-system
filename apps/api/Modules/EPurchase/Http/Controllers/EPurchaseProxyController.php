@@ -4,8 +4,8 @@ namespace Modules\EPurchase\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Support\Http\ApiResponse;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Modules\EPurchase\Services\EPurchaseClient;
 use Modules\EPurchase\Services\EPurchaseSession;
 use Modules\EPurchase\Services\EPurchaseSessionExpiredException;
@@ -24,14 +24,52 @@ abstract class EPurchaseProxyController extends Controller
         protected readonly EPurchaseSessionService $sessions,
     ) {}
 
-    protected function session(FormRequest $request): ?EPurchaseSession
+    protected function session(Request $request): ?EPurchaseSession
     {
         $user = $request->user();
 
         return $user !== null ? $this->sessions->get($user->getAuthIdentifier()) : null;
     }
 
-    protected function forgetSession(FormRequest $request): void
+    /**
+     * Run an upstream read against the cached company session, renewing it
+     * through the refresh endpoint once when the company system rejects it.
+     *
+     * All failures propagate so clientFailureResponse() stays the single
+     * mapper: a rejected refresh or a rejected retry lands there and clears
+     * the cached session.
+     *
+     * @param  callable(EPurchaseSession): mixed  $operation
+     *
+     * @throws EPurchaseSessionExpiredException when the session cannot be renewed
+     * @throws EPurchaseUnavailableException when the company system is unreachable or malformed
+     */
+    protected function withSessionRefresh(Request $request, callable $operation): mixed
+    {
+        $session = $this->session($request);
+
+        if ($session === null) {
+            throw new EPurchaseSessionExpiredException('Company session expired. Please log in again.');
+        }
+
+        try {
+            return $operation($session);
+        } catch (EPurchaseSessionExpiredException) {
+            // The cached JWT was rejected upstream — renew it, then retry once.
+        }
+
+        $refreshed = $this->client->refresh($session);
+
+        $user = $request->user();
+
+        if ($user !== null) {
+            $this->sessions->put($user->getAuthIdentifier(), $refreshed);
+        }
+
+        return $operation($refreshed);
+    }
+
+    protected function forgetSession(Request $request): void
     {
         $user = $request->user();
 
@@ -58,7 +96,7 @@ abstract class EPurchaseProxyController extends Controller
      *
      * @throws Throwable when the exception is not a known proxy failure
      */
-    protected function clientFailureResponse(Throwable $exception, FormRequest $request): JsonResponse
+    protected function clientFailureResponse(Throwable $exception, Request $request): JsonResponse
     {
         if ($exception instanceof EPurchaseSessionExpiredException) {
             $this->forgetSession($request);

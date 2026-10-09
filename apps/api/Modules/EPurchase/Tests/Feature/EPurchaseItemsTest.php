@@ -147,9 +147,51 @@ it('passes page and search to the company system', function () {
     });
 });
 
-it('forgets the cached session and returns 401 when upstream rejects it', function () {
+it('refreshes the company session and retries when the upstream rejects it once', function () {
     seedEpurchaseSession($this->user);
-    Http::fake(['*/items-master-list*' => Http::response(['message' => 'Unauthenticated.'], 401)]);
+    Http::fake([
+        '*/items-master-list*' => Http::sequence()
+            ->push(['message' => 'Unauthenticated.'], 401)
+            ->push(epurchaseItemsPayload()),
+        '*/default_user_access/refresh*' => Http::response([
+            'access_token' => 'renewed-company-jwt',
+            'token_type' => 'bearer',
+            'expires_in' => 7200,
+        ]),
+    ]);
+
+    getEpurchaseItems()
+        ->assertOk()
+        ->assertJsonPath('data.0.code', 'ITM-1');
+
+    expect(app(EPurchaseSessionService::class)->get($this->user->getAuthIdentifier())?->jwt)
+        ->toBe('renewed-company-jwt');
+});
+
+it('forgets the cached session and returns 401 when the refresh is also rejected', function () {
+    seedEpurchaseSession($this->user);
+    Http::fake([
+        '*/items-master-list*' => Http::response(['message' => 'Unauthenticated.'], 401),
+        '*/default_user_access/refresh*' => Http::response(['message' => 'Unauthenticated.'], 401),
+    ]);
+
+    getEpurchaseItems()
+        ->assertStatus(401)
+        ->assertJsonPath('error', 'EPurchaseSessionExpired');
+
+    expect(app(EPurchaseSessionService::class)->get($this->user->getAuthIdentifier()))->toBeNull();
+});
+
+it('forgets the cached session and returns 401 when the retried request is still rejected', function () {
+    seedEpurchaseSession($this->user);
+    Http::fake([
+        '*/items-master-list*' => Http::response(['message' => 'Unauthenticated.'], 401),
+        '*/default_user_access/refresh*' => Http::response([
+            'access_token' => 'renewed-company-jwt',
+            'token_type' => 'bearer',
+            'expires_in' => 7200,
+        ]),
+    ]);
 
     getEpurchaseItems()
         ->assertStatus(401)

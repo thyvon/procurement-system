@@ -244,6 +244,100 @@ it('throws session expired when suppliers returns 401', function () {
         ->toThrow(EPurchaseSessionExpiredException::class);
 });
 
+it('renews a session from the refresh endpoint', function () {
+    Http::fake(['*/default_user_access/refresh*' => Http::response([
+        'access_token' => 'renewed-company-jwt',
+        'token_type' => 'bearer',
+        'expires_in' => 7200,
+    ])]);
+
+    $session = app(EPurchaseClient::class)->refresh(epurchaseMyInfoSession());
+
+    expect($session->jwt)->toBe('renewed-company-jwt')
+        ->and($session->formToken)->toBe('form-token-abc')
+        ->and($session->cookieHeader)->toBe('laravel_session=abc')
+        ->and($session->expiresAt)->toBeGreaterThanOrEqual(time() + 7190);
+
+    Http::assertSent(function (Request $request): bool {
+        return str_contains($request->url(), '/default_user_access/refresh')
+            && $request->method() === 'POST'
+            && $request['access_token'] === 'company-session-jwt';
+    });
+});
+
+it('falls back to the configured session ttl when the refresh payload omits expires_in', function () {
+    config(['epurchase.session_ttl' => 3600]);
+    Http::fake(['*/default_user_access/refresh*' => Http::response([
+        'access_token' => 'renewed-company-jwt',
+    ])]);
+
+    $session = app(EPurchaseClient::class)->refresh(epurchaseMyInfoSession());
+
+    expect($session->expiresAt)->toBeGreaterThanOrEqual(time() + 3595)
+        ->and($session->expiresAt)->toBeLessThanOrEqual(time() + 3600);
+});
+
+it('throws session expired when the refresh payload has no access_token', function () {
+    Http::fake(['*/default_user_access/refresh*' => Http::response([
+        'token_type' => 'bearer',
+        'expires_in' => 7200,
+    ])]);
+
+    expect(fn () => app(EPurchaseClient::class)->refresh(epurchaseMyInfoSession()))
+        ->toThrow(EPurchaseSessionExpiredException::class);
+});
+
+it('throws session expired when the company system rejects the refresh', function () {
+    Http::fake(['*/default_user_access/refresh*' => Http::response(['message' => 'Unauthenticated.'], 401)]);
+
+    expect(fn () => app(EPurchaseClient::class)->refresh(epurchaseMyInfoSession()))
+        ->toThrow(EPurchaseSessionExpiredException::class);
+});
+
+it('reports the company system as unavailable when the refresh cannot connect', function () {
+    Http::fake(['*/default_user_access/refresh*' => Http::failedConnection()]);
+
+    expect(fn () => app(EPurchaseClient::class)->refresh(epurchaseMyInfoSession()))
+        ->toThrow(EPurchaseUnavailableException::class);
+});
+
+it('posts the PR list payload to the company system with session headers', function () {
+    Http::fake(['*getRequestList*' => Http::response([
+        'draw' => '1',
+        'recordsTotal' => 22819,
+        'recordsFiltered' => 1,
+        'data' => [
+            ['no' => 1, 'id' => 24768, 'RefNum' => 'PR-CCV-20260915-001', 'Purpose' => 'Office stationery restock'],
+        ],
+    ])]);
+
+    $result = app(EPurchaseClient::class)->prs(epurchaseMyInfoSession(), 10, 5, 'PR-CCV');
+
+    expect($result['recordsTotal'])->toBe(22819)
+        ->and($result['recordsFiltered'])->toBe(1)
+        ->and($result['data'][0]['RefNum'])->toBe('PR-CCV-20260915-001');
+
+    Http::assertSent(function (Request $request): bool {
+        return str_contains($request->url(), '/api/pr/getRequestList')
+            && $request->method() === 'POST'
+            && $request->hasHeader('Authorization', 'Bearer company-session-jwt')
+            && $request->hasHeader('Cookie', 'laravel_session=abc')
+            && $request['start'] === '10'
+            && $request['length'] === '5'
+            && $request['search[value]'] === 'PR-CCV'
+            && $request['order[0][column]'] === '6'
+            && $request['columns[0][data]'] === 'id'
+            && $request['_token'] === 'form-token-abc';
+    });
+});
+
+it('throws session expired when the PR list returns 401', function () {
+    Http::fake(['*getRequestList*' => Http::response(['message' => 'Unauthenticated.'], 401)]);
+
+    expect(fn () => app(EPurchaseClient::class)->prs(epurchaseMyInfoSession(), 0, 10))
+        ->toThrow(EPurchaseSessionExpiredException::class);
+});
+
 it('fetches the signature from getMyInfo with session headers', function () {
     Http::fake(['*dashboard/getMyInfo*' => Http::response(epurchaseMyInfoPayload())]);
 

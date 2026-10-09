@@ -45,6 +45,7 @@
     "epurchase": "E-Purchase",
     "epurchaseItems": "Items",
     "epurchaseSuppliers": "Suppliers",
+    "epurchasePrs": "PR List",
     "userMgt": "User Mgt",
     "users": "Users",
     "roles": "Roles",
@@ -358,6 +359,40 @@
       "paymentTerm": "Payment Term",
       "isOnboard": "Onboard Status",
       "status": "Status"
+    }
+  },
+  "epurchasePrs": {
+    "title": "PR List",
+    "description": "Purchase requisitions from the company e-purchase system.",
+    "searchPlaceholder": "Filter by PR number or purpose...",
+    "loadFailed": "Could not load purchase requisitions.",
+    "columns": {
+      "refNum": "PR No.",
+      "purpose": "Purpose",
+      "amount": "Amount",
+      "requester": "Requester",
+      "createdAt": "Created At",
+      "status": "Status",
+      "purchaseStatus": "Purchase Status"
+    },
+    "table": {
+      "openMenu": "Open menu",
+      "view": "View"
+    },
+    "detail": {
+      "title": "Purchase Requisition",
+      "back": "Back to PR list",
+      "notFound": "Purchase requisition not found.",
+      "lines": "Line Items",
+      "columns": {
+        "itemCode": "Item Code",
+        "description": "Description",
+        "qty": "Qty",
+        "unitType": "Unit",
+        "unitPrice": "Unit Price",
+        "subTotal": "Sub Total",
+        "status": "Status"
+      }
     }
   },
   "purchaseOrders": {

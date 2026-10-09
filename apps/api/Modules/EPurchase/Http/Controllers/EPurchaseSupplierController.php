@@ -6,6 +6,7 @@ use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Modules\EPurchase\Http\Requests\IndexEPurchaseSuppliersRequest;
 use Modules\EPurchase\Http\Resources\EPurchaseSupplierResource;
+use Modules\EPurchase\Services\EPurchaseSession;
 use Modules\EPurchase\Services\EPurchaseSessionExpiredException;
 use Modules\EPurchase\Services\EPurchaseUnavailableException;
 
@@ -16,24 +17,22 @@ class EPurchaseSupplierController extends EPurchaseProxyController
      */
     public function index(IndexEPurchaseSuppliersRequest $request): JsonResponse
     {
-        $session = $this->session($request);
-
-        if ($session === null) {
-            return $this->sessionExpiredResponse();
-        }
-
         $perPage = (int) $request->integer('per_page', 10);
         $page = (int) $request->integer('page', 1);
         $search = $request->string('search')->toString();
 
         try {
-            $result = $this->client->suppliers($session, ($page - 1) * $perPage, $perPage, $search);
+            /** @var array{recordsTotal: int, recordsFiltered: int, data: array<int, array<string, mixed>>} $result */
+            $result = $this->withSessionRefresh(
+                $request,
+                fn (EPurchaseSession $session): array => $this->client->suppliers($session, ($page - 1) * $perPage, $perPage, $search)
+            );
         } catch (EPurchaseSessionExpiredException|EPurchaseUnavailableException $exception) {
             return $this->clientFailureResponse($exception, $request);
         }
 
         $rows = $result['data'];
-        $total = $result['recordsFiltered'];
+        $total = (int) $result['recordsFiltered'];
 
         // Upstream cannot filter by onboarding — narrow the fetched page here.
         // Best-effort: totals reflect this page only while the filter is active.

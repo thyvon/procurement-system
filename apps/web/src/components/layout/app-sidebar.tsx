@@ -79,6 +79,7 @@ const navItems: NavItem[] = [
     children: [
       { key: "epurchaseItems", href: "/epurchase/items", enabled: true },
       { key: "epurchaseSuppliers", href: "/epurchase/suppliers", enabled: true },
+      { key: "epurchasePrs", href: "/epurchase/prs", enabled: true },
     ],
   },
   {

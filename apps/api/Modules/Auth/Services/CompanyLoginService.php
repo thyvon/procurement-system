@@ -45,7 +45,7 @@ class CompanyLoginService
             jwt: $result->jwt,
             formToken: $result->formToken,
             cookieHeader: implode('; ', $result->cookies),
-            expiresAt: time() + max(60, (int) config('epurchase.session_ttl', 1800)),
+            expiresAt: time() + max(60, (int) config('epurchase.session_ttl', 7200)),
         );
 
         // The signature lives behind a second upstream call. Keep the HTTP

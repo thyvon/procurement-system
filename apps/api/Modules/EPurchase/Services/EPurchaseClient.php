@@ -17,11 +17,17 @@ class EPurchaseClient
      */
     private const LOGIN_PATH = '/api/default_user_access/login';
 
+    private const REFRESH_PATH = '/api/default_user_access/refresh';
+
     private const MY_INFO_PATH = '/api/dashboard/getMyInfo';
 
     private const ITEMS_PATH = '/items-master-list';
 
     private const SUPPLIERS_PATH = '/suppliers-master-list';
+
+    private const PR_LIST_PATH = '/api/pr/getRequestList';
+
+    private const PR_DETAIL_PATH = '/pr-viewDetail/viewDetail';
 
     /**
      * Exchange company credentials for a company session and profile.
@@ -75,6 +81,54 @@ class EPurchaseClient
             formToken: is_string($formToken) && $formToken !== '' ? $formToken : null,
             position: is_string($position) && trim($position) !== '' ? trim($position) : null,
             cookies: $this->cookiePairs($response),
+        );
+    }
+
+    /**
+     * Renew an upstream session by handing back the current JWT.
+     *
+     * The refresh endpoint is stateless: the access token itself is the
+     * credential, so no extra refresh token needs to be stored. The renewed
+     * session keeps the form token and cookies from the original login.
+     *
+     * @throws EPurchaseSessionExpiredException when the company system rejects the session
+     * @throws EPurchaseUnavailableException when the company system is unreachable or malformed
+     */
+    public function refresh(EPurchaseSession $session): EPurchaseSession
+    {
+        $response = $this->send(
+            $session,
+            fn (PendingRequest $http) => $http->post(self::REFRESH_PATH, [
+                'access_token' => $session->jwt,
+            ]),
+        );
+
+        if ($response->status() === 401 || $response->status() === 419) {
+            throw new EPurchaseSessionExpiredException('Company session expired. Please log in again.');
+        }
+
+        if (! $response->successful()) {
+            throw new EPurchaseUnavailableException(
+                'E-Purchase session refresh failed with status '.$response->status().'.'
+            );
+        }
+
+        $body = $response->json();
+        $jwt = is_array($body) ? ($body['access_token'] ?? null) : null;
+
+        if (! is_string($jwt) || $jwt === '') {
+            throw new EPurchaseSessionExpiredException('Company session expired. Please log in again.');
+        }
+
+        $expiresIn = is_array($body) ? ($body['expires_in'] ?? null) : null;
+
+        return new EPurchaseSession(
+            jwt: $jwt,
+            formToken: $session->formToken,
+            cookieHeader: $session->cookieHeader,
+            expiresAt: time() + (is_numeric($expiresIn) && (int) $expiresIn > 0
+                ? (int) $expiresIn
+                : max(60, (int) config('epurchase.session_ttl', 7200))),
         );
     }
 
@@ -172,7 +226,68 @@ class EPurchaseClient
     }
 
     /**
-     * Authenticated GET against an upstream DataTables endpoint.
+     * Fetch one page of company purchase requisitions (DataTables server protocol).
+     * The PR list endpoint is a form-encoded POST instead of a GET.
+     *
+     * @return array{recordsTotal: int, recordsFiltered: int, data: array<int, array<string, mixed>>}
+     *
+     * @throws EPurchaseSessionExpiredException when the cached session is rejected upstream
+     * @throws EPurchaseUnavailableException when the company system is unreachable or malformed
+     */
+    public function prs(EPurchaseSession $session, int $start, int $length, string $search = ''): array
+    {
+        return $this->dataTablePage(
+            $session,
+            self::PR_LIST_PATH,
+            $start,
+            $length,
+            $search,
+            $this->prColumnsQuery(),
+            method: 'post',
+            orderColumn: 6,
+        );
+    }
+
+    /**
+     * Fetch the line items of one purchase requisition.
+     * Unlike the list endpoints this one answers with a bare JSON array.
+     *
+     * @return array<int, array<string, mixed>>
+     *
+     * @throws EPurchaseSessionExpiredException when the cached session is rejected upstream
+     * @throws EPurchaseUnavailableException when the company system is unreachable or malformed
+     */
+    public function prDetail(EPurchaseSession $session, int $prId): array
+    {
+        $response = $this->send(
+            $session,
+            fn (PendingRequest $http) => $http->get(self::PR_DETAIL_PATH, [
+                'pr_id' => (string) $prId,
+                'getPRDetailTable' => '1',
+            ]),
+        );
+
+        if ($response->status() === 401 || $response->status() === 419) {
+            throw new EPurchaseSessionExpiredException('Company session expired. Please log in again.');
+        }
+
+        if (! $response->successful()) {
+            throw new EPurchaseUnavailableException(
+                'E-Purchase PR detail request failed with status '.$response->status().'.'
+            );
+        }
+
+        $body = $response->json();
+
+        if (! is_array($body) || ! array_is_list($body)) {
+            throw new EPurchaseUnavailableException('E-Purchase returned an unexpected response.');
+        }
+
+        return array_values(array_filter($body, fn ($row): bool => is_array($row)));
+    }
+
+    /**
+     * Authenticated request against an upstream DataTables endpoint.
      *
      * @param  array<string, string>  $extraQuery
      * @return array{recordsTotal: int, recordsFiltered: int, data: array<int, array<string, mixed>>}
@@ -187,23 +302,29 @@ class EPurchaseClient
         int $length,
         string $search,
         array $extraQuery = [],
+        string $method = 'get',
+        int $orderColumn = 11,
     ): array {
+        $params = array_merge([
+            'draw' => '1',
+            'start' => (string) $start,
+            'length' => (string) $length,
+            'search[value]' => $search,
+            'search[regex]' => 'false',
+            'order[0][column]' => (string) $orderColumn,
+            'order[0][dir]' => 'desc',
+            'getTable' => '1',
+            '_' => (string) (int) (microtime(true) * 1000),
+            ...($session->formToken !== null && $session->formToken !== ''
+                ? ['_token' => $session->formToken]
+                : []),
+        ], $extraQuery);
+
         $response = $this->send(
             $session,
-            fn (PendingRequest $http) => $http->get($path, array_merge([
-                'draw' => '1',
-                'start' => (string) $start,
-                'length' => (string) $length,
-                'search[value]' => $search,
-                'search[regex]' => 'false',
-                'order[0][column]' => '11',
-                'order[0][dir]' => 'desc',
-                'getTable' => '1',
-                '_' => (string) (int) (microtime(true) * 1000),
-                ...($session->formToken !== null && $session->formToken !== ''
-                    ? ['_token' => $session->formToken]
-                    : []),
-            ], $extraQuery)),
+            fn (PendingRequest $http) => $method === 'post'
+                ? $http->asForm()->post($path, $params)
+                : $http->get($path, $params),
         );
 
         if ($response->status() === 401 || $response->status() === 419) {
@@ -317,7 +438,7 @@ class EPurchaseClient
      */
     private function itemsColumnsQuery(): array
     {
-        $cols = [
+        return $this->columnsQuery([
             ['data' => 'image', 'name' => 'image', 'searchable' => '1', 'orderable' => '1'],
             ['data' => 'ItemCode', 'name' => 'ItemCode', 'searchable' => '1', 'orderable' => '1'],
             ['data' => 'Description', 'name' => 'Description', 'searchable' => '1', 'orderable' => '1'],
@@ -335,8 +456,34 @@ class EPurchaseClient
             ['data' => 'updated_by_name', 'name' => 'updated_by_name', 'searchable' => '1', 'orderable' => '1'],
             ['data' => 'Status', 'name' => 'Status', 'searchable' => '', 'orderable' => '1'],
             ['data' => 'id', 'name' => 'Action', 'searchable' => '', 'orderable' => ''],
-        ];
+        ]);
+    }
 
+    /**
+     * @return array<string, string>
+     */
+    private function prColumnsQuery(): array
+    {
+        return $this->columnsQuery([
+            ['data' => 'id', 'name' => 'id', 'searchable' => 'false', 'orderable' => 'false'],
+            ['data' => 'no', 'name' => 'no', 'searchable' => 'false', 'orderable' => 'false'],
+            ['data' => 'RefNum', 'name' => 'RefNum', 'searchable' => 'true', 'orderable' => 'true'],
+            ['data' => 'Purpose', 'name' => 'Purpose', 'searchable' => 'true', 'orderable' => 'true'],
+            ['data' => 'amount', 'name' => 'amount', 'searchable' => 'true', 'orderable' => 'true'],
+            ['data' => 'requester', 'name' => 'requester', 'searchable' => 'true', 'orderable' => 'true'],
+            ['data' => 'created_at', 'name' => 'created_at', 'searchable' => 'false', 'orderable' => 'true'],
+            ['data' => 'status', 'name' => 'status', 'searchable' => 'true', 'orderable' => 'true'],
+            ['data' => 'purchase_status', 'name' => 'purchase_status', 'searchable' => 'true', 'orderable' => 'true'],
+            ['data' => '', 'name' => 'Action', 'searchable' => 'false', 'orderable' => 'false'],
+        ]);
+    }
+
+    /**
+     * @param  array<int, array{data: string, name: string, searchable: string, orderable: string}>  $cols
+     * @return array<string, string>
+     */
+    private function columnsQuery(array $cols): array
+    {
         $query = [];
         foreach ($cols as $i => $col) {
             $query["columns[$i][data]"] = $col['data'];

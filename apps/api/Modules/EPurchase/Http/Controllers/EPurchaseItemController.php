@@ -6,6 +6,7 @@ use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Modules\EPurchase\Http\Requests\IndexEPurchaseItemsRequest;
 use Modules\EPurchase\Http\Resources\EPurchaseItemResource;
+use Modules\EPurchase\Services\EPurchaseSession;
 use Modules\EPurchase\Services\EPurchaseSessionExpiredException;
 use Modules\EPurchase\Services\EPurchaseUnavailableException;
 
@@ -16,18 +17,16 @@ class EPurchaseItemController extends EPurchaseProxyController
      */
     public function index(IndexEPurchaseItemsRequest $request): JsonResponse
     {
-        $session = $this->session($request);
-
-        if ($session === null) {
-            return $this->sessionExpiredResponse();
-        }
-
         $perPage = (int) $request->integer('per_page', 10);
         $page = (int) $request->integer('page', 1);
         $search = $request->string('search')->toString();
 
         try {
-            $result = $this->client->items($session, ($page - 1) * $perPage, $perPage, $search);
+            /** @var array{recordsTotal: int, recordsFiltered: int, data: array<int, array<string, mixed>>} $result */
+            $result = $this->withSessionRefresh(
+                $request,
+                fn (EPurchaseSession $session): array => $this->client->items($session, ($page - 1) * $perPage, $perPage, $search)
+            );
         } catch (EPurchaseSessionExpiredException|EPurchaseUnavailableException $exception) {
             return $this->clientFailureResponse($exception, $request);
         }
@@ -38,7 +37,7 @@ class EPurchaseItemController extends EPurchaseProxyController
             [
                 'page' => $page,
                 'perPage' => $perPage,
-                'total' => $result['recordsFiltered'],
+                'total' => (int) $result['recordsFiltered'],
             ]
         );
     }

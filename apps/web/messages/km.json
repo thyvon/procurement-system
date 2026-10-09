@@ -45,6 +45,7 @@
     "epurchase": "E-Purchase",
     "epurchaseItems": "ផលិតផល",
     "epurchaseSuppliers": "អ្នកផ្គត់ផ្គង់",
+    "epurchasePrs": "បញ្ជី PR",
     "userMgt": "គ្រប់គ្រងអ្នកប្រើប្រាស់",
     "users": "អ្នកប្រើប្រាស់",
     "roles": "តួនាទី",
@@ -358,6 +359,40 @@
       "paymentTerm": "រយៈពេលបង់ប្រាក់",
       "isOnboard": "ស្ថានភាពចុះឈ្មោះ",
       "status": "ស្ថានភាព"
+    }
+  },
+  "epurchasePrs": {
+    "title": "បញ្ជី PR",
+    "description": "តម្រូវការទិញពីប្រព័ន្ធទិញអេឡិចត្រូនិករបស់ក្រុមហ៊ុន។",
+    "searchPlaceholder": "តម្រង់តាមលេខ PR ឬគោលបំណង...",
+    "loadFailed": "មិនអាចផ្ទុកតម្រូវការទិញបានទេ។",
+    "columns": {
+      "refNum": "លេខ PR",
+      "purpose": "គោលបំណង",
+      "amount": "ចំនួនទឹកប្រាក់",
+      "requester": "អ្នកស្នើសុំ",
+      "createdAt": "ថ្ងៃបង្កើត",
+      "status": "ស្ថានភាព",
+      "purchaseStatus": "ស្ថានភាពទិញ"
+    },
+    "table": {
+      "openMenu": "បើកម៉ឺនុយ",
+      "view": "មើល"
+    },
+    "detail": {
+      "title": "តម្រូវការទិញ",
+      "back": "ត្រឡប់ទៅបញ្ជី PR",
+      "notFound": "រកមិនឃើញតម្រូវការទិញទេ។",
+      "lines": "បន្ទាត់ទំនិញ",
+      "columns": {
+        "itemCode": "លេខទំនិញ",
+        "description": "ការពិពណ៌នា",
+        "qty": "ចំនួន",
+        "unitType": "ឯកតា",
+        "unitPrice": "តម្លៃឯកតា",
+        "subTotal": "សរុប",
+        "status": "ស្ថានភាព"
+      }
     }
   },
   "purchaseOrders": {

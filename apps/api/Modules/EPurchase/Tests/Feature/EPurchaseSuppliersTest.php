@@ -195,9 +195,33 @@ it('rejects is_onboard values other than 1 with a 422 envelope', function () {
         ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
 });
 
-it('forgets the cached session and returns 401 when upstream rejects it', function () {
+it('refreshes the company session and retries when the upstream rejects it once', function () {
     seedEpurchaseSuppliersSession($this->user);
-    Http::fake(['*/suppliers-master-list*' => Http::response(['message' => 'Unauthenticated.'], 401)]);
+    Http::fake([
+        '*/suppliers-master-list*' => Http::sequence()
+            ->push(['message' => 'Unauthenticated.'], 401)
+            ->push(epurchaseSuppliersPayload()),
+        '*/default_user_access/refresh*' => Http::response([
+            'access_token' => 'renewed-company-jwt',
+            'token_type' => 'bearer',
+            'expires_in' => 7200,
+        ]),
+    ]);
+
+    getEpurchaseSuppliers()
+        ->assertOk()
+        ->assertJsonPath('data.0.code', 'SUP-00055');
+
+    expect(app(EPurchaseSessionService::class)->get($this->user->getAuthIdentifier())?->jwt)
+        ->toBe('renewed-company-jwt');
+});
+
+it('forgets the cached session and returns 401 when the refresh is also rejected', function () {
+    seedEpurchaseSuppliersSession($this->user);
+    Http::fake([
+        '*/suppliers-master-list*' => Http::response(['message' => 'Unauthenticated.'], 401),
+        '*/default_user_access/refresh*' => Http::response(['message' => 'Unauthenticated.'], 401),
+    ]);
 
     getEpurchaseSuppliers()
         ->assertStatus(401)

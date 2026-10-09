@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * Cache-backed store for the company (E-Purchase) session, keyed by local user id.
- * TTL mirrors the upstream session (~30 minutes by default).
+ * The cache lifetime follows the session's own expiresAt (upstream token life,
+ * renewed through the refresh endpoint).
  */
 class EPurchaseSessionService
 {
@@ -23,13 +24,13 @@ class EPurchaseSessionService
 
     public function put(int|string $userId, EPurchaseSession $session): void
     {
-        $ttl = max(60, (int) config('epurchase.session_ttl', 1800));
+        $ttl = max(60, $session->expiresAt - time());
 
         $this->store()->put($this->key($userId), [
             'jwt' => $session->jwt,
             'formToken' => $session->formToken,
             'cookieHeader' => $session->cookieHeader,
-            'expiresAt' => time() + $ttl,
+            'expiresAt' => $session->expiresAt,
         ], $ttl);
     }
 
