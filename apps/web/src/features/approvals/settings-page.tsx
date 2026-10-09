@@ -17,8 +17,8 @@ export function ApprovalSettingsPage() {
   const [tab, setTab] = useState<SettingsTab>("flows");
 
   return (
-    <div className="mt-1 min-w-0 space-y-6">
-      <div className="flex items-center gap-3">
+    <div className="flex min-h-0 flex-1 flex-col space-y-6">
+      <div className="flex shrink-0 items-center gap-3">
         <Button
           variant="outline"
           size="icon"

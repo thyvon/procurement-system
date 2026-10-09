@@ -220,7 +220,7 @@ export function ProductsTab() {
   const meta = query.data?.meta ?? { page: page + 1, perPage, total: 0 }
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       <DataTable
         columns={columns}
         data={query.data?.data ?? []}

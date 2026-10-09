@@ -114,7 +114,7 @@ export function PurchaseOrdersTab() {
   const columns = usePurchaseOrderColumns();
 
   return (
-    <div className="mt-1 min-w-0">
+    <div className="flex min-h-0 flex-1 flex-col">
       <DataTable
         columns={columns}
         data={[]}

@@ -46,13 +46,15 @@ export default function AppLayout({
 
   return (
     <TooltipProvider>
-      <SidebarProvider>
+      <SidebarProvider className="h-svh overflow-hidden print:h-auto print:overflow-visible">
         <AppSidebar />
         <SidebarInset>
           <Topbar user={user} />
           <BreadcrumbBar />
-          <div className="min-w-0 flex-1 p-6 print:p-0">{children}</div>
-          <footer className="border-t px-6 py-3 text-center text-xs text-muted-foreground print:hidden">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto p-6 print:overflow-y-visible print:p-0">
+            {children}
+          </div>
+          <footer className="shrink-0 border-t px-6 py-3 text-center text-xs text-muted-foreground print:hidden">
             &copy; {new Date().getFullYear()} Procurement System. All rights reserved.
           </footer>
         </SidebarInset>

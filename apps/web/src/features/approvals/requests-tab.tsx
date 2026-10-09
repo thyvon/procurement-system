@@ -323,8 +323,8 @@ export function RequestsTab() {
   const rows = query.data?.data ?? [];
 
   return (
-    <div className="mt-1 min-w-0 space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex min-h-0 flex-1 flex-col space-y-3">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">{t("description")}</p>

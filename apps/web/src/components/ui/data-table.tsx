@@ -94,6 +94,9 @@ export function DataTable<TData extends RowData>({
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    initialState: {
+      pagination: { pageIndex: 0, pageSize: 20 },
+    },
     state: {
       sorting,
       columnFilters,
@@ -145,7 +148,7 @@ export function DataTable<TData extends RowData>({
       : undefined
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col space-y-4">
       {showToolbar && (
         <DataTableToolbar
           searchValue={searchValue}
@@ -161,11 +164,11 @@ export function DataTable<TData extends RowData>({
         </DataTableToolbar>
       )}
       <div
-        className="relative overflow-hidden rounded-md border"
+        className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border"
         aria-busy={loading || undefined}
       >
-        <Table>
-          <TableHeader>
+        <Table containerClassName="min-h-0 flex-1 overflow-y-auto print:overflow-x-visible print:overflow-y-visible">
+          <TableHeader className="[&>tr>th]:sticky [&>tr>th]:top-0 [&>tr>th]:z-10 [&>tr>th]:border-b [&>tr>th]:bg-background">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (

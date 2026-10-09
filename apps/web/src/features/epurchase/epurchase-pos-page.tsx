@@ -169,7 +169,7 @@ export function EPurchasePosPage() {
   const t = useTranslations("epurchasePos")
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(0)
-  const [perPage, setPerPage] = useState(10)
+  const [perPage, setPerPage] = useState(20)
 
   const debouncedSearch = useDebouncedValue(search, 300)
   const columns = useEPurchaseColumns()
@@ -212,7 +212,7 @@ export function EPurchasePosPage() {
   const meta = query.data?.meta ?? { page: page + 1, perPage, total: 0 }
 
   return (
-    <div className="mt-1 min-w-0">
+    <div className="flex min-h-0 flex-1 flex-col">
       <DataTable
         columns={columns}
         data={query.data?.data ?? []}

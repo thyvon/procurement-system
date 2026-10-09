@@ -33,7 +33,7 @@ export function DataTablePagination<TData extends RowData>({
   const totalCount = table.getRowCount()
 
   return (
-    <div className="flex items-center justify-between px-2">
+    <div className="flex shrink-0 items-center justify-between px-2">
       <div className="flex-1 text-sm text-muted-foreground">
         {selectedCount > 0 &&
           t("selectedRows", { selected: selectedCount, total: totalCount })}
