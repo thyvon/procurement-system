@@ -8,5 +8,6 @@
     "PurchaseOrders": true,
     "Approvals": true,
     "Notifications": true,
-    "Telegram": true
+    "Telegram": true,
+    "Invoices": true
 }

@@ -2,20 +2,18 @@
 
 import { Fragment } from "react";
 import { useTranslations } from "next-intl";
-import { cn } from "@/lib/utils";
+import { cn, formatMoney } from "@/lib/utils";
 import {
   CRITERIA_KEYS,
   DESCRIPTION_WIDTH,
-  bodyCell,
   criteriaLabelCell,
-  formatMoney,
   grandTotal,
-  headCell,
   lineTotal,
   quoteLabel,
   subTotal,
   type EvaluationMatrixValue,
 } from "./evaluation-matrix";
+import { bodyCell, headCell } from "@/components/line-items-table";
 
 /** Same cells as the form, but content vertically centered in the row. */
 const cell = cn(bodyCell, "align-middle");

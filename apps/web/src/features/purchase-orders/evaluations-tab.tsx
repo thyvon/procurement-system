@@ -38,7 +38,7 @@ import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
 import { useMe } from "@/hooks/use-me";
 import { EvaluationStatusBadge } from "./components/evaluation-status-badge";
-import { formatMoney } from "./components/evaluation-matrix";
+import { formatMoney } from "@/lib/utils";
 
 type EvaluationRow = {
   id: string;

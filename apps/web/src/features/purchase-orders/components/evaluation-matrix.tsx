@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RequiredMark } from "@/components/required-mark";
+import { bodyCell, headCell } from "@/components/line-items-table";
+import { formatMoney } from "@/lib/utils";
 import type { EvaluationResource } from "@/lib/api/model/evaluationResource";
 import { ItemPicker, type CatalogItem } from "./item-picker";
 import { SupplierPicker, type SupplierRow } from "./supplier-picker";
@@ -69,22 +71,6 @@ export const CRITERIA_KEYS = [
   "paymentTerms",
   "otherRemarks",
 ] as const;
-
-export function formatMoney(amount: number, currency: string = "USD"): string {
-  const isKhr = currency === "KHR";
-  const symbol = isKhr ? "៛" : "$";
-  const digits = isKhr ? 0 : 2;
-
-  const formatted = new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  }).format(amount);
-
-  // Non-breaking space: keeps "$ 1,299.00" on one line when columns tighten.
-  return formatted.startsWith("-")
-    ? `-${symbol}\u00A0${formatted.slice(1)}`
-    : `${symbol}\u00A0${formatted}`;
-}
 
 function parseMoney(value: string): number {
   const n = Number.parseFloat(value);
@@ -153,9 +139,6 @@ export function quoteLabel(index: number): string {
   return ["I", "II", "III"][index] ?? String(index + 1);
 }
 
-export const headCell =
-  "border border-border bg-muted/60 px-2 py-1 text-left text-xs font-medium";
-export const bodyCell = "border border-border p-1 align-top text-xs";
 export const criteriaLabelCell =
   "border-y border-border bg-muted/40 px-2 py-1 text-left text-xs font-bold";
 

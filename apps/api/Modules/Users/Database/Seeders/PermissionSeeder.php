@@ -40,6 +40,8 @@ class PermissionSeeder extends Seeder
         'variations.manage',
         'evaluations.view',
         'evaluations.manage',
+        'invoices.view',
+        'invoices.manage',
         'approvals.view',
         'approvals.manage',
         'telegram.view',

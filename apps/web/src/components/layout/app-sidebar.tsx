@@ -14,6 +14,7 @@ import {
   FileCheck2,
   FileText,
   LayoutDashboard,
+  ReceiptText,
   Settings,
   Send,
   ShoppingBag,
@@ -92,6 +93,7 @@ const navItems: NavItem[] = [
       { key: "evaluations", href: "/purchase-orders/evaluations", enabled: true },
     ],
   },
+  { key: "invoices", href: "/invoices", icon: ReceiptText, enabled: true },
   {
     key: "userMgt",
     icon: Users,
