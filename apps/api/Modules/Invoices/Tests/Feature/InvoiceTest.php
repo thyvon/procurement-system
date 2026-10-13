@@ -78,12 +78,15 @@ it('creates an invoice with a server-generated code and recomputed totals', func
         // total = 45 − 5 discount + 10 vat = 50.
         ->assertJsonCount(2, 'data.lines')
         ->assertJsonPath('data.lines.0.lineTotal', 35)
+        ->assertJsonPath('data.lines.0.grandTotalUsd', 35)
         ->assertJsonPath('data.lines.0.position', 0)
         ->assertJsonPath('data.lines.1.lineTotal', 10)
+        ->assertJsonPath('data.lines.1.grandTotalUsd', 10)
         ->assertJsonPath('data.subtotal', 45)
         ->assertJsonPath('data.vatAmount', 10)
         ->assertJsonPath('data.discountAmount', 5)
-        ->assertJsonPath('data.total', 50);
+        ->assertJsonPath('data.total', 50)
+        ->assertJsonPath('data.grandTotalUsd', 50);
 
     expect(Invoice::query()->count())->toBe(1);
 });
@@ -94,11 +97,17 @@ it('ignores client-supplied code status and totals', function () {
         'status' => 'recorded',
         'subtotal' => 999,
         'total' => 999,
+        'grand_total_usd' => 999,
+        'lines' => [
+            ['grand_total_usd' => 999],
+        ],
     ])->assertStatus(201);
 
     expect($response->json('data.code'))->not->toBe('INV-99-999')
         ->and($response->json('data.status'))->toBe('draft')
-        ->and((float) $response->json('data.total'))->toBe(50.0);
+        ->and((float) $response->json('data.total'))->toBe(50.0)
+        ->and((float) $response->json('data.grandTotalUsd'))->toBe(50.0)
+        ->and((float) $response->json('data.lines.0.grandTotalUsd'))->toBe(35.0);
 });
 
 it('applies per-line discounts to the line totals and the subtotal', function () {
@@ -167,6 +176,34 @@ it('persists a KHR invoice with its exchange rate', function () {
 
     expect($invoice->currency)->toBe('KHR')
         ->and((float) $invoice->exchange_rate)->toBe(4100.0);
+});
+
+it('stores the USD equivalent on the head and each line', function () {
+    $response = storeInvoice([
+        'currency' => 'KHR',
+        'exchange_rate' => 4100,
+        'vat_amount' => 41000,
+        'discount_amount' => 0,
+        'lines' => [
+            ['description' => 'A4 Paper', 'qty' => 10, 'unit_price' => 41000],
+            ['description' => 'Stapler', 'qty' => 2, 'unit_price' => 20500],
+        ],
+    ])->assertStatus(201);
+
+    // Lines: 410,000 + 41,000 KHR → 100 + 10 USD at 4100.
+    // Header: 451,000 − 0 + 41,000 vat = 492,000 KHR → 120 USD.
+    $response
+        ->assertJsonPath('data.subtotal', 451000)
+        ->assertJsonPath('data.total', 492000)
+        ->assertJsonPath('data.lines.0.grandTotalUsd', 100)
+        ->assertJsonPath('data.lines.1.grandTotalUsd', 10)
+        ->assertJsonPath('data.grandTotalUsd', 120);
+
+    $invoice = Invoice::query()->with('lines')->findOrFail($response->json('data.id'));
+
+    expect((float) $invoice->grand_total_usd)->toBe(120.0)
+        ->and((float) $invoice->lines[0]->grand_total_usd)->toBe(100.0)
+        ->and((float) $invoice->lines[1]->grand_total_usd)->toBe(10.0);
 });
 
 it('requires an exchange rate when the currency is KHR', function () {
@@ -373,7 +410,8 @@ it('updates a draft by replacing the lines and recomputing totals', function () 
         ->assertJsonCount(2, 'data.lines')
         ->assertJsonPath('data.lines.0.description', 'Toner')
         ->assertJsonPath('data.subtotal', 70)
-        ->assertJsonPath('data.total', 70);
+        ->assertJsonPath('data.total', 70)
+        ->assertJsonPath('data.grandTotalUsd', 70);
 
     $invoice = Invoice::query()->with('lines')->findOrFail($id);
 

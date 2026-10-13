@@ -19,6 +19,7 @@ use Modules\Invoices\Database\Factories\InvoiceLineFactory;
     'unit_price',
     'discount',
     'line_total',
+    'grand_total_usd',
     'position',
 ])]
 class InvoiceLine extends Model
@@ -37,6 +38,7 @@ class InvoiceLine extends Model
             'unit_price' => 'decimal:2',
             'discount' => 'decimal:2',
             'line_total' => 'decimal:2',
+            'grand_total_usd' => 'decimal:2',
         ];
     }
 

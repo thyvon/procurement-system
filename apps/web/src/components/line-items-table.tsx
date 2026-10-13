@@ -20,6 +20,18 @@ const ALIGN_CLASS: Record<string, string> = {
   center: "text-center",
 };
 
+/**
+ * Table min-width budget in px — the same pattern as the evaluation matrix's
+ * `tableWidth`: fixed px columns don't shrink on zoom while the viewport
+ * does, so without this floor the wrapper stops scrolling, the flexible
+ * description column is squeezed, and its header bleeds into the next cell.
+ * Below the budget this wrapper scrolls instead.
+ */
+const FIXED_COLUMNS_WIDTH = 560; // qty 96 + unit 128 + discount 112 + line 112 + USD 112
+const DESCRIPTION_MIN_WIDTH = 168;
+const INDEX_COLUMN_WIDTH = 32; // showIndex
+const ACTIONS_COLUMN_WIDTH = 40; // actions / onRemove
+
 export type LineItemsColumn<T> = {
   key: string;
   label: string;
@@ -77,10 +89,18 @@ export function LineItemsTable<T>({
   const canRemove = !disabled && rows.length > minRows;
   const indexSpan = showIndex ? 1 : 0;
   const totalSpan = indexSpan + columns.length + (hasActions ? 1 : 0);
+  const tableWidth =
+    FIXED_COLUMNS_WIDTH +
+    DESCRIPTION_MIN_WIDTH +
+    (showIndex ? INDEX_COLUMN_WIDTH : 0) +
+    (hasActions ? ACTIONS_COLUMN_WIDTH : 0);
 
   return (
     <div className="w-full overflow-x-auto border border-border">
-      <table className="w-full table-fixed border-collapse text-xs">
+      <table
+        className="w-full border-collapse text-xs table-fixed"
+        style={{ width: "100%", minWidth: tableWidth }}
+      >
         <colgroup>
           {showIndex ? <col className="w-8" /> : null}
           {columns.map((column) => (

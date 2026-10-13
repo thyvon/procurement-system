@@ -634,6 +634,7 @@
       "qty": "Qty",
       "unitPrice": "Unit price",
       "lineTotal": "Line total",
+      "grandTotalUsd": "Total (USD)",
       "addLine": "Add line",
       "removeLine": "Remove line",
       "subtotal": "Subtotal",

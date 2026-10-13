@@ -168,6 +168,7 @@ class InvoiceService
                 'unit_price' => $line['unit_price'],
                 'discount' => $discount,
                 'line_total' => $lineTotal,
+                'grand_total_usd' => $this->convertToUsd($invoice, $lineTotal),
                 'position' => $position,
             ]);
         }
@@ -175,13 +176,25 @@ class InvoiceService
         $vat = (float) ($data['vat_amount'] ?? 0);
         $discount = (float) ($data['discount_amount'] ?? 0);
         $subtotal = round($subtotal, 2);
+        $total = round($subtotal - $discount + $vat, 2);
 
         $invoice->update([
             'subtotal' => $subtotal,
             'vat_amount' => round($vat, 2),
             'discount_amount' => round($discount, 2),
-            'total' => round($subtotal - $discount + $vat, 2),
+            'total' => $total,
+            'grand_total_usd' => $this->convertToUsd($invoice, $total),
             'updated_by' => $user->getKey(),
         ]);
+    }
+
+    /**
+     * USD equivalent of an amount on this invoice, converted through the
+     * document's own currency and entry-time exchange rate. Persisted so
+     * dashboards can sum USD without re-deriving every row.
+     */
+    private function convertToUsd(Invoice $invoice, float $amount): float
+    {
+        return Currency::toUsd($amount, (string) $invoice->currency, (float) $invoice->exchange_rate);
     }
 }

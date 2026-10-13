@@ -23,6 +23,7 @@ export interface InvoiceResource {
   vatAmount: number;
   discountAmount: number;
   total: number;
+  grandTotalUsd: number;
   /** @nullable */
   notes: string | null;
   /** @nullable */

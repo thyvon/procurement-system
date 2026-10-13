@@ -634,6 +634,7 @@
       "qty": "ចំនួន",
       "unitPrice": "តម្លៃឯកតា",
       "lineTotal": "សរុបបន្ទាត់",
+      "grandTotalUsd": "សរុប (USD)",
       "addLine": "បន្ថែមបន្ទាត់",
       "removeLine": "លុបបន្ទាត់",
       "subtotal": "សរុបរង",

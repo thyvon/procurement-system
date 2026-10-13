@@ -23,6 +23,7 @@ class InvoiceLineResource extends JsonResource
             'unitPrice' => (float) $this->unit_price,
             'discount' => (float) $this->discount,
             'lineTotal' => (float) $this->line_total,
+            'grandTotalUsd' => (float) $this->grand_total_usd,
             'position' => $this->position,
         ];
     }

@@ -125,6 +125,27 @@ function hasLineError(line: LineForm): boolean {
   );
 }
 
+function round(value: number, decimals: number): number {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+/**
+ * Draft preview mirror of the server-side USD conversion
+ * (App\Support\Currency::toUsd) — the API recomputes the authoritative
+ * grand_total_usd on save.
+ */
+function toUsdDraft(
+  amount: number,
+  currency: string,
+  exchangeRate: string
+): number {
+  if (currency !== "KHR") return amount;
+  const rate = Number.parseFloat(exchangeRate);
+  if (!Number.isFinite(rate) || rate <= 0) return amount;
+  return round(amount / rate, 2);
+}
+
 function toForm(resource?: InvoiceResource | null): InvoiceFormValue {
   if (!resource) return { ...EMPTY_FORM, lines: [{ ...EMPTY_LINE }] };
   return {
@@ -314,131 +335,110 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
             <CardTitle>{t("detailsCard")}</CardTitle>
           </CardHeader>
           <CardContent className="min-w-0 space-y-3">
+            {/* 6:6 split — left column: invoice number, invoice date, then
+                Currency and Rate sharing one row as two inline pairs;
+                right column: supplier. Notes runs full width underneath. */}
             <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
-              <div className="flex items-center gap-2">
-                <Label
-                  htmlFor="inv-number"
-                  className="w-32 shrink-0 text-left after:ml-1 after:content-[':']"
-                >
-                  {t("invoiceNumber")} <RequiredMark />
-                </Label>
-                <Input
-                  id="inv-number"
-                  value={form.invoiceNumber}
-                  onChange={(e) => patch({ invoiceNumber: e.target.value })}
-                  placeholder={t("invoiceNumberPlaceholder")}
-                  className="flex-1"
-                />
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor="inv-number"
+                    className="w-32 shrink-0 text-left after:ml-1 after:content-[':']"
+                  >
+                    {t("invoiceNumber")} <RequiredMark />
+                  </Label>
+                  <Input
+                    id="inv-number"
+                    value={form.invoiceNumber}
+                    onChange={(e) => patch({ invoiceNumber: e.target.value })}
+                    placeholder={t("invoiceNumberPlaceholder")}
+                    className="flex-1"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Label className="w-32 shrink-0 text-left after:ml-1 after:content-[':']">
+                    {t("invoiceDate")} <RequiredMark />
+                  </Label>
+                  <DatePicker
+                    value={form.invoiceDate}
+                    onChange={(date) => patch({ invoiceDate: date })}
+                    placeholder={t("invoiceDate")}
+                    className="flex-1"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <div className="flex min-w-36 flex-1 items-center gap-2">
+                    <Label
+                      htmlFor="inv-currency"
+                      className="shrink-0 after:ml-1 after:content-[':']"
+                    >
+                      {t("currency")}
+                    </Label>
+                    <Select
+                      value={form.currency}
+                      onValueChange={(value) =>
+                        patch({ currency: value === "KHR" ? "KHR" : "USD" })
+                      }
+                      items={[
+                        { value: "USD", label: t("usd") },
+                        { value: "KHR", label: t("khr") },
+                      ]}
+                    >
+                      <SelectTrigger
+                        id="inv-currency"
+                        className="min-w-0 flex-1"
+                      >
+                        <SelectValue placeholder={t("currency")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">{t("usd")}</SelectItem>
+                        <SelectItem value="KHR">{t("khr")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex min-w-36 flex-1 items-center gap-2">
+                    <Label
+                      htmlFor="inv-rate"
+                      className="shrink-0 after:ml-1 after:content-[':']"
+                    >
+                      {t("exchangeRate")}{" "}
+                      {form.currency === "KHR" ? <RequiredMark /> : null}
+                    </Label>
+                    <Input
+                      id="inv-rate"
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step="any"
+                      value={form.exchangeRate}
+                      onChange={(e) => patch({ exchangeRate: e.target.value })}
+                      placeholder={t("exchangeRatePlaceholder")}
+                      disabled={form.currency !== "KHR"}
+                      className="min-w-0 flex-1 text-right"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Label
-                  htmlFor="inv-supplier"
-                  className="w-32 shrink-0 text-left after:ml-1 after:content-[':']"
-                >
-                  {t("supplierName")} <RequiredMark />
-                </Label>
-                <Input
-                  id="inv-supplier"
-                  value={form.supplierName}
-                  onChange={(e) => patch({ supplierName: e.target.value })}
-                  placeholder={t("supplierNamePlaceholder")}
-                  className="flex-1"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Label
-                  htmlFor="inv-supplier-code"
-                  className="w-32 shrink-0 text-left after:ml-1 after:content-[':']"
-                >
-                  {t("supplierCode")}
-                </Label>
-                <Input
-                  id="inv-supplier-code"
-                  value={form.supplierCode}
-                  onChange={(e) => patch({ supplierCode: e.target.value })}
-                  placeholder={t("supplierCodePlaceholder")}
-                  className="flex-1 font-mono"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Label className="w-32 shrink-0 text-left after:ml-1 after:content-[':']">
-                  {t("invoiceDate")} <RequiredMark />
-                </Label>
-                <DatePicker
-                  value={form.invoiceDate}
-                  onChange={(date) => patch({ invoiceDate: date })}
-                  placeholder={t("invoiceDate")}
-                  className="flex-1"
-                />
-              </div>
-
-              {/* Currency sits in the left column, its Rate right beside it —
-                  same label/control pattern as every other cell. */}
-              <div className="flex items-center gap-2">
-                <Label
-                  htmlFor="inv-currency"
-                  className="w-32 shrink-0 text-left after:ml-1 after:content-[':']"
-                >
-                  {t("currency")}
-                </Label>
-                <Select
-                  value={form.currency}
-                  onValueChange={(value) =>
-                    patch({ currency: value === "KHR" ? "KHR" : "USD" })
-                  }
-                  items={[
-                    { value: "USD", label: t("usd") },
-                    { value: "KHR", label: t("khr") },
-                  ]}
-                >
-                  <SelectTrigger id="inv-currency" className="min-w-0 flex-1">
-                    <SelectValue placeholder={t("currency")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">{t("usd")}</SelectItem>
-                    <SelectItem value="KHR">{t("khr")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Label
-                  htmlFor="inv-rate"
-                  className="w-32 shrink-0 text-left after:ml-1 after:content-[':']"
-                >
-                  {t("exchangeRate")}{" "}
-                  {form.currency === "KHR" ? <RequiredMark /> : null}
-                </Label>
-                <Input
-                  id="inv-rate"
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="any"
-                  value={form.exchangeRate}
-                  onChange={(e) => patch({ exchangeRate: e.target.value })}
-                  placeholder={t("exchangeRatePlaceholder")}
-                  disabled={form.currency !== "KHR"}
-                  className="flex-1 text-right"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Label className="w-32 shrink-0 text-left after:ml-1 after:content-[':']">
-                  {t("dueDate")}
-                </Label>
-                <DatePicker
-                  value={form.dueDate}
-                  onChange={(date) => patch({ dueDate: date })}
-                  placeholder={t("dueDate")}
-                  className="flex-1"
-                  disabled={(date) =>
-                    form.invoiceDate ? date < form.invoiceDate : false
-                  }
-                />
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor="inv-supplier"
+                    className="w-32 shrink-0 text-left after:ml-1 after:content-[':']"
+                  >
+                    {t("supplierName")} <RequiredMark />
+                  </Label>
+                  <Input
+                    id="inv-supplier"
+                    value={form.supplierName}
+                    onChange={(e) => patch({ supplierName: e.target.value })}
+                    placeholder={t("supplierNamePlaceholder")}
+                    className="flex-1"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center gap-2 md:col-span-2">
@@ -554,6 +554,30 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                     </div>
                   ),
                 },
+                // USD equivalent only for KHR documents — on a USD invoice it
+                // would just repeat the line total.
+                ...(form.currency === "KHR"
+                  ? [
+                      {
+                        key: "grandTotalUsd",
+                        label: t("grandTotalUsd"),
+                        width: "w-28",
+                        align: "right" as const,
+                        cell: (line: LineForm) => (
+                          <div className="flex h-7 items-center justify-end text-xs tabular-nums">
+                            {formatMoney(
+                              toUsdDraft(
+                                lineTotalOf(line),
+                                form.currency,
+                                form.exchangeRate
+                              ),
+                              "USD"
+                            )}
+                          </div>
+                        ),
+                      },
+                    ]
+                  : []),
               ]}
               rows={form.lines}
               rowKey={(_, index) => String(index)}
@@ -607,6 +631,19 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                   value: formatMoney(total, form.currency),
                   strong: true,
                 },
+                ...(form.currency === "KHR"
+                  ? [
+                      {
+                        key: "grandTotalUsd",
+                        label: t("grandTotalUsd"),
+                        value: formatMoney(
+                          toUsdDraft(total, form.currency, form.exchangeRate),
+                          "USD"
+                        ),
+                        strong: true,
+                      },
+                    ]
+                  : []),
               ]}
               footerLeading={
                 <Button type="button" size="xs" onClick={addLine}>

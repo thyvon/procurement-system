@@ -28,6 +28,7 @@ use Modules\Invoices\Database\Factories\InvoiceFactory;
     'vat_amount',
     'discount_amount',
     'total',
+    'grand_total_usd',
     'notes',
     'paid_at',
     'created_by',
@@ -64,6 +65,7 @@ class Invoice extends Model
             'vat_amount' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'total' => 'decimal:2',
+            'grand_total_usd' => 'decimal:2',
             'paid_at' => 'datetime',
         ];
     }

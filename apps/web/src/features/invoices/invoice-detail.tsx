@@ -9,6 +9,7 @@ import { unwrap, withAuth } from "@/lib/api-client";
 import { formatMoney } from "@/lib/utils";
 import { invoicesInvoicesShow } from "@/lib/api/invoice/invoice";
 import type { InvoiceResource } from "@/lib/api/model/invoiceResource";
+import type { InvoiceLineResource } from "@/lib/api/model/invoiceLineResource";
 import { Button } from "@/components/ui/button";
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton";
 import {
@@ -22,13 +23,7 @@ import { LineItemsTable } from "@/components/line-items-table";
 import { InvoiceStatusBadge } from "./components/invoice-status-badge";
 import { useMe } from "@/hooks/use-me";
 
-function MetaRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: ReactNode;
-}) {
+function MetaRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-start gap-2">
       <Label className="w-36 shrink-0 text-left text-muted-foreground after:ml-1 after:content-[':']">
@@ -125,42 +120,44 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           <CardTitle>{tf("detailsCard")}</CardTitle>
         </CardHeader>
         <CardContent className="min-w-0 space-y-3">
+          {/* 6:6 split — left column: invoice number, invoice date, then
+              Currency and Rate sharing one row as two inline pairs;
+              right column: supplier and audit info. Notes runs full
+              width underneath. */}
           <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
-            <MetaRow
-              label={tf("invoiceNumber")}
-              value={<span className="font-mono">{invoice.invoiceNumber}</span>}
-            />
-            <MetaRow label={tf("supplierName")} value={invoice.supplierName} />
-            <MetaRow
-              label={tf("supplierCode")}
-              value={
-                invoice.supplierCode ? (
-                  <span className="font-mono">{invoice.supplierCode}</span>
-                ) : (
-                  "—"
-                )
-              }
-            />
-            <MetaRow
-              label={tf("invoiceDate")}
-              value={invoice.invoiceDate ?? "—"}
-            />
-            <MetaRow label={tf("currency")} value={invoice.currency} />
-            <MetaRow
-              label={tf("exchangeRate")}
-              value={invoice.exchangeRate ?? "—"}
-            />
-            <MetaRow label={tf("dueDate")} value={invoice.dueDate ?? "—"} />
-            <MetaRow
-              label={tc("createdBy")}
-              value={invoice.createdBy ?? "—"}
-            />
-            <MetaRow label={tc("date")} value={invoice.updatedAt ?? "—"} />
-            <div className="md:col-span-2">
+            <div className="space-y-3">
               <MetaRow
-                label={tf("notes")}
-                value={invoice.notes || "—"}
+                label={tf("invoiceNumber")}
+                value={<span className="font-mono">{invoice.invoiceNumber}</span>}
               />
+              <MetaRow
+                label={tf("invoiceDate")}
+                value={invoice.invoiceDate ?? "—"}
+              />
+              <div className="flex flex-wrap items-start gap-x-4 gap-y-1 text-sm">
+                <span className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground after:ml-0.5 after:content-[':']">
+                    {tf("currency")}
+                  </span>
+                  {invoice.currency}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground after:ml-0.5 after:content-[':']">
+                    {tf("exchangeRate")}
+                  </span>
+                  {invoice.exchangeRate ?? "—"}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <MetaRow label={tf("supplierName")} value={invoice.supplierName} />
+              <MetaRow label={tc("createdBy")} value={invoice.createdBy ?? "—"} />
+              <MetaRow label={tc("date")} value={invoice.updatedAt ?? "—"} />
+            </div>
+
+            <div className="md:col-span-2">
+              <MetaRow label={tf("notes")} value={invoice.notes || "—"} />
             </div>
           </div>
         </CardContent>
@@ -226,6 +223,23 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
                   </span>
                 ),
               },
+              // USD equivalent only for KHR documents — on a USD invoice it
+              // would just repeat the line total.
+              ...(invoice.currency === "KHR"
+                ? [
+                    {
+                      key: "grandTotalUsd",
+                      label: tf("grandTotalUsd"),
+                      width: "w-28",
+                      align: "right" as const,
+                      cell: (line: InvoiceLineResource) => (
+                        <span className="flex h-7 items-center justify-end text-xs tabular-nums">
+                          {formatMoney(Number(line.grandTotalUsd ?? 0), "USD")}
+                        </span>
+                      ),
+                    },
+                  ]
+                : []),
             ]}
             rows={invoice.lines ?? []}
             rowKey={(_, index) => String(index)}
@@ -257,6 +271,19 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
                 value: formatMoney(Number(invoice.total ?? 0), invoice.currency),
                 strong: true,
               },
+              ...(invoice.currency === "KHR"
+                ? [
+                    {
+                      key: "grandTotalUsd",
+                      label: tf("grandTotalUsd"),
+                      value: formatMoney(
+                        Number(invoice.grandTotalUsd ?? 0),
+                        "USD"
+                      ),
+                      strong: true,
+                    },
+                  ]
+                : []),
             ]}
           />
         </CardContent>

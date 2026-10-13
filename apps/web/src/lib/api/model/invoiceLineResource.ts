@@ -12,5 +12,6 @@ export interface InvoiceLineResource {
   unitPrice: number;
   discount: number;
   lineTotal: number;
+  grandTotalUsd: number;
   position: number;
 }
