@@ -6,6 +6,8 @@
  */
 import type { StoreInvoiceRequestCurrency } from './storeInvoiceRequestCurrency';
 import type { StoreInvoiceRequestLinesItem } from './storeInvoiceRequestLinesItem';
+import type { StoreInvoiceRequestPaymentTerm } from './storeInvoiceRequestPaymentTerm';
+import type { StoreInvoiceRequestTransactionType } from './storeInvoiceRequestTransactionType';
 
 export interface StoreInvoiceRequest {
   /** @maxLength 64 */
@@ -17,6 +19,25 @@ export interface StoreInvoiceRequest {
      * @nullable
      */
   supplier_code?: string | null;
+  /**
+     * @maxLength 32
+     * @nullable
+     */
+  supplier_phone?: string | null;
+  /**
+     * @maxLength 255
+     * @nullable
+     */
+  supplier_address?: string | null;
+  /** @nullable */
+  transaction_type?: StoreInvoiceRequestTransactionType;
+  /**
+     * @maxLength 64
+     * @nullable
+     */
+  cash_reference?: string | null;
+  /** @nullable */
+  payment_term?: StoreInvoiceRequestPaymentTerm;
   invoice_date: string;
   /** @nullable */
   due_date?: string | null;
@@ -28,6 +49,12 @@ export interface StoreInvoiceRequest {
      * @nullable
      */
   vat_amount?: number | null;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  vat_percent?: number | null;
   /**
      * @minimum 0
      * @nullable

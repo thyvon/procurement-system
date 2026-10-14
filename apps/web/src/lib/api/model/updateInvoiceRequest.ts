@@ -6,6 +6,8 @@
  */
 import type { UpdateInvoiceRequestCurrency } from './updateInvoiceRequestCurrency';
 import type { UpdateInvoiceRequestLinesItem } from './updateInvoiceRequestLinesItem';
+import type { UpdateInvoiceRequestPaymentTerm } from './updateInvoiceRequestPaymentTerm';
+import type { UpdateInvoiceRequestTransactionType } from './updateInvoiceRequestTransactionType';
 
 export interface UpdateInvoiceRequest {
   /** @maxLength 64 */
@@ -17,6 +19,25 @@ export interface UpdateInvoiceRequest {
      * @nullable
      */
   supplier_code?: string | null;
+  /**
+     * @maxLength 32
+     * @nullable
+     */
+  supplier_phone?: string | null;
+  /**
+     * @maxLength 255
+     * @nullable
+     */
+  supplier_address?: string | null;
+  /** @nullable */
+  transaction_type?: UpdateInvoiceRequestTransactionType;
+  /**
+     * @maxLength 64
+     * @nullable
+     */
+  cash_reference?: string | null;
+  /** @nullable */
+  payment_term?: UpdateInvoiceRequestPaymentTerm;
   invoice_date: string;
   /** @nullable */
   due_date?: string | null;
@@ -28,6 +49,12 @@ export interface UpdateInvoiceRequest {
      * @nullable
      */
   vat_amount?: number | null;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  vat_percent?: number | null;
   /**
      * @minimum 0
      * @nullable

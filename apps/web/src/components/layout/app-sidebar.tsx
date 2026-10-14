@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Boxes,
+  Building2,
   ChevronRight,
   ClipboardList,
   FileCheck2,
@@ -94,6 +95,16 @@ const navItems: NavItem[] = [
     ],
   },
   { key: "invoices", href: "/invoices", icon: ReceiptText, enabled: true },
+  {
+    key: "organization",
+    icon: Building2,
+    enabled: true,
+    children: [
+      { key: "campuses", href: "/organization/campuses", enabled: true },
+      { key: "divisions", href: "/organization/divisions", enabled: true },
+      { key: "departments", href: "/organization/departments", enabled: true },
+    ],
+  },
   {
     key: "userMgt",
     icon: Users,

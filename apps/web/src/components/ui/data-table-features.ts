@@ -4,7 +4,12 @@ import {
   createFilteredRowModel,
   createPaginatedRowModel,
   createSortedRowModel,
+  filterFn_arrIncludes,
+  filterFn_equalsString,
+  filterFn_inDateRange,
+  filterFn_inNumberRange,
   filterFn_includesString,
+  filterFn_weakEquals,
   rowPaginationFeature,
   rowSelectionFeature,
   rowSortingFeature,
@@ -22,7 +27,18 @@ export const features = tableFeatures({
   filteredRowModel: createFilteredRowModel(),
   paginatedRowModel: createPaginatedRowModel(),
   sortedRowModel: createSortedRowModel(),
-  filterFns: { includesString: filterFn_includesString },
+  // Auto-resolution picks a filterFn by the column's data type and silently
+  // drops the filter when it is not registered here. The toolbar filter
+  // always sends string values ("true"/"false", status codes), so `equals`
+  // maps to the stringifying variant (String(true) === "true").
+  filterFns: {
+    includesString: filterFn_includesString,
+    equals: filterFn_equalsString,
+    weakEquals: filterFn_weakEquals,
+    inNumberRange: filterFn_inNumberRange,
+    inDateRange: filterFn_inDateRange,
+    arrIncludes: filterFn_arrIncludes,
+  },
   sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text },
 })
 

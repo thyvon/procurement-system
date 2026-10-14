@@ -14,6 +14,16 @@ export interface InvoiceResource {
   supplierName: string;
   /** @nullable */
   supplierCode: string | null;
+  /** @nullable */
+  supplierPhone: string | null;
+  /** @nullable */
+  supplierAddress: string | null;
+  /** @nullable */
+  transactionType: string | null;
+  /** @nullable */
+  cashReference: string | null;
+  /** @nullable */
+  paymentTerm: string | null;
   invoiceDate: string;
   /** @nullable */
   dueDate: string | null;
@@ -21,6 +31,8 @@ export interface InvoiceResource {
   exchangeRate: number;
   subtotal: number;
   vatAmount: number;
+  /** @nullable */
+  vatPercent: number | null;
   discountAmount: number;
   total: number;
   grandTotalUsd: number;

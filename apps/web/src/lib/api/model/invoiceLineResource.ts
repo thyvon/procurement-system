@@ -8,6 +8,18 @@
 export interface InvoiceLineResource {
   id: string;
   description: string;
+  /** @nullable */
+  uom: string | null;
+  /** @nullable */
+  campus: string | null;
+  /** @nullable */
+  division: string | null;
+  /** @nullable */
+  department: string | null;
+  /** @nullable */
+  location: string | null;
+  /** @nullable */
+  purpose: string | null;
   qty: number;
   unitPrice: number;
   discount: number;

@@ -166,11 +166,16 @@
   line-height: 1.7;
 }
 
+/* Login hero panel gradient */
+.login-hero {
+  background: linear-gradient(135deg, oklch(0.20 0.08 260) 0%, oklch(0.25 0.10 270) 50%, oklch(0.18 0.06 280) 100%);
+}
+
 /* Login page floating icons */
 .login-icon {
   position: absolute;
   pointer-events: none;
-  color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.2);
   filter: blur(0.5px);
 }
 
@@ -189,28 +194,28 @@
 .login-icon-3 {
   top: 35%;
   right: 25%;
-  color: rgba(180, 200, 255, 0.14);
+  color: rgba(180, 200, 255, 0.22);
   animation: login-float-3 10s ease-in-out infinite;
 }
 
 .login-icon-4 {
   bottom: 30%;
   right: 8%;
-  color: rgba(200, 180, 255, 0.12);
+  color: rgba(200, 180, 255, 0.2);
   animation: login-float-4 13s ease-in-out infinite;
 }
 
 .login-icon-5 {
   top: 60%;
   left: 18%;
-  color: rgba(160, 190, 255, 0.13);
+  color: rgba(160, 190, 255, 0.21);
   animation: login-float-5 16s ease-in-out infinite;
 }
 
 .login-icon-6 {
   top: 12%;
   left: 35%;
-  color: rgba(255, 255, 255, 0.10);
+  color: rgba(255, 255, 255, 0.18);
   animation: login-float-6 9s ease-in-out infinite;
 }
 
@@ -245,6 +250,13 @@
 @keyframes login-float-6 {
   0%, 100% { transform: translate(0, 0) rotate(0deg); }
   50% { transform: translate(-20px, 25px) rotate(20deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-icon,
+  .welcome-progress {
+    animation: none;
+  }
 }
 
 /* Welcome loader progress bar */

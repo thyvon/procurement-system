@@ -5,8 +5,9 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Eye, EyeOff, IdCard, Lock } from "lucide-react";
+import { Eye, EyeOff, IdCard, Lock, CircleAlert, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authCompanyLogin } from "@/lib/api/auth/auth";
@@ -77,6 +78,7 @@ export function CompanyLoginForm() {
               placeholder={t("employeeIdPlaceholder")}
               aria-invalid={!!errors.employee_id}
               className="pl-9"
+              autoFocus
               {...register("employee_id", {
                 required: t("employeeIdRequired"),
               })}
@@ -104,8 +106,9 @@ export function CompanyLoginForm() {
             />
             <button
               type="button"
-              tabIndex={-1}
               onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? t("hidePassword") : t("showPassword")}
+              aria-pressed={showPassword}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               {showPassword ? (
@@ -123,12 +126,10 @@ export function CompanyLoginForm() {
         </Field>
 
         {serverError && (
-          <div
-            role="alert"
-            className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          >
-            {serverError}
-          </div>
+          <Alert variant="destructive">
+            <CircleAlert />
+            <AlertDescription>{serverError}</AlertDescription>
+          </Alert>
         )}
 
         <Field>
@@ -138,6 +139,7 @@ export function CompanyLoginForm() {
             className="w-full"
             size="lg"
           >
+            {loginMutation.isPending && <Loader2 className="animate-spin" />}
             {loginMutation.isPending ? t("submitting") : t("submit")}
           </Button>
         </Field>

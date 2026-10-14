@@ -420,6 +420,148 @@ it('updates a draft by replacing the lines and recomputing totals', function () 
         ->and((float) $invoice->total)->toBe(70.0);
 });
 
+it('stores the supplier head fields', function () {
+    $response = storeInvoice([
+        'supplier_phone' => '012345678',
+        'supplier_address' => 'No. 12, Street 271, Phnom Penh',
+        'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
+        'cash_reference' => 'CSH-001',
+        'payment_term' => Invoice::PAYMENT_TERM_CREDIT_1M,
+    ])->assertStatus(201);
+
+    $response
+        ->assertJsonPath('data.supplierPhone', '012345678')
+        ->assertJsonPath('data.supplierAddress', 'No. 12, Street 271, Phnom Penh')
+        ->assertJsonPath('data.transactionType', 'advance')
+        ->assertJsonPath('data.cashReference', 'CSH-001')
+        ->assertJsonPath('data.paymentTerm', 'credit_1m')
+        ->assertJsonPath('data.vatPercent', null);
+
+    $invoice = Invoice::query()->findOrFail($response->json('data.id'));
+
+    expect($invoice->supplier_phone)->toBe('012345678')
+        ->and($invoice->transaction_type)->toBe('advance')
+        ->and($invoice->payment_term)->toBe('credit_1m');
+});
+
+it('derives the vat amount from the percent of the discounted subtotal', function () {
+    // subtotal 45; discounted base 45 − 5 = 40; 10% of 40 → 4 vat;
+    // total = 45 − 5 + 4 = 44.
+    $response = storeInvoice([
+        'vat_amount' => null,
+        'vat_percent' => 10,
+        'discount_amount' => 5,
+    ])->assertStatus(201);
+
+    $response
+        ->assertJsonPath('data.vatPercent', 10)
+        ->assertJsonPath('data.subtotal', 45)
+        ->assertJsonPath('data.vatAmount', 4)
+        ->assertJsonPath('data.discountAmount', 5)
+        ->assertJsonPath('data.total', 44);
+
+    $invoice = Invoice::query()->findOrFail($response->json('data.id'));
+
+    expect((float) $invoice->vat_percent)->toBe(10.0)
+        ->and((float) $invoice->vat_amount)->toBe(4.0);
+});
+
+it('recomputes the vat amount and clears the head fields on update', function () {
+    $id = storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
+        'payment_term' => Invoice::PAYMENT_TERM_CREDIT_1M,
+        'cash_reference' => 'CSH-001',
+        'vat_percent' => 10,
+    ])->json('data.id');
+
+    $response = $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
+            'transaction_type' => null,
+            'payment_term' => null,
+            'cash_reference' => null,
+            'vat_percent' => 5,
+        ]))
+        ->assertOk()
+        ->assertJsonPath('data.transactionType', null)
+        ->assertJsonPath('data.paymentTerm', null)
+        ->assertJsonPath('data.cashReference', null)
+        ->assertJsonPath('data.vatPercent', 5)
+        ->assertJsonPath('data.vatAmount', 2);
+
+    $invoice = Invoice::query()->findOrFail($id);
+
+    expect($invoice->transaction_type)->toBeNull()
+        ->and($invoice->payment_term)->toBeNull()
+        ->and((float) $invoice->vat_percent)->toBe(5.0)
+        // subtotal 45 − 5 discount = 40; 5% of 40 → 2.
+        ->and((float) $invoice->vat_amount)->toBe(2.0);
+});
+
+it('rejects an unknown transaction type or payment term', function () {
+    storeInvoice(['transaction_type' => 'wire'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['transaction_type']);
+
+    storeInvoice(['payment_term' => 'net_60'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['payment_term']);
+});
+
+it('rejects a vat percent above 100', function () {
+    storeInvoice(['vat_percent' => 120])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['vat_percent']);
+});
+
+it('stores the per-line detail fields', function () {
+    $response = storeInvoice([
+        'lines' => [
+            [
+                'description' => 'A4 Paper',
+                'uom' => 'box',
+                'campus' => 'CCV',
+                'division' => 'ADM',
+                'department' => 'FIN',
+                'location' => 'Warehouse A',
+                'purpose' => 'Office supplies',
+                'qty' => 10,
+                'unit_price' => 3.5,
+            ],
+            ['description' => 'Stapler', 'qty' => 2, 'unit_price' => 5],
+        ],
+    ])->assertStatus(201);
+
+    $response
+        ->assertJsonPath('data.lines.0.uom', 'box')
+        ->assertJsonPath('data.lines.0.campus', 'CCV')
+        ->assertJsonPath('data.lines.0.division', 'ADM')
+        ->assertJsonPath('data.lines.0.department', 'FIN')
+        ->assertJsonPath('data.lines.0.location', 'Warehouse A')
+        ->assertJsonPath('data.lines.0.purpose', 'Office supplies')
+        ->assertJsonPath('data.lines.1.uom', null)
+        ->assertJsonPath('data.lines.1.campus', null);
+
+    $line = Invoice::query()->findOrFail($response->json('data.id'))->lines()->first();
+
+    expect($line->uom)->toBe('box')
+        ->and($line->campus)->toBe('CCV')
+        ->and($line->purpose)->toBe('Office supplies');
+});
+
+it('rejects a per-line detail field over its max length', function () {
+    storeInvoice([
+        'lines' => [
+            [
+                'description' => 'A4 Paper',
+                'campus' => str_repeat('C', 65),
+                'qty' => 10,
+                'unit_price' => 3.5,
+            ],
+        ],
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors(['lines.0.campus']);
+});
+
 it('cannot be modified once it is no longer a draft', function (string $status) {
     $id = storeInvoice()->json('data.id');
     Invoice::query()->whereKey($id)->update(['status' => $status]);

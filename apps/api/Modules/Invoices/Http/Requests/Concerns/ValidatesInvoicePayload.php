@@ -4,6 +4,7 @@ namespace Modules\Invoices\Http\Requests\Concerns;
 
 use App\Support\Currency;
 use Illuminate\Validation\Rule;
+use Modules\Invoices\Models\Invoice;
 
 /**
  * Shared invoice payload rules for Store/Update invoice requests. The line
@@ -21,6 +22,11 @@ trait ValidatesInvoicePayload
             'invoice_number' => ['required', 'string', 'max:64'],
             'supplier_name' => ['required', 'string', 'max:255'],
             'supplier_code' => ['nullable', 'string', 'max:64'],
+            'supplier_phone' => ['nullable', 'string', 'max:32'],
+            'supplier_address' => ['nullable', 'string', 'max:255'],
+            'transaction_type' => ['nullable', 'string', Rule::in(Invoice::TRANSACTION_TYPES)],
+            'cash_reference' => ['nullable', 'string', 'max:64'],
+            'payment_term' => ['nullable', 'string', Rule::in(Invoice::PAYMENT_TERMS)],
             'invoice_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:invoice_date'],
             'currency' => ['sometimes', 'string', Rule::in(Currency::CODES)],
@@ -31,10 +37,17 @@ trait ValidatesInvoicePayload
                 'gt:0',
             ],
             'vat_amount' => ['nullable', 'numeric', 'min:0'],
+            'vat_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'discount_amount' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
             'lines' => ['required', 'array', 'min:1'],
             'lines.*.description' => ['required', 'string', 'max:255'],
+            'lines.*.uom' => ['nullable', 'string', 'max:32'],
+            'lines.*.campus' => ['nullable', 'string', 'max:64'],
+            'lines.*.division' => ['nullable', 'string', 'max:64'],
+            'lines.*.department' => ['nullable', 'string', 'max:64'],
+            'lines.*.location' => ['nullable', 'string', 'max:128'],
+            'lines.*.purpose' => ['nullable', 'string', 'max:255'],
             'lines.*.qty' => ['required', 'numeric', 'gt:0'],
             'lines.*.unit_price' => ['required', 'numeric', 'min:0'],
             'lines.*.discount' => ['nullable', 'numeric', 'min:0'],
@@ -52,11 +65,17 @@ trait ValidatesInvoicePayload
             'invoice_number' => $this->validated('invoice_number'),
             'supplier_name' => $this->validated('supplier_name'),
             'supplier_code' => $this->validated('supplier_code'),
+            'supplier_phone' => $this->validated('supplier_phone'),
+            'supplier_address' => $this->validated('supplier_address'),
+            'transaction_type' => $this->validated('transaction_type'),
+            'cash_reference' => $this->validated('cash_reference'),
+            'payment_term' => $this->validated('payment_term'),
             'invoice_date' => $this->validated('invoice_date'),
             'due_date' => $this->validated('due_date'),
             'currency' => $this->validated('currency'),
             'exchange_rate' => $this->validated('exchange_rate'),
             'vat_amount' => $this->validated('vat_amount'),
+            'vat_percent' => $this->validated('vat_percent'),
             'discount_amount' => $this->validated('discount_amount'),
             'notes' => $this->validated('notes'),
             'lines' => array_values($this->validated('lines', [])),

@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { unwrap, withAuth } from "@/lib/api-client";
-import { formatMoney } from "@/lib/utils";
+import { formatDate, formatDateTime, formatMoney } from "@/lib/utils";
 import { invoicesInvoicesShow } from "@/lib/api/invoice/invoice";
 import type { InvoiceResource } from "@/lib/api/model/invoiceResource";
 import type { InvoiceLineResource } from "@/lib/api/model/invoiceLineResource";
@@ -78,6 +78,23 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   // Mirrors the API: invoices.manage AND owner, only while a draft.
   const canEdit = canManage && isOwner && status === "draft";
 
+  const txTypeLabel = (
+    {
+      petty_cash: tf("txTypes.pettyCash"),
+      advance: tf("txTypes.advance"),
+      credit: tf("txTypes.credit"),
+    } as Record<string, string>
+  )[invoice.transactionType ?? ""];
+
+  const paymentTermLabel = (
+    {
+      non_credit: tf("paymentTerms.nonCredit"),
+      credit_1w: tf("paymentTerms.credit1w"),
+      credit_2w: tf("paymentTerms.credit2w"),
+      credit_1m: tf("paymentTerms.credit1m"),
+    } as Record<string, string>
+  )[invoice.paymentTerm ?? ""];
+
   const subtotal = (invoice.lines ?? []).reduce(
     (sum, line) => sum + Number(line.lineTotal ?? 0),
     0
@@ -132,28 +149,70 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
               />
               <MetaRow
                 label={tf("invoiceDate")}
-                value={invoice.invoiceDate ?? "—"}
+                value={formatDate(invoice.invoiceDate)}
               />
-              <div className="flex flex-wrap items-start gap-x-4 gap-y-1 text-sm">
-                <span className="flex items-center gap-1.5">
-                  <span className="text-muted-foreground after:ml-0.5 after:content-[':']">
-                    {tf("currency")}
+              {/* One row, but the Currency label keeps the same w-36 label
+                  column and gap-2 as every MetaRow above, so its value starts
+                  on the exact same edge; the currency and rate values then
+                  share the remaining space equally. */}
+              <div className="flex items-center gap-2">
+                <Label className="w-36 shrink-0 text-left text-muted-foreground after:ml-1 after:content-[':']">
+                  {tf("currency")}
+                </Label>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="min-w-24 flex-1 text-sm">
+                    {invoice.currency}
                   </span>
-                  {invoice.currency}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="text-muted-foreground after:ml-0.5 after:content-[':']">
+                  <Label className="shrink-0 text-left text-muted-foreground after:ml-1 after:content-[':']">
                     {tf("exchangeRate")}
+                  </Label>
+                  <span className="min-w-24 flex-1 text-sm">
+                    {invoice.exchangeRate ?? "—"}
                   </span>
-                  {invoice.exchangeRate ?? "—"}
-                </span>
+                </div>
               </div>
             </div>
 
             <div className="space-y-3">
               <MetaRow label={tf("supplierName")} value={invoice.supplierName} />
+              <MetaRow
+                label={tf("supplierPhone")}
+                value={invoice.supplierPhone || "—"}
+              />
+              <MetaRow
+                label={tf("supplierAddress")}
+                value={invoice.supplierAddress || "—"}
+              />
+              <MetaRow
+                label={tf("cashReference")}
+                value={invoice.cashReference || "—"}
+              />
+              <MetaRow
+                label={tf("transactionType")}
+                value={txTypeLabel || "—"}
+              />
+              {/* Same inline-pair shape as Currency + Rate in the left
+                  column. */}
+              <div className="flex items-center gap-2">
+                <Label className="w-36 shrink-0 text-left text-muted-foreground after:ml-1 after:content-[':']">
+                  {tf("paymentTerm")}
+                </Label>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="min-w-24 flex-1 text-sm">
+                    {paymentTermLabel || "—"}
+                  </span>
+                  <Label className="shrink-0 text-left text-muted-foreground after:ml-1 after:content-[':']">
+                    {tf("vatPercent")}
+                  </Label>
+                  <span className="min-w-24 flex-1 text-sm">
+                    {invoice.vatPercent != null
+                      ? `${invoice.vatPercent}%`
+                      : "—"}
+                  </span>
+                </div>
+              </div>
               <MetaRow label={tc("createdBy")} value={invoice.createdBy ?? "—"} />
-              <MetaRow label={tc("date")} value={invoice.updatedAt ?? "—"} />
+              <MetaRow label={tc("date")} value={formatDateTime(invoice.updatedAt)} />
             </div>
 
             <div className="md:col-span-2">
@@ -180,12 +239,78 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
                 ),
               },
               {
+                key: "campus",
+                label: tf("campus"),
+                width: "w-28",
+                cell: (line) => (
+                  <span className="flex h-8 items-center text-sm">
+                    {line.campus || "—"}
+                  </span>
+                ),
+              },
+              {
+                key: "division",
+                label: tf("division"),
+                width: "w-28",
+                cell: (line) => (
+                  <span className="flex h-8 items-center text-sm">
+                    {line.division || "—"}
+                  </span>
+                ),
+              },
+              {
+                key: "department",
+                label: tf("department"),
+                width: "w-32",
+                cell: (line) => (
+                  <span className="flex h-8 items-center text-sm">
+                    {line.department || "—"}
+                  </span>
+                ),
+              },
+              {
+                key: "location",
+                label: tf("location"),
+                width: "w-32",
+                cell: (line) => (
+                  <span
+                    className="flex h-8 items-center truncate text-sm"
+                    title={line.location ?? undefined}
+                  >
+                    {line.location || "—"}
+                  </span>
+                ),
+              },
+              {
+                key: "purpose",
+                label: tf("purpose"),
+                width: "w-56",
+                cell: (line) => (
+                  <span
+                    className="flex min-h-8 items-center py-1 text-sm whitespace-pre-wrap break-words"
+                    title={line.purpose ?? undefined}
+                  >
+                    {line.purpose || "—"}
+                  </span>
+                ),
+              },
+              {
+                key: "uom",
+                label: tf("uom"),
+                width: "w-24",
+                cell: (line) => (
+                  <span className="flex h-8 items-center text-sm">
+                    {line.uom || "—"}
+                  </span>
+                ),
+              },
+              {
                 key: "qty",
                 label: tf("qty"),
                 width: "w-24",
                 align: "right",
                 cell: (line) => (
-                  <span className="flex h-7 items-center justify-end text-xs tabular-nums">
+                  <span className="flex h-8 items-center justify-end text-sm tabular-nums">
                     {line.qty}
                   </span>
                 ),
@@ -196,7 +321,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
                 width: "w-32",
                 align: "right",
                 cell: (line) => (
-                  <span className="flex h-7 items-center justify-end text-xs tabular-nums">
+                  <span className="flex h-8 items-center justify-end text-sm tabular-nums">
                     {formatMoney(Number(line.unitPrice), invoice.currency)}
                   </span>
                 ),
@@ -207,7 +332,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
                 width: "w-28",
                 align: "right",
                 cell: (line) => (
-                  <span className="flex h-7 items-center justify-end text-xs tabular-nums">
+                  <span className="flex h-8 items-center justify-end text-sm tabular-nums">
                     {formatMoney(Number(line.discount ?? 0), invoice.currency)}
                   </span>
                 ),
@@ -218,7 +343,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
                 width: "w-28",
                 align: "right",
                 cell: (line) => (
-                  <span className="flex h-7 items-center justify-end text-xs tabular-nums">
+                  <span className="flex h-8 items-center justify-end text-sm tabular-nums">
                     {formatMoney(Number(line.lineTotal ?? 0), invoice.currency)}
                   </span>
                 ),
@@ -233,7 +358,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
                       width: "w-28",
                       align: "right" as const,
                       cell: (line: InvoiceLineResource) => (
-                        <span className="flex h-7 items-center justify-end text-xs tabular-nums">
+                        <span className="flex h-8 items-center justify-end text-sm tabular-nums">
                           {formatMoney(Number(line.grandTotalUsd ?? 0), "USD")}
                         </span>
                       ),

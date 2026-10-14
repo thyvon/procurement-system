@@ -45,12 +45,18 @@ class InvoiceService
                 'invoice_number' => $data['invoice_number'],
                 'supplier_name' => $data['supplier_name'],
                 'supplier_code' => $data['supplier_code'] ?? null,
+                'supplier_phone' => $data['supplier_phone'] ?? null,
+                'supplier_address' => $data['supplier_address'] ?? null,
+                'transaction_type' => $data['transaction_type'] ?? null,
+                'cash_reference' => $data['cash_reference'] ?? null,
+                'payment_term' => $data['payment_term'] ?? null,
                 'invoice_date' => $data['invoice_date'],
                 'due_date' => $data['due_date'] ?? null,
                 'currency' => $data['currency'] ?? Currency::USD,
                 'exchange_rate' => $data['exchange_rate'] ?? 1,
                 'subtotal' => 0,
                 'vat_amount' => 0,
+                'vat_percent' => $data['vat_percent'] ?? null,
                 'discount_amount' => 0,
                 'total' => 0,
                 'notes' => $data['notes'] ?? null,
@@ -76,11 +82,17 @@ class InvoiceService
                 'invoice_number' => $data['invoice_number'],
                 'supplier_name' => $data['supplier_name'],
                 'supplier_code' => $data['supplier_code'] ?? null,
+                'supplier_phone' => $data['supplier_phone'] ?? null,
+                'supplier_address' => $data['supplier_address'] ?? null,
+                'transaction_type' => $data['transaction_type'] ?? null,
+                'cash_reference' => $data['cash_reference'] ?? null,
+                'payment_term' => $data['payment_term'] ?? null,
                 'invoice_date' => $data['invoice_date'],
                 'due_date' => $data['due_date'] ?? null,
                 'currency' => $data['currency'] ?? $invoice->currency,
                 'exchange_rate' => $data['exchange_rate'] ?? $invoice->exchange_rate,
                 'vat_amount' => $data['vat_amount'] ?? 0,
+                'vat_percent' => $data['vat_percent'] ?? null,
                 'discount_amount' => $data['discount_amount'] ?? 0,
                 'notes' => $data['notes'] ?? null,
                 'updated_by' => $user->getKey(),
@@ -164,6 +176,12 @@ class InvoiceService
                 'entity_id' => $invoice->entity_id,
                 'invoice_id' => $invoice->getKey(),
                 'description' => $line['description'],
+                'uom' => $line['uom'] ?? null,
+                'campus' => $line['campus'] ?? null,
+                'division' => $line['division'] ?? null,
+                'department' => $line['department'] ?? null,
+                'location' => $line['location'] ?? null,
+                'purpose' => $line['purpose'] ?? null,
                 'qty' => $line['qty'],
                 'unit_price' => $line['unit_price'],
                 'discount' => $discount,
@@ -173,9 +191,9 @@ class InvoiceService
             ]);
         }
 
-        $vat = (float) ($data['vat_amount'] ?? 0);
-        $discount = (float) ($data['discount_amount'] ?? 0);
+        $discount = round((float) ($data['discount_amount'] ?? 0), 2);
         $subtotal = round($subtotal, 2);
+        $vat = $this->resolveVat($data, $subtotal, $discount);
         $total = round($subtotal - $discount + $vat, 2);
 
         $invoice->update([
@@ -186,6 +204,24 @@ class InvoiceService
             'grand_total_usd' => $this->convertToUsd($invoice, $total),
             'updated_by' => $user->getKey(),
         ]);
+    }
+
+    /**
+     * The stored amount snapshot is derived from the client-entered percentage
+     * of the discounted subtotal; legacy payloads without a percent keep the
+     * submitted amount (invoiceData() always carries both keys).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function resolveVat(array $data, float $subtotal, float $discount): float
+    {
+        $percent = $data['vat_percent'] ?? null;
+
+        if ($percent === null) {
+            return round((float) ($data['vat_amount'] ?? 0), 2);
+        }
+
+        return round(($subtotal - $discount) * (float) $percent / 100, 2);
     }
 
     /**

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const VISIBLE_MS = 1800;
+const VISIBLE_MS = 900;
 const EXIT_MS = 300;
 const SKIP_KEY = "procurement.skip_welcome_loader";
 

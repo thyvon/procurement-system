@@ -20,12 +20,18 @@ use Modules\Invoices\Database\Factories\InvoiceFactory;
     'status',
     'supplier_name',
     'supplier_code',
+    'supplier_phone',
+    'supplier_address',
+    'transaction_type',
+    'cash_reference',
+    'payment_term',
     'invoice_date',
     'due_date',
     'currency',
     'exchange_rate',
     'subtotal',
     'vat_amount',
+    'vat_percent',
     'discount_amount',
     'total',
     'grand_total_usd',
@@ -50,6 +56,33 @@ class Invoice extends Model
         self::STATUS_CANCELLED,
     ];
 
+    public const TRANSACTION_TYPE_PETTY_CASH = 'petty_cash';
+
+    public const TRANSACTION_TYPE_ADVANCE = 'advance';
+
+    public const TRANSACTION_TYPE_CREDIT = 'credit';
+
+    public const TRANSACTION_TYPES = [
+        self::TRANSACTION_TYPE_PETTY_CASH,
+        self::TRANSACTION_TYPE_ADVANCE,
+        self::TRANSACTION_TYPE_CREDIT,
+    ];
+
+    public const PAYMENT_TERM_NON_CREDIT = 'non_credit';
+
+    public const PAYMENT_TERM_CREDIT_1W = 'credit_1w';
+
+    public const PAYMENT_TERM_CREDIT_2W = 'credit_2w';
+
+    public const PAYMENT_TERM_CREDIT_1M = 'credit_1m';
+
+    public const PAYMENT_TERMS = [
+        self::PAYMENT_TERM_NON_CREDIT,
+        self::PAYMENT_TERM_CREDIT_1W,
+        self::PAYMENT_TERM_CREDIT_2W,
+        self::PAYMENT_TERM_CREDIT_1M,
+    ];
+
     protected static function newFactory(): InvoiceFactory
     {
         return InvoiceFactory::new();
@@ -63,6 +96,7 @@ class Invoice extends Model
             'exchange_rate' => 'decimal:6',
             'subtotal' => 'decimal:2',
             'vat_amount' => 'decimal:2',
+            'vat_percent' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'total' => 'decimal:2',
             'grand_total_usd' => 'decimal:2',

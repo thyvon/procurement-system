@@ -19,6 +19,12 @@ class InvoiceLineResource extends JsonResource
         return [
             'id' => $this->id,
             'description' => $this->description,
+            'uom' => $this->uom,
+            'campus' => $this->campus,
+            'division' => $this->division,
+            'department' => $this->department,
+            'location' => $this->location,
+            'purpose' => $this->purpose,
             'qty' => (float) $this->qty,
             'unitPrice' => (float) $this->unit_price,
             'discount' => (float) $this->discount,

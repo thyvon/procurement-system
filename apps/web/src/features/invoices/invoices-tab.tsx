@@ -35,7 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
-import { formatMoney } from "@/lib/utils";
+import { formatDate, formatDateTime, formatMoney } from "@/lib/utils";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
 import { useMe } from "@/hooks/use-me";
 import { InvoiceStatusBadge } from "./components/invoice-status-badge";
@@ -137,7 +137,7 @@ function useInvoiceColumns({
       ),
       cell: ({ row }) => (
         <span className="text-muted-foreground">
-          {row.getValue("invoiceDate") ?? "—"}
+          {formatDate(row.getValue("invoiceDate"))}
         </span>
       ),
     }),
@@ -172,7 +172,9 @@ function useInvoiceColumns({
         <DataTableColumnHeader column={column} title={tc("date")} />
       ),
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.getValue("updatedAt") ?? "—"}</span>
+        <span className="text-muted-foreground">
+          {formatDateTime(row.getValue("updatedAt"))}
+        </span>
       ),
     }),
     columnHelper.display({

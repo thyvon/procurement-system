@@ -86,6 +86,16 @@ export function DataTable<TData extends RowData>({
     React.useState<ColumnVisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
 
+  // Toolbar status filter (parent-owned via filterValue) merged into the
+  // columnFilters state. Its id is always excluded from the internal state so
+  // the prop value stays the single source of truth for that column.
+  const mergedColumnFilters = React.useMemo<ColumnFiltersState>(() => {
+    if (!filterColumn) return columnFilters
+    const others = columnFilters.filter((f) => f.id !== filterColumn)
+    if (!filterValue || filterValue === "all") return others
+    return [...others, { id: filterColumn, value: filterValue }]
+  }, [columnFilters, filterColumn, filterValue])
+
   const options: TableOptions<DataTableFeatures, TData> = {
     features,
     data,
@@ -99,7 +109,7 @@ export function DataTable<TData extends RowData>({
     },
     state: {
       sorting,
-      columnFilters,
+      columnFilters: mergedColumnFilters,
       columnVisibility,
       rowSelection,
       ...(serverPagination

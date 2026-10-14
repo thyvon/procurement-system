@@ -1,12 +1,14 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ClipboardList, Mail, Lock, Eye, EyeOff, Package, ShoppingCart, FileText, Truck, ClipboardCheck, Warehouse } from "lucide-react";
+import { ClipboardList, Mail, Lock, Eye, EyeOff, Package, ShoppingCart, FileText, Truck, ClipboardCheck, Warehouse, CircleAlert, Loader2 } from "lucide-react";
 import { authLogin } from "@/lib/api/auth/auth";
+import { branding } from "@/lib/api/branding/branding";
+import type { Branding200Data } from "@/lib/api/model";
 import { unwrap } from "@/lib/api-client";
 import type { LoginRequest } from "@/lib/api/model";
 import { saveTokens } from "@/lib/auth/token-store";
@@ -15,6 +17,7 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { WelcomeLoader } from "@/features/auth/welcome-loader";
 import { CompanyLoginForm } from "@/features/auth/company-login-form";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Field,
@@ -115,6 +118,7 @@ function EmailLoginForm() {
               placeholder={t("emailPlaceholder")}
               aria-invalid={!!errors.email}
               className="pl-9"
+              autoFocus
               {...register("email", {
                 required: t("emailRequired"),
                 pattern: {
@@ -144,8 +148,9 @@ function EmailLoginForm() {
             />
             <button
               type="button"
-              tabIndex={-1}
               onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? t("hidePassword") : t("showPassword")}
+              aria-pressed={showPassword}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -159,12 +164,10 @@ function EmailLoginForm() {
         </Field>
 
         {serverError && (
-          <div
-            role="alert"
-            className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          >
-            {serverError}
-          </div>
+          <Alert variant="destructive">
+            <CircleAlert />
+            <AlertDescription>{serverError}</AlertDescription>
+          </Alert>
         )}
 
         <Field>
@@ -174,6 +177,7 @@ function EmailLoginForm() {
             className="w-full"
             size="lg"
           >
+            {loginMutation.isPending && <Loader2 className="animate-spin" />}
             {loginMutation.isPending ? t("submitting") : t("submit")}
           </Button>
         </Field>
@@ -183,33 +187,23 @@ function EmailLoginForm() {
 }
 
 export default function LoginPage() {
+  const t = useTranslations("auth");
+
+  const brandingQuery = useQuery({
+    queryKey: ["branding"],
+    queryFn: async () => unwrap<Branding200Data>(await branding()),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  const logo = brandingQuery.data?.logo ?? null;
+  const entityName = brandingQuery.data?.name ?? null;
+
   return (
-    <div className="grid min-h-svh lg:grid-cols-[1fr_1.2fr]">
+    <div className="grid min-h-svh lg:grid-cols-[1.2fr_1fr]">
       <WelcomeLoader />
-      {/* Left — Form panel */}
-      <div className="flex flex-col p-6 md:p-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5 font-semibold">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md shadow-primary/25">
-              <ClipboardList className="size-4" />
-            </div>
-            <span className="text-lg">Procurement</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <LocaleSwitch />
-            <ThemeToggle />
-          </div>
-        </div>
-
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-sm">
-            <LoginForm />
-          </div>
-        </div>
-      </div>
-
-      {/* Right — Animated gradient panel */}
-      <div className="relative hidden overflow-hidden lg:block" style={{ background: "linear-gradient(135deg, oklch(0.20 0.08 260) 0%, oklch(0.25 0.10 270) 50%, oklch(0.18 0.06 280) 100%)" }}>
+      {/* Left — Animated gradient panel */}
+      <div className="login-hero relative hidden overflow-hidden lg:block">
         {/* Gradient layers */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(120,140,255,0.20)_0%,transparent_55%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_90%_100%,rgba(180,120,255,0.12)_0%,transparent_50%)]" />
@@ -237,26 +231,58 @@ export default function LoginPage() {
 
         {/* Center content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center">
-          <div className="mb-6 flex size-16 items-center justify-center rounded-2xl bg-white/10 shadow-lg backdrop-blur-sm">
-            <ClipboardList className="size-8 text-white" />
+          <div className="mb-6 flex size-24 items-center justify-center rounded-3xl bg-white shadow-lg">
+            {logo ? (
+              <img src={logo} alt="" className="size-full rounded-3xl object-contain p-3" />
+            ) : (
+              <ClipboardList className="size-12 text-slate-800" />
+            )}
           </div>
           <h2 className="mb-3 text-2xl font-bold text-white">
-            Procurement Management
+            {t("heroTitle")}
           </h2>
           <p className="max-w-xs text-sm leading-relaxed text-white/70">
-            Streamline your procurement workflow — from requisitions to purchase orders and beyond.
+            {t("heroDescription")}
           </p>
         </div>
 
         {/* Signature */}
         <div className="absolute bottom-8 left-0 right-0 text-center">
-          <span className="font-signature text-3xl tracking-wide text-white/30">
+          <span className="font-signature text-3xl tracking-wide text-white/50">
             Procurement System
           </span>
         </div>
 
         {/* Bottom accent line */}
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-white/20 via-white/40 to-white/20" />
+      </div>
+
+      {/* Right — Form panel */}
+      <div className="flex flex-col p-6 md:p-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5 font-semibold">
+            {logo ? (
+              <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-background">
+                <img src={logo} alt="" className="size-full object-contain" />
+              </div>
+            ) : (
+              <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md shadow-primary/25">
+                <ClipboardList className="size-4" />
+              </div>
+            )}
+            <span className="text-lg">{entityName ?? "Procurement"}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <LocaleSwitch />
+            <ThemeToggle />
+          </div>
+        </div>
+
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-sm">
+            <LoginForm />
+          </div>
+        </div>
       </div>
     </div>
   );
