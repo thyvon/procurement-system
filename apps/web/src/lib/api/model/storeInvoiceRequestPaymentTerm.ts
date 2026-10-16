@@ -5,10 +5,7 @@
  * OpenAPI spec version: 0.0.1
  */
 
-/**
- * @nullable
- */
-export type StoreInvoiceRequestPaymentTerm = typeof StoreInvoiceRequestPaymentTerm[keyof typeof StoreInvoiceRequestPaymentTerm] | null;
+export type StoreInvoiceRequestPaymentTerm = typeof StoreInvoiceRequestPaymentTerm[keyof typeof StoreInvoiceRequestPaymentTerm];
 
 
 export const StoreInvoiceRequestPaymentTerm = {

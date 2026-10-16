@@ -5,10 +5,7 @@
  * OpenAPI spec version: 0.0.1
  */
 
-/**
- * @nullable
- */
-export type StoreInvoiceRequestTransactionType = typeof StoreInvoiceRequestTransactionType[keyof typeof StoreInvoiceRequestTransactionType] | null;
+export type StoreInvoiceRequestTransactionType = typeof StoreInvoiceRequestTransactionType[keyof typeof StoreInvoiceRequestTransactionType];
 
 
 export const StoreInvoiceRequestTransactionType = {

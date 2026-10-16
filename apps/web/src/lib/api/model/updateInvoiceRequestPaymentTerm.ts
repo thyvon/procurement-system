@@ -5,10 +5,7 @@
  * OpenAPI spec version: 0.0.1
  */
 
-/**
- * @nullable
- */
-export type UpdateInvoiceRequestPaymentTerm = typeof UpdateInvoiceRequestPaymentTerm[keyof typeof UpdateInvoiceRequestPaymentTerm] | null;
+export type UpdateInvoiceRequestPaymentTerm = typeof UpdateInvoiceRequestPaymentTerm[keyof typeof UpdateInvoiceRequestPaymentTerm];
 
 
 export const UpdateInvoiceRequestPaymentTerm = {

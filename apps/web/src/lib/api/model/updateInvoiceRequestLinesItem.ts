@@ -8,36 +8,18 @@
 export type UpdateInvoiceRequestLinesItem = {
   /** @maxLength 255 */
   description: string;
-  /**
-     * @maxLength 32
-     * @nullable
-     */
-  uom?: string | null;
-  /**
-     * @maxLength 64
-     * @nullable
-     */
-  campus?: string | null;
-  /**
-     * @maxLength 64
-     * @nullable
-     */
-  division?: string | null;
-  /**
-     * @maxLength 64
-     * @nullable
-     */
-  department?: string | null;
-  /**
-     * @maxLength 128
-     * @nullable
-     */
-  location?: string | null;
-  /**
-     * @maxLength 255
-     * @nullable
-     */
-  purpose?: string | null;
+  /** @maxLength 32 */
+  uom: string;
+  /** @maxLength 64 */
+  campus: string;
+  /** @maxLength 64 */
+  division: string;
+  /** @maxLength 64 */
+  department: string;
+  /** @maxLength 128 */
+  location: string;
+  /** @maxLength 255 */
+  purpose: string;
   qty: number;
   /** @minimum 0 */
   unit_price: number;

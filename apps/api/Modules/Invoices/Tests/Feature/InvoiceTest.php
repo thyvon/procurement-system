@@ -21,20 +21,39 @@ beforeEach(function () {
     $this->staff->assignRole('staff');
 });
 
+function invoiceLine(array $overrides = []): array
+{
+    return array_replace_recursive([
+        'description' => 'A4 Paper',
+        'uom' => 'box',
+        'campus' => 'CCV',
+        'division' => 'ADM',
+        'department' => 'FIN',
+        'location' => 'Warehouse A',
+        'purpose' => 'Office supplies',
+        'qty' => 10,
+        'unit_price' => 3.5,
+    ], $overrides);
+}
+
 function invoicePayload(array $overrides = []): array
 {
     return array_replace_recursive([
         'invoice_number' => 'SUP-INV-1001',
         'supplier_name' => 'Acme Trading',
         'supplier_code' => 'SUP-00056',
+        'supplier_phone' => '012345678',
+        'supplier_address' => 'No. 12, Street 271, Phnom Penh',
+        'transaction_type' => Invoice::TRANSACTION_TYPE_CREDIT,
+        'payment_term' => Invoice::PAYMENT_TERM_CREDIT_1M,
         'invoice_date' => '2026-10-01',
         'due_date' => '2026-10-31',
         'vat_amount' => 10,
         'discount_amount' => 5,
         'notes' => 'October delivery.',
         'lines' => [
-            ['description' => 'A4 Paper', 'qty' => 10, 'unit_price' => 3.5],
-            ['description' => 'Stapler', 'qty' => 2, 'unit_price' => 5],
+            invoiceLine(),
+            invoiceLine(['description' => 'Stapler', 'qty' => 2, 'unit_price' => 5]),
         ],
     ], $overrides);
 }
@@ -255,6 +274,14 @@ it('rejects a blank invoice number or supplier name', function () {
         ->assertJsonValidationErrors(['supplier_name']);
 });
 
+it('requires the supplier head fields', function (string $field) {
+    storeInvoice([$field => null])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors([$field]);
+
+    expect(Invoice::query()->count())->toBe(0);
+})->with(['supplier_phone', 'supplier_address', 'transaction_type', 'payment_term']);
+
 it('rejects a due date before the invoice date', function () {
     storeInvoice(['due_date' => '2026-09-01'])
         ->assertStatus(422)
@@ -466,7 +493,7 @@ it('derives the vat amount from the percent of the discounted subtotal', functio
         ->and((float) $invoice->vat_amount)->toBe(4.0);
 });
 
-it('recomputes the vat amount and clears the head fields on update', function () {
+it('recomputes the vat amount and replaces the head fields on update', function () {
     $id = storeInvoice([
         'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
         'payment_term' => Invoice::PAYMENT_TERM_CREDIT_1M,
@@ -474,24 +501,28 @@ it('recomputes the vat amount and clears the head fields on update', function ()
         'vat_percent' => 10,
     ])->json('data.id');
 
+    // Transaction type, payment term and the supplier fields are required,
+    // so an update must swap them for new values; cash_reference is the one
+    // head field that can still be cleared.
     $response = $this->actingAs($this->admin, 'sanctum')
         ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
-            'transaction_type' => null,
-            'payment_term' => null,
+            'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+            'payment_term' => Invoice::PAYMENT_TERM_CREDIT_1W,
             'cash_reference' => null,
             'vat_percent' => 5,
         ]))
         ->assertOk()
-        ->assertJsonPath('data.transactionType', null)
-        ->assertJsonPath('data.paymentTerm', null)
+        ->assertJsonPath('data.transactionType', 'petty_cash')
+        ->assertJsonPath('data.paymentTerm', 'credit_1w')
         ->assertJsonPath('data.cashReference', null)
         ->assertJsonPath('data.vatPercent', 5)
         ->assertJsonPath('data.vatAmount', 2);
 
     $invoice = Invoice::query()->findOrFail($id);
 
-    expect($invoice->transaction_type)->toBeNull()
-        ->and($invoice->payment_term)->toBeNull()
+    expect($invoice->transaction_type)->toBe('petty_cash')
+        ->and($invoice->payment_term)->toBe('credit_1w')
+        ->and($invoice->cash_reference)->toBeNull()
         ->and((float) $invoice->vat_percent)->toBe(5.0)
         // subtotal 45 − 5 discount = 40; 5% of 40 → 2.
         ->and((float) $invoice->vat_amount)->toBe(2.0);
@@ -516,18 +547,18 @@ it('rejects a vat percent above 100', function () {
 it('stores the per-line detail fields', function () {
     $response = storeInvoice([
         'lines' => [
-            [
-                'description' => 'A4 Paper',
-                'uom' => 'box',
-                'campus' => 'CCV',
-                'division' => 'ADM',
-                'department' => 'FIN',
-                'location' => 'Warehouse A',
-                'purpose' => 'Office supplies',
-                'qty' => 10,
-                'unit_price' => 3.5,
-            ],
-            ['description' => 'Stapler', 'qty' => 2, 'unit_price' => 5],
+            invoiceLine(),
+            invoiceLine([
+                'description' => 'Stapler',
+                'uom' => 'pcs',
+                'campus' => 'PP',
+                'division' => 'OPS',
+                'department' => 'IT',
+                'location' => 'Head Office',
+                'purpose' => 'Repairs',
+                'qty' => 2,
+                'unit_price' => 5,
+            ]),
         ],
     ])->assertStatus(201);
 
@@ -538,8 +569,9 @@ it('stores the per-line detail fields', function () {
         ->assertJsonPath('data.lines.0.department', 'FIN')
         ->assertJsonPath('data.lines.0.location', 'Warehouse A')
         ->assertJsonPath('data.lines.0.purpose', 'Office supplies')
-        ->assertJsonPath('data.lines.1.uom', null)
-        ->assertJsonPath('data.lines.1.campus', null);
+        ->assertJsonPath('data.lines.1.uom', 'pcs')
+        ->assertJsonPath('data.lines.1.campus', 'PP')
+        ->assertJsonPath('data.lines.1.purpose', 'Repairs');
 
     $line = Invoice::query()->findOrFail($response->json('data.id'))->lines()->first();
 
@@ -561,6 +593,24 @@ it('rejects a per-line detail field over its max length', function () {
     ])->assertStatus(422)
         ->assertJsonValidationErrors(['lines.0.campus']);
 });
+
+it('requires every line detail field', function (string $field) {
+    storeInvoice(['lines' => [[$field => null]]])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(["lines.0.$field"]);
+
+    expect(Invoice::query()->count())->toBe(0);
+})->with([
+    'description',
+    'uom',
+    'campus',
+    'division',
+    'department',
+    'location',
+    'purpose',
+    'qty',
+    'unit_price',
+]);
 
 it('cannot be modified once it is no longer a draft', function (string $status) {
     $id = storeInvoice()->json('data.id');

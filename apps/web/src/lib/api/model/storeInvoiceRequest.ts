@@ -19,25 +19,17 @@ export interface StoreInvoiceRequest {
      * @nullable
      */
   supplier_code?: string | null;
-  /**
-     * @maxLength 32
-     * @nullable
-     */
-  supplier_phone?: string | null;
-  /**
-     * @maxLength 255
-     * @nullable
-     */
-  supplier_address?: string | null;
-  /** @nullable */
-  transaction_type?: StoreInvoiceRequestTransactionType;
+  /** @maxLength 32 */
+  supplier_phone: string;
+  /** @maxLength 255 */
+  supplier_address: string;
+  transaction_type: StoreInvoiceRequestTransactionType;
   /**
      * @maxLength 64
      * @nullable
      */
   cash_reference?: string | null;
-  /** @nullable */
-  payment_term?: StoreInvoiceRequestPaymentTerm;
+  payment_term: StoreInvoiceRequestPaymentTerm;
   invoice_date: string;
   /** @nullable */
   due_date?: string | null;

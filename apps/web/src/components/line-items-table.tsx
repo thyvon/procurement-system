@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { RequiredMark } from "@/components/required-mark";
 
 export const headCell =
   "border border-border bg-muted/60 px-2 py-1.5 text-left text-sm font-medium";
@@ -39,6 +40,8 @@ export type LineItemsColumn<T> = {
   label: string;
   width?: string;
   align?: "left" | "right" | "center";
+  /** Marks the header label as a required cell (the API enforces it). */
+  required?: boolean;
   cell: (row: T, index: number) => ReactNode;
 };
 
@@ -200,7 +203,7 @@ export function LineItemsTable<T>({
                   key={column.key}
                   className={`${headCell} ${ALIGN_CLASS[column.align ?? "left"]}`}
                 >
-                  {column.label}
+                  {column.label} {column.required ? <RequiredMark /> : null}
                 </th>
               ))}
               {hasActions ? (

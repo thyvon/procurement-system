@@ -132,8 +132,11 @@ const EMPTY_FORM: InvoiceFormValue = {
   lines: [{ ...EMPTY_LINE }],
 };
 
+// w-36 (not w-32) so the longest label — "Transaction type" plus its
+// required mark and colon — stays on one line; matches the detail page's
+// MetaRow label column.
 const fieldLabelClass =
-  "w-32 shrink-0 text-left after:ml-1 after:content-[':']";
+  "w-36 shrink-0 text-left after:ml-1 after:content-[':']";
 
 /** Combobox for the campus/division/department line cells. */
 function LineCombobox({
@@ -210,9 +213,18 @@ function hasLineError(line: LineForm): boolean {
   const gross = toNumber(line.qty) * toNumber(line.unitPrice);
   const discount = toNumber(line.discount);
 
+  // Every cell except discount is required by the API — an empty number
+  // input reads as 0, so the raw strings must be checked for money too.
   return (
     !line.description.trim() ||
+    !line.uom.trim() ||
+    !line.campus.trim() ||
+    !line.division.trim() ||
+    !line.department.trim() ||
+    !line.location.trim() ||
+    !line.purpose.trim() ||
     toNumber(line.qty) <= 0 ||
+    !line.unitPrice.trim() ||
     toNumber(line.unitPrice) < 0 ||
     discount < 0 ||
     discount > gross
@@ -430,6 +442,10 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
   const canSave =
     !!form.invoiceNumber.trim() &&
     !!form.supplierName.trim() &&
+    !!form.supplierPhone.trim() &&
+    !!form.supplierAddress.trim() &&
+    !!form.transactionType &&
+    !!form.paymentTerm &&
     !!form.invoiceDate &&
     form.lines.length > 0 &&
     !missingLines;
@@ -440,11 +456,13 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
         invoice_number: form.invoiceNumber.trim(),
         supplier_name: form.supplierName.trim(),
         supplier_code: form.supplierCode.trim() || null,
-        supplier_phone: form.supplierPhone.trim() || null,
-        supplier_address: form.supplierAddress.trim() || null,
-        transaction_type: form.transactionType || null,
+        supplier_phone: form.supplierPhone.trim(),
+        supplier_address: form.supplierAddress.trim(),
+        // The '' select placeholder is unreachable — canSave gates it.
+        transaction_type:
+          form.transactionType as StoreInvoiceRequest["transaction_type"],
         cash_reference: form.cashReference.trim() || null,
-        payment_term: form.paymentTerm || null,
+        payment_term: form.paymentTerm as StoreInvoiceRequest["payment_term"],
         invoice_date: toDateInput(form.invoiceDate) ?? "",
         due_date: toDateInput(form.dueDate),
         currency: form.currency,
@@ -456,12 +474,12 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
         notes: form.notes.trim() || null,
         lines: form.lines.map((line) => ({
           description: line.description.trim(),
-          uom: line.uom.trim() || null,
-          campus: line.campus.trim() || null,
-          division: line.division.trim() || null,
-          department: line.department.trim() || null,
-          location: line.location.trim() || null,
-          purpose: line.purpose.trim() || null,
+          uom: line.uom.trim(),
+          campus: line.campus.trim(),
+          division: line.division.trim(),
+          department: line.department.trim(),
+          location: line.location.trim(),
+          purpose: line.purpose.trim(),
           qty: toNumber(line.qty),
           unit_price: toNumber(line.unitPrice),
           discount: toNumber(line.discount),
@@ -614,7 +632,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
 
                 <div className="flex items-center gap-2">
                   <Label className={fieldLabelClass}>
-                    {t("transactionType")}
+                    {t("transactionType")} <RequiredMark />
                   </Label>
                   <Select
                     value={form.transactionType || null}
@@ -687,7 +705,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
 
                 <div className="flex items-center gap-2">
                   <Label htmlFor="inv-phone" className={fieldLabelClass}>
-                    {t("supplierPhone")}
+                    {t("supplierPhone")} <RequiredMark />
                   </Label>
                   <Input
                     id="inv-phone"
@@ -700,7 +718,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
 
                 <div className="flex items-center gap-2">
                   <Label htmlFor="inv-address" className={fieldLabelClass}>
-                    {t("supplierAddress")}
+                    {t("supplierAddress")} <RequiredMark />
                   </Label>
                   <Textarea
                     id="inv-address"
@@ -717,7 +735,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                     column. */}
                 <div className="grid grid-cols-[auto_1fr] items-center gap-2 xl:flex">
                   <Label htmlFor="inv-payment-term" className={fieldLabelClass}>
-                    {t("paymentTerm")}
+                    {t("paymentTerm")} <RequiredMark />
                   </Label>
                   <Select
                     value={form.paymentTerm || null}
@@ -774,6 +792,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                 {
                   key: "description",
                   label: t("description"),
+                  required: true,
                   cell: (line, index) => (
                     <Textarea
                       value={line.description}
@@ -791,6 +810,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                   key: "campus",
                   label: t("campus"),
                   width: "w-32",
+                  required: true,
                   cell: (line, index) => (
                     <LineCombobox
                       value={line.campus}
@@ -807,6 +827,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                   key: "division",
                   label: t("division"),
                   width: "w-32",
+                  required: true,
                   cell: (line, index) => (
                     <LineCombobox
                       value={line.division}
@@ -833,6 +854,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                   key: "department",
                   label: t("department"),
                   width: "w-36",
+                  required: true,
                   cell: (line, index) => (
                     <LineCombobox
                       value={line.department}
@@ -850,6 +872,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                   key: "location",
                   label: t("location"),
                   width: "w-32",
+                  required: true,
                   cell: (line, index) => (
                     <Input
                       value={line.location}
@@ -866,6 +889,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                   key: "purpose",
                   label: t("purpose"),
                   width: "w-56",
+                  required: true,
                   cell: (line, index) => (
                     <Textarea
                       value={line.purpose}
@@ -883,6 +907,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                   key: "uom",
                   label: t("uom"),
                   width: "w-24",
+                  required: true,
                   cell: (line, index) => (
                     <Input
                       value={line.uom}
@@ -898,6 +923,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                   label: t("qty"),
                   width: "w-24",
                   align: "right",
+                  required: true,
                   cell: (line, index) => (
                     <Input
                       type="number"
@@ -916,6 +942,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                   label: t("unitPrice"),
                   width: "w-32",
                   align: "right",
+                  required: true,
                   cell: (line, index) => (
                     <Input
                       type="number"
