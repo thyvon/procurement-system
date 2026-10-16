@@ -14,7 +14,7 @@ export function InvoiceFormPage({ invoiceId }: InvoiceFormPageProps) {
     <div className="min-w-0">
       <InvoiceForm
         invoiceId={invoiceId}
-        onBack={() => router.push("/invoices")}
+        onBack={() => router.push("/invoices/direct-purchase-inv")}
       />
     </div>
   );

@@ -499,7 +499,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
       qc.invalidateQueries({ queryKey: ["invoices"] });
       toast.success(isEdit ? t("updated") : t("created"));
       if (!isEdit) {
-        router.push(`/invoices/${id}/edit`);
+        router.push(`/invoices/direct-purchase-inv/${id}/edit`);
       }
     },
   });

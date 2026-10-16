@@ -43,10 +43,19 @@ export const ROUTE_CRUMBS: Record<string, (string | null)[]> = {
     null,
     "breadcrumb.edit",
   ],
-  "/invoices": ["nav.directPurchaseInvoices"],
-  "/invoices/new": ["nav.directPurchaseInvoices", "breadcrumb.create"],
-  "/invoices/[id]": ["nav.directPurchaseInvoices", "breadcrumb.details"],
-  "/invoices/[id]/edit": [
+  "/invoices/direct-purchase-inv": ["nav.invoices", "nav.directPurchaseInvoices"],
+  "/invoices/direct-purchase-inv/new": [
+    "nav.invoices",
+    "nav.directPurchaseInvoices",
+    "breadcrumb.create",
+  ],
+  "/invoices/direct-purchase-inv/[id]": [
+    "nav.invoices",
+    "nav.directPurchaseInvoices",
+    "breadcrumb.details",
+  ],
+  "/invoices/direct-purchase-inv/[id]/edit": [
+    "nav.invoices",
     "nav.directPurchaseInvoices",
     null,
     "breadcrumb.edit",
@@ -72,7 +81,8 @@ const SEGMENT_FALLBACKS: Record<string, string> = {
   pos: "nav.epurchasePos",
   "purchase-orders": "nav.purchaseOrders",
   evaluations: "nav.evaluations",
-  invoices: "nav.directPurchaseInvoices",
+  invoices: "nav.invoices",
+  "direct-purchase-inv": "nav.directPurchaseInvoices",
   organization: "nav.organization",
   campuses: "nav.campuses",
   divisions: "nav.divisions",

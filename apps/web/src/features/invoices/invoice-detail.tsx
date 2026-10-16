@@ -65,7 +65,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   if (showQuery.isError || !showQuery.data) {
     return (
       <div className="mt-1 min-w-0 space-y-4">
-        <Button variant="outline" onClick={() => router.push("/invoices")}>
+        <Button variant="outline" onClick={() => router.push("/invoices/direct-purchase-inv")}>
           {tf("back")}
         </Button>
         <p className="text-sm text-destructive">{tf("loadFailed")}</p>
@@ -104,7 +104,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => router.push("/invoices")}
+            onClick={() => router.push("/invoices/direct-purchase-inv")}
             aria-label={tf("back")}
           >
             <ArrowLeft />
@@ -121,7 +121,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
         </div>
         {canEdit ? (
           <Button
-            onClick={() => router.push(`/invoices/${invoice.id}/edit`)}
+            onClick={() => router.push(`/invoices/direct-purchase-inv/${invoice.id}/edit`)}
           >
             <Pencil />
             {tt("edit")}

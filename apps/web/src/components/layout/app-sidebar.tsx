@@ -99,7 +99,7 @@ const navItems: NavItem[] = [
     icon: ReceiptText,
     enabled: true,
     children: [
-      { key: "directPurchaseInvoices", href: "/invoices", enabled: true },
+      { key: "directPurchaseInvoices", href: "/invoices/direct-purchase-inv", enabled: true },
     ],
   },
   {

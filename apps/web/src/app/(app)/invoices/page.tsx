@@ -1,5 +1,5 @@
-import { InvoicesTab } from "@/features/invoices/invoices-tab";
+import { redirect } from "next/navigation";
 
 export default function InvoicesRoute() {
-  return <InvoicesTab />;
+  redirect("/invoices/direct-purchase-inv");
 }

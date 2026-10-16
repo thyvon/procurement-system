@@ -360,8 +360,8 @@ export function InvoicesTab() {
   const columns = useInvoiceColumns({
     canManage,
     currentUserId,
-    onViewRequest: (invoice) => router.push(`/invoices/${invoice.id}`),
-    onEditRequest: (invoice) => router.push(`/invoices/${invoice.id}/edit`),
+    onViewRequest: (invoice) => router.push(`/invoices/direct-purchase-inv/${invoice.id}`),
+    onEditRequest: (invoice) => router.push(`/invoices/direct-purchase-inv/${invoice.id}/edit`),
     onRecordRequest: (invoice) =>
       statusMutation.mutate({ id: invoice.id, status: "recorded" }),
     onCancelRequest: (invoice) =>
@@ -410,7 +410,7 @@ export function InvoicesTab() {
         searchPlaceholder={tt("searchPlaceholder")}
         toolbar={
           canManage ? (
-            <Button type="button" onClick={() => router.push("/invoices/new")}>
+            <Button type="button" onClick={() => router.push("/invoices/direct-purchase-inv/new")}>
               <Plus className="mr-2 size-4" />
               {t("newTitle")}
             </Button>
