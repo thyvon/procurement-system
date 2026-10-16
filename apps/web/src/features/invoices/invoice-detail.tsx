@@ -11,7 +11,6 @@ import { invoicesInvoicesShow } from "@/lib/api/invoice/invoice";
 import type { InvoiceResource } from "@/lib/api/model/invoiceResource";
 import type { InvoiceLineResource } from "@/lib/api/model/invoiceLineResource";
 import { Button } from "@/components/ui/button";
-import { DataTableSkeleton } from "@/components/ui/data-table-skeleton";
 import {
   Card,
   CardContent,
@@ -21,6 +20,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { LineItemsTable } from "@/components/line-items-table";
 import { InvoiceStatusBadge } from "./components/invoice-status-badge";
+import { InvoiceDetailSkeleton } from "./components/invoice-detail-skeleton";
+import {
+  paymentTermLabel,
+  resolveLineDiscounts,
+  sumLineDiscounts,
+  txTypeLabel,
+} from "./invoice-helpers";
 import { useMe } from "@/hooks/use-me";
 
 function MetaRow({ label, value }: { label: string; value: ReactNode }) {
@@ -53,7 +59,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   });
 
   if (showQuery.isPending) {
-    return <DataTableSkeleton columns={6} actions={2} />;
+    return <InvoiceDetailSkeleton />;
   }
 
   if (showQuery.isError || !showQuery.data) {
@@ -78,26 +84,17 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   // Mirrors the API: invoices.manage AND owner, only while a draft.
   const canEdit = canManage && isOwner && status === "draft";
 
-  const txTypeLabel = (
-    {
-      petty_cash: tf("txTypes.pettyCash"),
-      advance: tf("txTypes.advance"),
-      credit: tf("txTypes.credit"),
-    } as Record<string, string>
-  )[invoice.transactionType ?? ""];
-
-  const paymentTermLabel = (
-    {
-      non_credit: tf("paymentTerms.nonCredit"),
-      credit_1w: tf("paymentTerms.credit1w"),
-      credit_2w: tf("paymentTerms.credit2w"),
-      credit_1m: tf("paymentTerms.credit1m"),
-    } as Record<string, string>
-  )[invoice.paymentTerm ?? ""];
+  const txTypeText = txTypeLabel(tf, invoice.transactionType);
+  const paymentTermText = paymentTermLabel(tf, invoice.paymentTerm);
 
   const subtotal = (invoice.lines ?? []).reduce(
     (sum, line) => sum + Number(line.lineTotal ?? 0),
     0
+  );
+  const lineDiscountTotal = sumLineDiscounts(invoice.lines ?? []);
+  const { displayDiscount } = resolveLineDiscounts(
+    lineDiscountTotal,
+    Number(invoice.discountAmount ?? 0)
   );
 
   return (
@@ -137,19 +134,19 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           <CardTitle>{tf("detailsCard")}</CardTitle>
         </CardHeader>
         <CardContent className="min-w-0 space-y-3">
-          {/* 6:6 split — left column: invoice number, invoice date, then
-              Currency and Rate sharing one row as two inline pairs;
-              right column: supplier and audit info. Notes runs full
-              width underneath. */}
+          {/* Mirrors the form's head card — left column: invoice date,
+              invoice number, Currency + Rate inline pair, transaction type,
+              cash reference; right column: supplier block, Payment Term +
+              VAT pair, then audit info. */}
           <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
             <div className="space-y-3">
               <MetaRow
-                label={tf("invoiceNumber")}
-                value={<span className="font-mono">{invoice.invoiceNumber}</span>}
-              />
-              <MetaRow
                 label={tf("invoiceDate")}
                 value={formatDate(invoice.invoiceDate)}
+              />
+              <MetaRow
+                label={tf("invoiceNumber")}
+                value={<span className="font-mono">{invoice.invoiceNumber}</span>}
               />
               {/* One row, but the Currency label keeps the same w-36 label
                   column and gap-2 as every MetaRow above, so its value starts
@@ -171,6 +168,14 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
                   </span>
                 </div>
               </div>
+              <MetaRow
+                label={tf("transactionType")}
+                value={txTypeText || "—"}
+              />
+              <MetaRow
+                label={tf("cashReference")}
+                value={invoice.cashReference || "—"}
+              />
             </div>
 
             <div className="space-y-3">
@@ -183,14 +188,6 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
                 label={tf("supplierAddress")}
                 value={invoice.supplierAddress || "—"}
               />
-              <MetaRow
-                label={tf("cashReference")}
-                value={invoice.cashReference || "—"}
-              />
-              <MetaRow
-                label={tf("transactionType")}
-                value={txTypeLabel || "—"}
-              />
               {/* Same inline-pair shape as Currency + Rate in the left
                   column. */}
               <div className="flex items-center gap-2">
@@ -199,7 +196,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
                 </Label>
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   <span className="min-w-24 flex-1 text-sm">
-                    {paymentTermLabel || "—"}
+                    {paymentTermText || "—"}
                   </span>
                   <Label className="shrink-0 text-left text-muted-foreground after:ml-1 after:content-[':']">
                     {tf("vatPercent")}
@@ -213,10 +210,6 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
               </div>
               <MetaRow label={tc("createdBy")} value={invoice.createdBy ?? "—"} />
               <MetaRow label={tc("date")} value={formatDateTime(invoice.updatedAt)} />
-            </div>
-
-            <div className="md:col-span-2">
-              <MetaRow label={tf("notes")} value={invoice.notes || "—"} />
             </div>
           </div>
         </CardContent>
@@ -377,14 +370,14 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
               {
                 key: "discount",
                 label: tf("discountAmount"),
-                value: formatMoney(
-                  Number(invoice.discountAmount ?? 0),
-                  invoice.currency
-                ),
+                value: formatMoney(displayDiscount, invoice.currency),
               },
               {
                 key: "vat",
-                label: tf("vatAmount"),
+                label:
+                  invoice.vatPercent == null
+                    ? tf("vatAmount")
+                    : `${tf("vatAmount")} (${invoice.vatPercent}%)`,
                 value: formatMoney(
                   Number(invoice.vatAmount ?? 0),
                   invoice.currency
@@ -411,6 +404,10 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
                 : []),
             ]}
           />
+
+          <div className="mt-3">
+            <MetaRow label={tf("notes")} value={invoice.notes || "—"} />
+          </div>
         </CardContent>
       </Card>
     </div>

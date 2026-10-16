@@ -22,9 +22,9 @@ export function DataTableSkeleton({
   showToolbar = true,
 }: DataTableSkeletonProps) {
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col space-y-4">
       {showToolbar && (
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Skeleton className="h-8 w-full max-w-sm" />
           <Skeleton className="h-8 w-28" />
           {actions > 0 && (
@@ -36,9 +36,12 @@ export function DataTableSkeleton({
           )}
         </div>
       )}
-      <div className="overflow-hidden rounded-md border">
-        <Table>
-          <TableHeader>
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border">
+        <Table
+          className="h-full"
+          containerClassName="min-h-0 flex-1 overflow-y-auto"
+        >
+          <TableHeader className="[&>tr>th]:sticky [&>tr>th]:top-0 [&>tr>th]:z-10 [&>tr>th]:border-b [&>tr>th]:bg-background">
             <TableRow>
               {Array.from({ length: columns }).map((_, i) => (
                 <TableHead key={i}>
@@ -60,7 +63,7 @@ export function DataTableSkeleton({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between px-2">
+      <div className="flex shrink-0 items-center justify-between px-2">
         <Skeleton className="h-4 w-40" />
         <div className="flex items-center gap-6">
           <Skeleton className="hidden h-4 w-24 lg:block" />

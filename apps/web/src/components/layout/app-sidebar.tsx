@@ -94,7 +94,14 @@ const navItems: NavItem[] = [
       { key: "evaluations", href: "/purchase-orders/evaluations", enabled: true },
     ],
   },
-  { key: "invoices", href: "/invoices", icon: ReceiptText, enabled: true },
+  {
+    key: "invoices",
+    icon: ReceiptText,
+    enabled: true,
+    children: [
+      { key: "directPurchaseInvoices", href: "/invoices", enabled: true },
+    ],
+  },
   {
     key: "organization",
     icon: Building2,

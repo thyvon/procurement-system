@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DataTableSkeleton } from "@/components/ui/data-table-skeleton";
 import {
   Card,
   CardContent,
@@ -53,6 +52,13 @@ import { organizationDepartmentsIndex } from "@/lib/api/department/department";
 import type { StoreInvoiceRequest } from "@/lib/api/model/storeInvoiceRequest";
 import type { InvoiceResource } from "@/lib/api/model/invoiceResource";
 import { useMe } from "@/hooks/use-me";
+import { InvoiceFormSkeleton } from "./components/invoice-form-skeleton";
+import {
+  paymentTermOptions,
+  resolveLineDiscounts,
+  sumLineDiscounts,
+  txTypeOptions,
+} from "./invoice-helpers";
 
 type LineForm = {
   description: string;
@@ -152,12 +158,12 @@ function LineCombobox({
         aria-label={ariaLabel}
         disabled={disabled}
         // cellInputClass lands on the InputGroup wrapper; the inner input
-        // keeps text-sm unless forced down.
+        // keeps text-sm unless forced down. The chevron trigger stays
+        // visible so users can tell these cells are pickers, not free text.
         className={cn(
           cellInputClass,
           "[&_input]:text-sm [&_input]:placeholder:text-sm"
         )}
-        showTrigger={false}
       />
       <ComboboxContent>
         <ComboboxEmpty>{placeholder}</ComboboxEmpty>
@@ -281,6 +287,8 @@ interface InvoiceFormProps {
 
 export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
   const t = useTranslations("invoices.form");
+  const txTypeSelectOptions = txTypeOptions(t);
+  const paymentTermSelectOptions = paymentTermOptions(t);
   const isEdit = Boolean(invoiceId);
   const qc = useQueryClient();
   const router = useRouter();
@@ -378,17 +386,39 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
     }));
 
   const addLine = () =>
-    setForm((current) => ({
-      ...current,
-      lines: [...current.lines, { ...EMPTY_LINE }],
-    }));
+    setForm((current) => {
+      const last = current.lines[current.lines.length - 1];
+      // Accounting lines usually share the same org/location/purpose; only
+      // description, uom and money start blank.
+      return {
+        ...current,
+        lines: [
+          ...current.lines,
+          {
+            ...EMPTY_LINE,
+            campus: last?.campus ?? "",
+            division: last?.division ?? "",
+            department: last?.department ?? "",
+            location: last?.location ?? "",
+            purpose: last?.purpose ?? "",
+          },
+        ],
+      };
+    });
 
   const subtotal = form.lines.reduce((sum, line) => sum + lineTotalOf(line), 0);
+  // When lines carry their own discounts, the summary shows their sum as a
+  // read-only figure; the header discount input is only for legacy invoices.
+  const lineDiscountTotal = sumLineDiscounts(form.lines);
   // Mirror of the API's resolveVat: percent of the discounted subtotal, with
   // the hydrated amount as the legacy fallback while no percent is entered.
   const vatRate =
     form.vatPercent.trim() === "" ? null : toNumber(form.vatPercent);
-  const discountedBase = subtotal - toNumber(form.discountAmount);
+  const { headerDiscount } = resolveLineDiscounts(
+    lineDiscountTotal,
+    toNumber(form.discountAmount)
+  );
+  const discountedBase = subtotal - headerDiscount;
   const vat =
     vatRate === null
       ? toNumber(form.vatAmount)
@@ -422,7 +452,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
           form.currency === "KHR" ? toNumber(form.exchangeRate) : null,
         vat_amount: vat,
         vat_percent: vatRate,
-        discount_amount: toNumber(form.discountAmount),
+        discount_amount: headerDiscount,
         notes: form.notes.trim() || null,
         lines: form.lines.map((line) => ({
           description: line.description.trim(),
@@ -457,7 +487,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
   });
 
   if (isEdit && showQuery.isPending) {
-    return <DataTableSkeleton columns={6} actions={2} />;
+    return <InvoiceFormSkeleton />;
   }
 
   if (isEdit && showQuery.isError) {
@@ -521,6 +551,19 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                   />
                 </div>
 
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="inv-number" className={fieldLabelClass}>
+                    {t("invoiceNumber")} <RequiredMark />
+                  </Label>
+                  <Input
+                    id="inv-number"
+                    value={form.invoiceNumber}
+                    onChange={(e) => patch({ invoiceNumber: e.target.value })}
+                    placeholder={t("invoiceNumberPlaceholder")}
+                    className="flex-1"
+                  />
+                </div>
+
                 {/* Two label-aligned rows below xl, one inline row from xl. */}
                 <div className="grid grid-cols-[auto_1fr] items-center gap-2 xl:flex">
                   <Label htmlFor="inv-currency" className={fieldLabelClass}>
@@ -578,25 +621,17 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                     onValueChange={(value) =>
                       patch({ transactionType: (value as TransactionType) || "" })
                     }
-                    items={[
-                      { value: "petty_cash", label: t("txTypes.pettyCash") },
-                      { value: "advance", label: t("txTypes.advance") },
-                      { value: "credit", label: t("txTypes.credit") },
-                    ]}
+                    items={txTypeSelectOptions}
                   >
                     <SelectTrigger className="w-full flex-1">
                       <SelectValue placeholder={t("transactionTypePlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="petty_cash">
-                        {t("txTypes.pettyCash")}
-                      </SelectItem>
-                      <SelectItem value="advance">
-                        {t("txTypes.advance")}
-                      </SelectItem>
-                      <SelectItem value="credit">
-                        {t("txTypes.credit")}
-                      </SelectItem>
+                      {txTypeSelectOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -633,80 +668,10 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                     </ComboboxContent>
                   </Combobox>
                 </div>
-
-                {/* Two label-aligned rows below xl, one inline row from xl —
-                    the same pairing shape as Currency + Rate above. */}
-                <div className="grid grid-cols-[auto_1fr] items-center gap-2 xl:flex">
-                  <Label htmlFor="inv-payment-term" className={fieldLabelClass}>
-                    {t("paymentTerm")}
-                  </Label>
-                  <Select
-                    value={form.paymentTerm || null}
-                    onValueChange={(value) =>
-                      patch({ paymentTerm: (value as PaymentTerm) || "" })
-                    }
-                    items={[
-                      { value: "non_credit", label: t("paymentTerms.nonCredit") },
-                      { value: "credit_1w", label: t("paymentTerms.credit1w") },
-                      { value: "credit_2w", label: t("paymentTerms.credit2w") },
-                      { value: "credit_1m", label: t("paymentTerms.credit1m") },
-                    ]}
-                  >
-                    <SelectTrigger
-                      id="inv-payment-term"
-                      className="min-w-24 w-full flex-1"
-                    >
-                      <SelectValue placeholder={t("paymentTermPlaceholder")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="non_credit">
-                        {t("paymentTerms.nonCredit")}
-                      </SelectItem>
-                      <SelectItem value="credit_1w">
-                        {t("paymentTerms.credit1w")}
-                      </SelectItem>
-                      <SelectItem value="credit_2w">
-                        {t("paymentTerms.credit2w")}
-                      </SelectItem>
-                      <SelectItem value="credit_1m">
-                        {t("paymentTerms.credit1m")}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Label htmlFor="inv-vat-percent" className={`${fieldLabelClass} xl:w-auto`}>
-                    {t("vatPercent")}
-                  </Label>
-                  <Input
-                    id="inv-vat-percent"
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    max={100}
-                    step="any"
-                    value={form.vatPercent}
-                    onChange={(e) => patch({ vatPercent: e.target.value })}
-                    placeholder="0"
-                    className="min-w-24 flex-1 text-right"
-                  />
-                </div>
               </div>
 
               {/* -ml-8/pl-8 centers the border in the grid's 64px gap. */}
               <div className="space-y-3 lg:-ml-8 lg:border-l lg:border-border lg:pl-8">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="inv-number" className={fieldLabelClass}>
-                    {t("invoiceNumber")} <RequiredMark />
-                  </Label>
-                  <Input
-                    id="inv-number"
-                    value={form.invoiceNumber}
-                    onChange={(e) => patch({ invoiceNumber: e.target.value })}
-                    placeholder={t("invoiceNumberPlaceholder")}
-                    className="flex-1"
-                  />
-                </div>
-
                 <div className="flex items-center gap-2">
                   <Label htmlFor="inv-supplier" className={fieldLabelClass}>
                     {t("supplierName")} <RequiredMark />
@@ -744,6 +709,52 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                     placeholder={t("supplierAddressPlaceholder")}
                     className="flex-1"
                     rows={2}
+                  />
+                </div>
+
+                {/* Two label-aligned rows below xl, one inline row from xl —
+                    the same pairing shape as Currency + Rate in the left
+                    column. */}
+                <div className="grid grid-cols-[auto_1fr] items-center gap-2 xl:flex">
+                  <Label htmlFor="inv-payment-term" className={fieldLabelClass}>
+                    {t("paymentTerm")}
+                  </Label>
+                  <Select
+                    value={form.paymentTerm || null}
+                    onValueChange={(value) =>
+                      patch({ paymentTerm: (value as PaymentTerm) || "" })
+                    }
+                    items={paymentTermSelectOptions}
+                  >
+                    <SelectTrigger
+                      id="inv-payment-term"
+                      className="min-w-24 w-full flex-1"
+                    >
+                      <SelectValue placeholder={t("paymentTermPlaceholder")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentTermSelectOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Label htmlFor="inv-vat-percent" className={`${fieldLabelClass} xl:w-auto`}>
+                    {t("vatPercent")}
+                  </Label>
+                  <Input
+                    id="inv-vat-percent"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    max={100}
+                    step="any"
+                    value={form.vatPercent}
+                    onChange={(e) => patch({ vatPercent: e.target.value })}
+                    placeholder="0"
+                    className="min-w-24 flex-1 text-right"
                   />
                 </div>
               </div>
@@ -991,24 +1002,30 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                 {
                   key: "discount",
                   label: t("discountAmount"),
-                  value: (
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      step="any"
-                      value={form.discountAmount}
-                      onChange={(e) =>
-                        patch({ discountAmount: e.target.value })
-                      }
-                      aria-label={t("discountAmount")}
-                      className={summaryInputClass}
-                    />
-                  ),
+                  value:
+                    lineDiscountTotal > 0 ? (
+                      formatMoney(lineDiscountTotal, form.currency)
+                    ) : (
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="any"
+                        value={form.discountAmount}
+                        onChange={(e) =>
+                          patch({ discountAmount: e.target.value })
+                        }
+                        aria-label={t("discountAmount")}
+                        className={summaryInputClass}
+                      />
+                    ),
                 },
                 {
                   key: "vat",
-                  label: t("vatAmount"),
+                  label:
+                    vatRate === null
+                      ? t("vatAmount")
+                      : `${t("vatAmount")} (${vatRate}%)`,
                   value: formatMoney(vat, form.currency),
                 },
                 {
@@ -1038,22 +1055,22 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                 </Button>
               }
             />
+
+            <div className="mt-3 flex items-center gap-2">
+              <Label htmlFor="inv-notes" className={fieldLabelClass}>
+                {t("notes")}
+              </Label>
+              <Textarea
+                id="inv-notes"
+                value={form.notes}
+                onChange={(e) => patch({ notes: e.target.value })}
+                placeholder={t("notesPlaceholder")}
+                className="min-h-0 flex-1 rounded-none border-0 border-b border-border bg-transparent px-0 shadow-none resize-none focus-visible:ring-0"
+                rows={1}
+              />
+            </div>
           </CardContent>
         </Card>
-
-        <div className="mt-3 flex items-center gap-2">
-          <Label htmlFor="inv-notes" className={fieldLabelClass}>
-            {t("notes")}
-          </Label>
-          <Textarea
-            id="inv-notes"
-            value={form.notes}
-            onChange={(e) => patch({ notes: e.target.value })}
-            placeholder={t("notesPlaceholder")}
-            className="min-h-0 flex-1 rounded-none border-0 border-b border-border bg-transparent px-0 shadow-none resize-none focus-visible:ring-0"
-            rows={1}
-          />
-        </div>
       </fieldset>
 
       <div className="flex items-center justify-end gap-2">

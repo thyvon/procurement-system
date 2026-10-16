@@ -39,6 +39,7 @@ import { formatDate, formatDateTime, formatMoney } from "@/lib/utils";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
 import { useMe } from "@/hooks/use-me";
 import { InvoiceStatusBadge } from "./components/invoice-status-badge";
+import { paymentTermLabel, txTypeLabel } from "./invoice-helpers";
 
 type InvoiceRow = {
   id: string;
@@ -46,7 +47,10 @@ type InvoiceRow = {
   invoiceNumber: string;
   supplierName: string;
   invoiceDate: string | null;
+  paymentTerm: string | null;
+  transactionType: string | null;
   total: number;
+  grandTotalUsd: number;
   currency: string;
   status: string;
   updatedAt: string | null;
@@ -66,7 +70,10 @@ function toRow(resource: InvoiceResource): InvoiceRow {
     invoiceNumber: resource.invoiceNumber,
     supplierName: resource.supplierName,
     invoiceDate: resource.invoiceDate,
+    paymentTerm: resource.paymentTerm ?? null,
+    transactionType: resource.transactionType ?? null,
     total: resource.total,
+    grandTotalUsd: resource.grandTotalUsd,
     currency: resource.currency,
     status: resource.status,
     updatedAt: resource.updatedAt,
@@ -107,6 +114,7 @@ function useInvoiceColumns({
 }): ColumnDef<DataTableFeatures, InvoiceRow>[] {
   const tc = useTranslations("invoices.columns");
   const tt = useTranslations("invoices.table");
+  const tf = useTranslations("invoices.form");
 
   return [
     columnHelper.accessor("code", {
@@ -141,15 +149,51 @@ function useInvoiceColumns({
         </span>
       ),
     }),
+    columnHelper.accessor("paymentTerm", {
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={tc("paymentTerm")} />
+      ),
+      cell: ({ row }) => {
+        const value = row.getValue("paymentTerm") as string | null;
+        return (
+          <span className="text-muted-foreground">
+            {paymentTermLabel(tf, value) || "—"}
+          </span>
+        );
+      },
+    }),
+    columnHelper.accessor("transactionType", {
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={tc("transactionType")} />
+      ),
+      cell: ({ row }) => {
+        const value = row.getValue("transactionType") as string | null;
+        return (
+          <span className="text-muted-foreground">
+            {txTypeLabel(tf, value) || "—"}
+          </span>
+        );
+      },
+    }),
     columnHelper.accessor("total", {
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={tc("total")} />
       ),
-      cell: ({ row }) => (
-        <span className="tabular-nums">
-          {formatMoney(Number(row.getValue("total")), row.original.currency)}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const { total, currency, grandTotalUsd } = row.original;
+        return (
+          <span className="tabular-nums">
+            {formatMoney(Number(total), currency)}
+            {/* On KHR documents the USD equivalent is the number people
+                actually compare — muted underneath the main amount. */}
+            {currency === "KHR" && Number(grandTotalUsd) > 0 ? (
+              <span className="block text-xs text-muted-foreground">
+                {formatMoney(Number(grandTotalUsd), "USD")}
+              </span>
+            ) : null}
+          </span>
+        );
+      },
     }),
     columnHelper.accessor("status", {
       header: ({ column }) => (
@@ -326,14 +370,14 @@ export function InvoicesTab() {
   });
 
   if (query.isPending) {
-    return <DataTableSkeleton columns={8} actions={2} />;
+    return <DataTableSkeleton columns={11} actions={2} />;
   }
 
   const meta = query.data?.meta ?? { page: page + 1, perPage, total: 0 };
   const rows = query.data?.data ?? [];
 
   return (
-    <div className="mt-1 min-w-0">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <DataTable
         columns={columns}
         data={rows}

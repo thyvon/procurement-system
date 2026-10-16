@@ -248,30 +248,40 @@ export function LineItemsTable<T>({
           </tbody>
         </table>
       </div>
-      {/* Totals bar sits below the (scrollable) table so it stays visible
-          even when the grid overflows horizontally. */}
+      {/* Totals sit below the (scrollable) table so they stay visible even
+          when the grid overflows horizontally: stacked label/value rows,
+          right-aligned, with one hairline rule above the first grand-total
+          row. */}
       {summary && summary.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border border-t-0 border-border bg-muted/20 p-1.5">
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 border border-t-0 border-border bg-muted/20 p-2">
           {footerLeading ?? null}
-          <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1.5 text-sm">
-            {summary.map((row) => (
-              <div key={row.key} className="flex items-center gap-1.5">
-                <span
-                  className={
-                    row.strong ? "font-bold" : "text-muted-foreground"
-                  }
-                >
-                  {row.label}
-                </span>
-                <span
-                  className={`tabular-nums${
-                    row.strong ? " font-bold" : ""
+          <div className="ml-auto flex min-w-56 flex-col gap-1">
+            {summary.map((row, index) => {
+              const divider = row.strong && !summary[index - 1]?.strong;
+              return (
+                <div
+                  key={row.key}
+                  className={`flex items-center justify-between gap-8 text-sm${
+                    divider ? " mt-1 border-t border-border pt-1.5" : ""
                   }`}
                 >
-                  {row.value}
-                </span>
-              </div>
-            ))}
+                  <span
+                    className={
+                      row.strong ? "font-semibold" : "text-muted-foreground"
+                    }
+                  >
+                    {row.label}
+                  </span>
+                  <span
+                    className={`tabular-nums text-right${
+                      row.strong ? " text-base font-semibold" : ""
+                    }`}
+                  >
+                    {row.value}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : null}
