@@ -81,14 +81,12 @@ export type ApprovalAction = "approve" | "reject" | "return";
 /**
  * What the document looked like the moment this round was submitted —
  * frozen server-side, so a later round can show what changed after a return.
+ *
+ * Every subject snapshots its own fields (evaluation's awarded total, a cash
+ * request's lines, …), so the shape is a flat key → display-text map after
+ * parsing: one generic diff serves every subject type.
  */
-export type ApprovalDocumentSnapshot = {
-  awardedTotal: string;
-  currency: string;
-  recommendationBasis: string;
-  items: string[];
-  selectedSuppliers: string[];
-};
+export type ApprovalDocumentSnapshot = Record<string, string>;
 
 export type ApprovalRequestView = {
   id: string;
@@ -201,21 +199,56 @@ function toNullableNumber(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function scalarText(value: unknown): string | null {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return null;
+}
+
+/**
+ * Snapshot values are per-subject; flatten them to display text so one diff
+ * serves every subject: scalars as-is, primitive arrays joined, structured
+ * line entries as their scalar fields in reading order.
+ */
+function snapshotText(value: unknown): string | null {
+  const scalar = scalarText(value);
+  if (scalar !== null) return scalar;
+
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((item) => {
+        const direct = scalarText(item);
+        if (direct !== null) return direct;
+        if (item !== null && typeof item === "object") {
+          return Object.values(item)
+            .map(scalarText)
+            .filter((field): field is string => field !== null)
+            .join(" · ");
+        }
+        return "";
+      })
+      .filter((part) => part !== "");
+    return parts.length > 0 ? parts.join(" | ") : null;
+  }
+
+  return null;
+}
+
 function parseDocument(raw: unknown): ApprovalDocumentSnapshot | null {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
     return null;
   }
-  const snapshot = raw as Record<string, unknown>;
-  const list = (value: unknown): string[] =>
-    Array.isArray(value) ? value.map((entry) => String(entry)) : [];
 
-  return {
-    awardedTotal: String(snapshot.awardedTotal ?? "0"),
-    currency: String(snapshot.currency ?? ""),
-    recommendationBasis: String(snapshot.recommendationBasis ?? ""),
-    items: list(snapshot.items),
-    selectedSuppliers: list(snapshot.selectedSuppliers),
-  };
+  const snapshot: ApprovalDocumentSnapshot = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const text = snapshotText(value);
+    if (text !== null) {
+      snapshot[key] = text;
+    }
+  }
+  return snapshot;
 }
 
 export function parseApprovalRequest(raw: unknown): ApprovalRequestView {

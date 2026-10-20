@@ -49,7 +49,8 @@ export type TocaEntryRow = {
 
 type TocaForm = {
   name: string;
-  subjectType: StoreTocaEntryRequestSubjectType;
+  /** Empty until a new row adopts the first configured setting. */
+  subjectType: StoreTocaEntryRequestSubjectType | "";
   stepKey: string;
   minAmount: string;
   maxAmount: string;
@@ -59,7 +60,7 @@ const ANY_STEP = "__any__";
 
 const EMPTY_FORM: TocaForm = {
   name: "",
-  subjectType: "evaluation",
+  subjectType: "",
   stepKey: "",
   minAmount: "0",
   maxAmount: "",
@@ -101,6 +102,11 @@ export function AuthorityDialog({
       ),
   });
 
+  // New rows adopt the first configured subject — derived from the settings,
+  // never a hardcoded default.
+  const subjectType =
+    form.subjectType || settingsQuery.data?.[0]?.subjectType || "";
+
   const flowsQuery = useQuery({
     queryKey: ["approvalFlows"],
     queryFn: async () =>
@@ -108,7 +114,7 @@ export function AuthorityDialog({
   });
 
   const stepSelectItems = useMemo(() => {
-    const labels = decideStepLabels(flowsQuery.data, form.subjectType);
+    const labels = decideStepLabels(flowsQuery.data, subjectType);
     const items = [{ value: ANY_STEP, label: t("anyStep") }];
     for (const [value, label] of labels) {
       items.push({ value, label });
@@ -117,9 +123,10 @@ export function AuthorityDialog({
       items.push({ value: form.stepKey, label: form.stepKey });
     }
     return items;
-  }, [flowsQuery.data, form.subjectType, form.stepKey, t]);
+  }, [flowsQuery.data, subjectType, form.stepKey, t]);
 
   const canSave =
+    subjectType !== "" &&
     form.name.trim() !== "" &&
     form.minAmount !== "" &&
     Number(form.minAmount) >= 0 &&
@@ -129,7 +136,7 @@ export function AuthorityDialog({
     mutationFn: async () => {
       const payload: StoreTocaEntryRequest = {
         name: form.name.trim(),
-        subject_type: form.subjectType,
+        subject_type: subjectType as StoreTocaEntryRequestSubjectType,
         step_key: form.stepKey === "" ? null : form.stepKey,
         min_amount: Number(form.minAmount),
         max_amount: form.maxAmount === "" ? null : Number(form.maxAmount),
@@ -180,9 +187,9 @@ export function AuthorityDialog({
             <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">
               {t("subject")} <RequiredMark />
             </Label>
-            <Select
-              value={form.subjectType}
-              items={(settingsQuery.data ?? []).map((setting) => ({
+              <Select
+                value={subjectType}
+                items={(settingsQuery.data ?? []).map((setting) => ({
                 value: setting.subjectType,
                 label: setting.name,
               }))}

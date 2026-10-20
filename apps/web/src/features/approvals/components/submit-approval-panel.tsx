@@ -34,6 +34,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { RequiredMark } from "@/components/required-mark";
 import { useMe } from "@/hooks/use-me";
+import { approvalSubject } from "../approval-subjects";
 import type { ApprovalPreview, ApprovalPreviewStep } from "../approval-types";
 
 const money = new Intl.NumberFormat("en-US", {
@@ -143,6 +144,9 @@ export function SubmitApprovalPanel({
 
   const missingAssignee = missingSteps.length > 0;
 
+  // The subject's own query key and detail route — never hardcode one type.
+  const subjectConfig = approvalSubject(subjectType);
+
   const submitMutation = useMutation({
     mutationFn: async (vars: { subjectId: string; created: boolean }) => {
       const payload = {
@@ -160,13 +164,19 @@ export function SubmitApprovalPanel({
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["approvals"] });
-      qc.invalidateQueries({ queryKey: ["evaluations"] });
+      if (subjectConfig) {
+        qc.invalidateQueries({ queryKey: subjectConfig.documentQueryKey });
+      }
       setAssignees({});
       toast.success(t("submitted"));
     },
     onSettled: (_data, _error, vars) => {
       if (vars.created) {
-        router.push(`/purchase-orders/evaluations/${vars.subjectId}`);
+        // The document now exists even if the round failed to open — land on
+        // its own detail page (approvals tray for unknown subjects).
+        router.push(
+          subjectConfig ? subjectConfig.detailPath(vars.subjectId) : "/approvals"
+        );
       }
     },
   });

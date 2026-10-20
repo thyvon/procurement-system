@@ -61,7 +61,8 @@ type StepRow = {
 };
 
 type FlowForm = {
-  subjectType: StoreApprovalFlowRequestSubjectType;
+  /** Empty until a new row adopts the first configured setting. */
+  subjectType: StoreApprovalFlowRequestSubjectType | "";
   name: string;
   minAmount: string;
   maxAmount: string;
@@ -83,7 +84,7 @@ function newRow(): StepRow {
 }
 
 const EMPTY_FORM: FlowForm = {
-  subjectType: "evaluation",
+  subjectType: "",
   name: "",
   minAmount: "0",
   maxAmount: "",
@@ -143,6 +144,11 @@ export function FlowDialog({
     enabled: !editing,
   });
 
+  // New rows adopt the first configured subject — derived from the settings,
+  // never a hardcoded default.
+  const subjectType =
+    form.subjectType || settingsQuery.data?.[0]?.subjectType || "";
+
   const updateStep = (index: number, patch: Partial<StepRow>) => {
     setForm((f) => ({
       ...f,
@@ -170,6 +176,7 @@ export function FlowDialog({
 
   const keys = form.steps.map((row) => row.key.trim());
   const canSave =
+    subjectType !== "" &&
     form.name.trim().length > 0 &&
     form.minAmount !== "" &&
     Number(form.minAmount) >= 0 &&
@@ -202,7 +209,7 @@ export function FlowDialog({
         return editing.id;
       }
       const payload: StoreApprovalFlowRequest = {
-        subject_type: form.subjectType,
+        subject_type: subjectType as StoreApprovalFlowRequestSubjectType,
         name: form.name.trim(),
         min_amount: Number(form.minAmount),
         max_amount: form.maxAmount === "" ? null : Number(form.maxAmount),
@@ -248,7 +255,7 @@ export function FlowDialog({
                 {t("subject")} <RequiredMark />
               </Label>
               <Select
-                value={form.subjectType}
+                value={subjectType}
                 items={(settingsQuery.data ?? []).map((setting) => ({
                   value: setting.subjectType,
                   label: setting.name,

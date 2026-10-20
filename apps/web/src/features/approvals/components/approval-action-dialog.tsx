@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RequiredMark } from "@/components/required-mark";
 import type { ApprovalAction, ApprovalRequestView } from "../approval-types";
+import { approvalSubject } from "../approval-subjects";
 
 type Props = {
   request: ApprovalRequestView;
@@ -51,7 +52,10 @@ export function ApprovalActionDialog({
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["approvals"] });
-      qc.invalidateQueries({ queryKey: ["evaluations"] });
+      const subjectConfig = approvalSubject(request.subjectType);
+      if (subjectConfig) {
+        qc.invalidateQueries({ queryKey: subjectConfig.documentQueryKey });
+      }
       setComment("");
       onOpenChange(false);
       toast.success(t("decided"));

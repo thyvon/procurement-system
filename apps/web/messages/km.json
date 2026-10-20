@@ -260,7 +260,23 @@
         "currency": "រូបិយប័ណ្ណ",
         "basis": "មូលដ្ឋាននៃការណែនាំ",
         "items": "មុខទំនិញ",
-        "suppliers": "អ្នកផ្គត់ផ្គង់ដែលបានជ្រើសរើស"
+        "suppliers": "អ្នកផ្គត់ផ្គង់ដែលបានជ្រើសរើស",
+        "code": "កូដ",
+        "type": "ប្រភេទ",
+        "status": "ស្ថានភាព",
+        "campus": "សាខា",
+        "division": "ផ្នែក",
+        "department": "នាយកដ្ឋាន",
+        "requestDate": "ថ្ងៃស្នើសុំ",
+        "totalUsd": "សរុប (USD)",
+        "lines": "បន្ទាត់",
+        "clearanceDate": "ថ្ងៃទូទាត់",
+        "requestAmountUsd": "ចំនួនស្នើសុំ (USD)",
+        "balanceUsd": "សមតុល្យ (USD)",
+        "liquidationDate": "ថ្ងៃទូទាត់ជាមុន",
+        "totalActualExpenseUsd": "ចំណាយពិតសរុប (USD)",
+        "totalCashAdvanceUsd": "សរុបប្រាក់ជាមុន (USD)",
+        "remainingCashUsd": "សាច់ប្រាក់នៅសល់ (USD)"
       }
     },
     "submit": {

@@ -260,7 +260,23 @@
         "currency": "Currency",
         "basis": "Recommendation basis",
         "items": "Items",
-        "suppliers": "Selected suppliers"
+        "suppliers": "Selected suppliers",
+        "code": "Code",
+        "type": "Type",
+        "status": "Status",
+        "campus": "Campus",
+        "division": "Division",
+        "department": "Department",
+        "requestDate": "Request date",
+        "totalUsd": "Total (USD)",
+        "lines": "Lines",
+        "clearanceDate": "Clearance date",
+        "requestAmountUsd": "Request amount (USD)",
+        "balanceUsd": "Balance (USD)",
+        "liquidationDate": "Liquidation date",
+        "totalActualExpenseUsd": "Total actual expense (USD)",
+        "totalCashAdvanceUsd": "Total cash advance (USD)",
+        "remainingCashUsd": "Remaining cash (USD)"
       }
     },
     "submit": {

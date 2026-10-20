@@ -35,6 +35,7 @@ import {
   type ApprovalRequestView,
   type ApprovalStatus,
 } from "./approval-types";
+import { approvalSubject } from "./approval-subjects";
 import { ApprovalStatusBadge } from "./components/approval-timeline";
 
 type TrayScope = "inbox" | "outbox" | "all";
@@ -178,10 +179,11 @@ function useRequestColumns({
       cell: ({ row }) => {
         const request = row.original;
         // A returned document sits in draft on its subject again — only its
-        // owner gets the one-click path from the tray back into the form.
+        // owner gets the one-click path from the tray back to the subject's
+        // own page (its form for evaluation, its detail for payments).
         const canResubmit =
           request.status === "returned" &&
-          request.subjectType === "evaluation" &&
+          approvalSubject(request.subjectType) !== undefined &&
           request.createdById !== null &&
           request.createdById === currentUserId;
         return (
@@ -237,8 +239,14 @@ export function RequestsTab() {
   const columns = useRequestColumns({
     currentUserId,
     onViewRequest: (request) => router.push(`/approvals/${request.id}`),
-    onEditRequest: (request) =>
-      router.push(`/purchase-orders/evaluations/${request.subjectId}/edit`),
+    onEditRequest: (request) => {
+      const subjectConfig = approvalSubject(request.subjectType);
+      router.push(
+        subjectConfig
+          ? subjectConfig.resubmitPath(request.subjectId)
+          : `/approvals/${request.id}`
+      );
+    },
   });
 
   const params = {

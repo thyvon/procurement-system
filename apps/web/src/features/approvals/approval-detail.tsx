@@ -28,6 +28,7 @@ import {
   type ApprovalAction,
   type ApprovalRequestView,
 } from "./approval-types";
+import { approvalSubject } from "./approval-subjects";
 import { ApprovalStatusBadge, ApprovalTimeline } from "./components/approval-timeline";
 import { ApprovalActionDialog } from "./components/approval-action-dialog";
 import { SubjectDetailSlot } from "./subject-detail-slot";
@@ -67,7 +68,10 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
       unwrap(await approvalsRequestsCancel(requestId, withAuth())),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["approvals"] });
-      qc.invalidateQueries({ queryKey: ["evaluations"] });
+      const subjectConfig = approvalSubject(subjectType);
+      if (subjectConfig) {
+        qc.invalidateQueries({ queryKey: subjectConfig.documentQueryKey });
+      }
       setCancelOpen(false);
       toast.success(t("cancelled"));
     },
@@ -103,12 +107,12 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
     me.data != null &&
     request.createdById === me.data.id;
   // Only the submitter may withdraw a live round; a returned document is
-  // back in draft on its subject, so the fix happens in the subject's form.
+  // back in draft on its subject, so the fix happens on the subject's own
+  // page (its form for evaluation, its detail for payments).
   const canCancel = request.status === "pending" && isOwner;
+  const subjectConfig = approvalSubject(request.subjectType);
   const canResubmit =
-    request.status === "returned" &&
-    isOwner &&
-    request.subjectType === "evaluation";
+    request.status === "returned" && isOwner && subjectConfig !== undefined;
 
   const handlePrint = () => {
     const originalTitle = document.title;
@@ -157,9 +161,7 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
           {canResubmit ? (
             <Button
               onClick={() =>
-                router.push(
-                  `/purchase-orders/evaluations/${request.subjectId}/edit`
-                )
+                subjectConfig && router.push(subjectConfig.resubmitPath(request.subjectId))
               }
             >
               <Pencil />

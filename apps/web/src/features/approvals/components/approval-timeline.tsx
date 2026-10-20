@@ -45,23 +45,47 @@ function actionLabelKey(action: string): string {
   }
 }
 
-type DocumentChangeKey =
-  | "awardedTotal"
-  | "currency"
-  | "basis"
-  | "items"
-  | "suppliers";
+type DocumentChange = { key: string; from: string; to: string };
 
-type DocumentChange = { key: DocumentChangeKey; from: string; to: string };
+/**
+ * Snapshot keys that have an `approvals.detail.doc.*` message (evaluation and
+ * payments); unknown keys fall back to a humanized label so a future
+ * subject's snapshot renders without touching this list.
+ */
+const DOC_LABEL_KEYS: Record<string, string> = {
+  awardedTotal: "awardedTotal",
+  currency: "currency",
+  recommendationBasis: "basis",
+  items: "items",
+  selectedSuppliers: "suppliers",
+  code: "code",
+  type: "type",
+  status: "status",
+  campus: "campus",
+  division: "division",
+  department: "department",
+  requestDate: "requestDate",
+  totalUsd: "totalUsd",
+  lines: "lines",
+  clearanceDate: "clearanceDate",
+  requestAmountUsd: "requestAmountUsd",
+  balanceUsd: "balanceUsd",
+  liquidationDate: "liquidationDate",
+  totalActualExpenseUsd: "totalActualExpenseUsd",
+  totalCashAdvanceUsd: "totalCashAdvanceUsd",
+  remainingCashUsd: "remainingCashUsd",
+};
 
-function listText(values: string[]): string {
-  return values.length > 0 ? values.join(", ") : "—";
+function humanizeKey(key: string): string {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/^./, (first) => first.toUpperCase());
 }
 
 /**
  * The frozen document of two consecutive rounds, field by field — only what
- * actually moved. A return/resubmit then reads as a diff instead of asking
- * the approver to re-read the whole document.
+ * actually moved. Keys come from whatever the subject snapshots, so a
+ * return/resubmit reads as a diff for every document type, not one.
  */
 function diffDocuments(
   previous: ApprovalDocumentSnapshot | null,
@@ -70,23 +94,13 @@ function diffDocuments(
   if (!previous || !current) return [];
 
   const changes: DocumentChange[] = [];
-  const compare = (key: DocumentChangeKey, from: string, to: string) => {
-    if (from !== to) changes.push({ key, from, to });
-  };
+  const keys = new Set([...Object.keys(previous), ...Object.keys(current)]);
 
-  compare("awardedTotal", previous.awardedTotal, current.awardedTotal);
-  compare("currency", previous.currency, current.currency);
-  compare(
-    "basis",
-    previous.recommendationBasis,
-    current.recommendationBasis
-  );
-  compare("items", listText(previous.items), listText(current.items));
-  compare(
-    "suppliers",
-    listText(previous.selectedSuppliers),
-    listText(current.selectedSuppliers)
-  );
+  for (const key of keys) {
+    const from = previous[key] ?? "";
+    const to = current[key] ?? "";
+    if (from !== to) changes.push({ key, from, to });
+  }
 
   return changes;
 }
@@ -99,13 +113,10 @@ export function ApprovalTimeline({
   rounds?: ApprovalRequestView[];
 }) {
   const t = useTranslations("approvals.detail");
-  const changeLabels: Record<DocumentChangeKey, string> = {
-    awardedTotal: t("doc.awardedTotal"),
-    currency: t("doc.currency"),
-    basis: t("doc.basis"),
-    items: t("doc.items"),
-    suppliers: t("doc.suppliers"),
-  };
+  const changeLabel = (key: string): string =>
+    DOC_LABEL_KEYS[key] !== undefined
+      ? t(`doc.${DOC_LABEL_KEYS[key]}`)
+      : humanizeKey(key);
   const actions = request.actions ?? [];
   const current = request.currentStep;
   // Steps only tell a live story while a decision is pending; once decided,
@@ -247,19 +258,19 @@ export function ApprovalTimeline({
                             <p className="mb-1 font-medium text-muted-foreground">
                               {t("changesSince", { n: index })}
                             </p>
-                            <ul className="space-y-0.5">
-                              {changes.map((change) => (
-                                <li
-                                  key={change.key}
-                                  className="flex flex-wrap gap-x-1.5"
-                                >
-                                  <span>{changeLabels[change.key]}</span>
-                                  <span className="text-muted-foreground">
-                                    {change.from} → {change.to}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
+                              <ul className="space-y-0.5">
+                                {changes.map((change) => (
+                                  <li
+                                    key={change.key}
+                                    className="flex flex-wrap gap-x-1.5"
+                                  >
+                                    <span>{changeLabel(change.key)}</span>
+                                    <span className="text-muted-foreground">
+                                      {change.from || "—"} → {change.to || "—"}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
                           </div>
                         </td>
                       </tr>
