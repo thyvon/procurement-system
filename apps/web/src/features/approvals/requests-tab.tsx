@@ -1,7 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
@@ -14,6 +14,7 @@ import {
 } from "@/lib/api/approval-request/approval-request";
 import type { ApprovalsInboxStatus } from "@/lib/api/model/approvalsInboxStatus";
 import { unwrapWithMeta, withAuth } from "@/lib/api-client";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton";
@@ -81,17 +82,6 @@ function toRow(request: ApprovalRequestView, subjectLabel: string): RequestRow {
     submittedAt: request.submittedAt,
     createdById: request.createdById,
   };
-}
-
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [value, delayMs]);
-
-  return debounced;
 }
 
 const columnHelper = createColumnHelper<DataTableFeatures, RequestRow>();

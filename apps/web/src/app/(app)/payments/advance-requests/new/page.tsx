@@ -1,4 +1,4 @@
-import { AdvanceRequestFormPage } from "@/features/payments/advance-request-form-page";
+import { AdvanceRequestFormPage } from "@/features/payments/cash-requests/advance-request-form-page";
 
 export default function CreateAdvanceRequestRoute() {
   return <AdvanceRequestFormPage />;

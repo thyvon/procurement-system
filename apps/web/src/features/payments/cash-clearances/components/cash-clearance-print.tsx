@@ -2,8 +2,8 @@
 
 import { format, isValid, parseISO } from "date-fns";
 import { NextIntlClientProvider } from "next-intl";
-import enMessages from "../../../../messages/en.json";
-import type { AdvanceLiquidationResource } from "@/lib/api/model/advanceLiquidationResource";
+import enMessages from "../../../../../messages/en.json";
+import type { CashClearanceResource } from "@/lib/api/model/cashClearanceResource";
 import type {
   ApprovalRequestView,
   ApprovalStepSnapshot,
@@ -12,8 +12,8 @@ import { useEntity } from "@/hooks/use-entity";
 import { timeZone } from "@/i18n/config";
 import { formatMoney } from "@/lib/utils";
 
-interface AdvanceLiquidationPrintProps {
-  liquidation: AdvanceLiquidationResource;
+interface CashClearancePrintProps {
+  clearance: CashClearanceResource;
   approvalRequest: ApprovalRequestView | null;
 }
 
@@ -29,22 +29,29 @@ type SignatureColumn = {
 // Literal Khmer + English labels — the official sheet is bilingual by design,
 // not by locale.
 const L = {
-  titleKm: "ការទូទាត់ប្រាក់ជាមុន",
-  titleEn: "ADVANCE LIQUIDATION",
+  titleKm: "ការទូទាត់សាច់ប្រាក់",
+  titleEn: "CASH CLEARANCE",
   code: ["កូដ", "Code"],
   cashRequest: ["សំណើសាច់ប្រាក់", "Cash request"],
-  liquidationDate: ["ថ្ងៃទូទាត់ជាមុន", "Liquidation date"],
+  clearanceDate: ["ថ្ងៃទូទាត់", "Clearance date"],
   exchangeRate: ["អត្រាប្តូរប្រាក់", "Exchange rate"],
+  requestAmount: ["ចំនួនស្នើសុំ", "Request amount"],
+  total: ["សរុប (USD)", "Total (USD)"],
+  balance: ["សមតុល្យ", "Balance"],
+  invoiceDate: ["ថ្ងៃវិក្កយបត្រ", "Invoice date"],
+  prRef: ["លេខយោង PR", "PR ref"],
+  purchaser: ["អ្នកទិញ", "Purchaser"],
+  description: ["ការពិពណ៌នា", "Description"],
+  vendor: ["អ្នកផ្គត់ផ្គង់", "Vendor"],
   campus: ["សាខា", "Campus"],
   division: ["ផ្នែក", "Division"],
   department: ["នាយកដ្ឋាន", "Department"],
-  totalCashAdvance: ["សរុបប្រាក់ជាមុន", "Total cash advance"],
-  totalActualExpense: ["ចំណាយពិតសរុប", "Total actual expense"],
-  remainingCash: ["សាច់ប្រាក់នៅសល់", "Remaining cash"],
-  description: ["ការពិពណ៌នា", "Description"],
-  currency: ["រូបិយប័ណ្ណ", "Currency"],
+  qty: ["ចំនួន", "Qty"],
+  uom: ["ឯកតា", "UoM"],
+  unitPrice: ["តម្លៃឯកតា", "Unit price"],
+  discount: ["បញ្ចុះតម្លៃ", "Discount"],
+  vat: ["អាករ", "VAT"],
   amount: ["ចំនួនទឹកប្រាក់", "Amount"],
-  amountUsd: ["ចំនួនទឹកប្រាក់ (USD)", "Amount (USD)"],
   prepared: ["អ្នករៀបចំ", "Prepared by"],
   reviewed: ["អ្នកត្រួតពិនិត្យ", "Reviewed by"],
   approved: ["អ្នកយល់ព្រម", "Approved by"],
@@ -130,13 +137,7 @@ function SignLine({ label, value }: { label: string; value?: string }) {
   );
 }
 
-function MetaCell({
-  pair,
-  value,
-}: {
-  pair: readonly [string, string];
-  value: string;
-}) {
+function MetaCell({ pair, value }: { pair: readonly [string, string]; value: string }) {
   return (
     <div className="flex items-start gap-1.5">
       <span className="shrink-0 font-semibold">
@@ -148,15 +149,12 @@ function MetaCell({
 }
 
 function PrintSheet({
-  liquidation,
+  clearance,
   approvalRequest,
   logo,
-}: AdvanceLiquidationPrintProps & { logo: string | null }) {
-  const lines = liquidation.lines ?? [];
-  const totalExpense = lines.reduce(
-    (sum, line) => sum + Number(line.amountUsd ?? 0),
-    0
-  );
+}: CashClearancePrintProps & { logo: string | null }) {
+  const lines = clearance.lines ?? [];
+  const total = lines.reduce((sum, line) => sum + Number(line.amountUsd ?? 0), 0);
 
   const columns = signatureColumns(approvalRequest, [
     {
@@ -204,12 +202,11 @@ function PrintSheet({
         </h1>
         <div className="justify-self-end text-left leading-relaxed">
           <div>
-            {L.code[0]} / {L.code[1]}:{" "}
-            <span className="font-mono">{liquidation.code}</span>
+            {L.code[0]} / {L.code[1]}: <span className="font-mono">{clearance.code}</span>
           </div>
           <div>
-            {L.liquidationDate[0]} / {L.liquidationDate[1]}:{" "}
-            {dateOnly(liquidation.liquidationDate) || "—"}
+            {L.clearanceDate[0]} / {L.clearanceDate[1]}:{" "}
+            {dateOnly(clearance.clearanceDate) || "—"}
           </div>
         </div>
       </div>
@@ -217,49 +214,70 @@ function PrintSheet({
       <div className="grid grid-cols-2 gap-x-8 gap-y-1 border border-border px-2 py-1.5 md:grid-cols-3">
         <MetaCell
           pair={L.cashRequest}
-          value={liquidation.cashRequestCode ?? liquidation.cashRequestId}
+          value={clearance.cashRequestCode ?? clearance.cashRequestId}
+        />
+        <MetaCell pair={L.exchangeRate} value={String(clearance.exchangeRate ?? "")} />
+        <MetaCell
+          pair={L.requestAmount}
+          value={formatMoney(Number(clearance.requestAmountUsd ?? 0), "USD")}
         />
         <MetaCell
-          pair={L.exchangeRate}
-          value={String(liquidation.exchangeRate ?? "")}
-        />
-        <MetaCell pair={L.campus} value={liquidation.campus} />
-        <MetaCell pair={L.division} value={liquidation.division} />
-        <MetaCell pair={L.department} value={liquidation.department} />
-        <MetaCell
-          pair={L.totalCashAdvance}
-          value={formatMoney(Number(liquidation.totalCashAdvanceUsd ?? 0), "USD")}
+          pair={L.total}
+          value={formatMoney(Number(clearance.totalUsd ?? total), "USD")}
         />
         <MetaCell
-          pair={L.totalActualExpense}
-          value={formatMoney(
-            Number(liquidation.totalActualExpenseUsd ?? totalExpense),
-            "USD"
-          )}
-        />
-        <MetaCell
-          pair={L.remainingCash}
-          value={formatMoney(Number(liquidation.remainingCashUsd ?? 0), "USD")}
+          pair={L.balance}
+          value={formatMoney(Number(clearance.balanceUsd ?? 0), "USD")}
         />
       </div>
 
       <table className="w-full border-collapse text-[10px]">
         <thead>
           <tr>
-            <th className="w-8 border border-border bg-muted/60 px-1 py-1 text-center font-medium">
+            <th className="border border-border bg-muted/60 px-1 py-1 text-left font-medium">
               #
+            </th>
+            <th className="border border-border bg-muted/60 px-1 py-1 text-left font-medium">
+              <Bi pair={L.invoiceDate} />
+            </th>
+            <th className="border border-border bg-muted/60 px-1 py-1 text-left font-medium">
+              <Bi pair={L.prRef} />
+            </th>
+            <th className="border border-border bg-muted/60 px-1 py-1 text-left font-medium">
+              <Bi pair={L.purchaser} />
             </th>
             <th className="border border-border bg-muted/60 px-1 py-1 text-left font-medium">
               <Bi pair={L.description} />
             </th>
-            <th className="w-24 border border-border bg-muted/60 px-1 py-1 text-left font-medium">
-              <Bi pair={L.currency} />
+            <th className="border border-border bg-muted/60 px-1 py-1 text-left font-medium">
+              <Bi pair={L.vendor} />
             </th>
-            <th className="w-32 border border-border bg-muted/60 px-1 py-1 text-right font-medium">
+            <th className="border border-border bg-muted/60 px-1 py-1 text-left font-medium">
+              <Bi pair={L.campus} />
+            </th>
+            <th className="border border-border bg-muted/60 px-1 py-1 text-left font-medium">
+              <Bi pair={L.division} />
+            </th>
+            <th className="border border-border bg-muted/60 px-1 py-1 text-left font-medium">
+              <Bi pair={L.department} />
+            </th>
+            <th className="border border-border bg-muted/60 px-1 py-1 text-right font-medium">
+              <Bi pair={L.qty} />
+            </th>
+            <th className="border border-border bg-muted/60 px-1 py-1 text-left font-medium">
+              <Bi pair={L.uom} />
+            </th>
+            <th className="border border-border bg-muted/60 px-1 py-1 text-right font-medium">
+              <Bi pair={L.unitPrice} />
+            </th>
+            <th className="border border-border bg-muted/60 px-1 py-1 text-right font-medium">
+              <Bi pair={L.discount} />
+            </th>
+            <th className="border border-border bg-muted/60 px-1 py-1 text-right font-medium">
+              <Bi pair={L.vat} />
+            </th>
+            <th className="border border-border bg-muted/60 px-1 py-1 text-right font-medium">
               <Bi pair={L.amount} />
-            </th>
-            <th className="w-32 border border-border bg-muted/60 px-1 py-1 text-right font-medium">
-              <Bi pair={L.amountUsd} />
             </th>
           </tr>
         </thead>
@@ -270,30 +288,41 @@ function PrintSheet({
                 {index + 1}
               </td>
               <td className="border border-border px-1 py-1">
-                {line.description}
+                {dateOnly(line.invoiceDate) || "—"}
               </td>
-              <td className="border border-border px-1 py-1">
-                {line.currency || "USD"}
+              <td className="border border-border px-1 py-1">{line.prRef || "—"}</td>
+              <td className="border border-border px-1 py-1">{line.purchaser || "—"}</td>
+              <td className="border border-border px-1 py-1">{line.description}</td>
+              <td className="border border-border px-1 py-1">{line.vendor}</td>
+              <td className="border border-border px-1 py-1">{line.campus}</td>
+              <td className="border border-border px-1 py-1">{line.division}</td>
+              <td className="border border-border px-1 py-1">{line.department}</td>
+              <td className="border border-border px-1 py-1 text-right tabular-nums">
+                {line.qty}
+              </td>
+              <td className="border border-border px-1 py-1">{line.uom}</td>
+              <td className="border border-border px-1 py-1 text-right tabular-nums">
+                {formatMoney(Number(line.unitPriceUsd), "USD")}
               </td>
               <td className="border border-border px-1 py-1 text-right tabular-nums">
-                {formatMoney(Number(line.amount), line.currency || "USD")}
+                {formatMoney(Number(line.discountUsd), "USD")}
               </td>
               <td className="border border-border px-1 py-1 text-right tabular-nums">
+                {formatMoney(Number(line.vatUsd), "USD")}
+              </td>
+              <td className="border border-border px-1 py-1 text-right font-semibold tabular-nums">
                 {formatMoney(Number(line.amountUsd), "USD")}
               </td>
             </tr>
           ))}
           <tr>
-            <td className="border border-border px-1 py-1" colSpan={4}>
+            <td className="border border-border px-1 py-1" colSpan={14}>
               <span className="float-right font-semibold">
-                {L.totalActualExpense[0]} / {L.totalActualExpense[1]}:
+                {L.total[0]} / {L.total[1]}:
               </span>
             </td>
             <td className="border border-border px-1 py-1 text-right font-semibold tabular-nums">
-              {formatMoney(
-                Number(liquidation.totalActualExpenseUsd ?? totalExpense),
-                "USD"
-              )}
+              {formatMoney(Number(clearance.totalUsd ?? total), "USD")}
             </td>
           </tr>
         </tbody>
@@ -320,10 +349,7 @@ function PrintSheet({
                 />
               </div>
             ) : null}
-            <SignLine
-              label={`${L.name[0]} / ${L.name[1]}`}
-              value={column.name}
-            />
+            <SignLine label={`${L.name[0]} / ${L.name[1]}`} value={column.name} />
             <SignLine
               label={`${L.position[0]} / ${L.position[1]}`}
               value={column.position}
@@ -336,7 +362,7 @@ function PrintSheet({
   );
 }
 
-export function AdvanceLiquidationPrint(props: AdvanceLiquidationPrintProps) {
+export function CashClearancePrint(props: CashClearancePrintProps) {
   const entity = useEntity();
   const logo = entity.data?.logo ?? null;
 

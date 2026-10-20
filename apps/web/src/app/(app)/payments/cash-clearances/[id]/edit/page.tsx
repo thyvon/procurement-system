@@ -1,4 +1,4 @@
-import { CashClearanceFormPage } from "@/features/payments/cash-clearance-form-page";
+import { CashClearanceFormPage } from "@/features/payments/cash-clearances/cash-clearance-form-page";
 
 export default async function CashClearanceEditRoute({
   params,

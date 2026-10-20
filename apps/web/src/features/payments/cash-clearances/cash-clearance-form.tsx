@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { ArrowLeft, Plus, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,7 +44,11 @@ import type { StoreCashClearanceRequest } from "@/lib/api/model/storeCashClearan
 import type { CashClearanceResource } from "@/lib/api/model/cashClearanceResource";
 import type { CashRequestResource } from "@/lib/api/model/cashRequestResource";
 import { useMe } from "@/hooks/use-me";
+import { useApprovalSubmit } from "@/features/approvals/use-approval-submit";
+import { SubmitApprovalPanel } from "@/features/approvals/components/submit-approval-panel";
 import { CashClearanceFormSkeleton } from "./components/cash-clearance-form-skeleton";
+
+const CASH_CLEARANCE_SUBJECT = "cash_clearance";
 
 type LineForm = {
   invoiceDate: Date | undefined;
@@ -233,8 +235,6 @@ export function CashClearanceForm({ clearanceId, onBack }: CashClearanceFormProp
   const tc = useTranslations("payments.columns");
   const tn = useTranslations("payments.cashClearances");
   const isEdit = Boolean(clearanceId);
-  const qc = useQueryClient();
-  const router = useRouter();
   const meQuery = useMe();
   const [form, setForm] = useState<CashClearanceFormValue>(() => toForm(null));
   const [hydratedId, setHydratedId] = useState<string | null>(null);
@@ -347,11 +347,6 @@ export function CashClearanceForm({ clearanceId, onBack }: CashClearanceFormProp
   const departmentNameSetFor = (divisionName: string) =>
     new Set(departmentOptionsFor(divisionName).map((o) => o.value));
 
-  if (isEdit && showQuery.data && hydratedId !== showQuery.data.id) {
-    setHydratedId(showQuery.data.id);
-    setForm(toForm(showQuery.data));
-  }
-
   const permissions = (meQuery.data?.permissions ?? []) as string[];
   const canManage = permissions.includes("payments.manage");
   const status = showQuery.data?.status ?? null;
@@ -414,53 +409,65 @@ export function CashClearanceForm({ clearanceId, onBack }: CashClearanceFormProp
     form.lines.length > 0 &&
     !missingLines;
 
-  const saveMutation = useMutation({
-    mutationFn: async (): Promise<string> => {
-      const payload: StoreCashClearanceRequest = {
-        cash_request_id: form.cashRequestId,
-        clearance_date: toDateInput(form.clearanceDate) ?? "",
-        exchange_rate: form.exchangeRate.trim() ? toNumber(form.exchangeRate) : null,
-        lines: form.lines.map((line) => ({
-          invoice_date: toDateInput(line.invoiceDate) ?? "",
-          pr_ref: line.prRef.trim() || null,
-          purchaser: line.purchaser.trim() || null,
-          description: line.description.trim(),
-          vendor: line.vendor.trim(),
-          vendor_phone: line.vendorPhone.trim() || null,
-          campus: line.campus.trim(),
-          division: line.division.trim(),
-          department: line.department.trim(),
-          qty: toNumber(line.qty),
-          uom: line.uom.trim(),
-          unit_price_usd: toNumber(line.unitPrice),
-          discount_usd: line.discount.trim() ? toNumber(line.discount) : null,
-          vat_usd: line.vat.trim() ? toNumber(line.vat) : null,
-        })),
-      };
+  const save = async (): Promise<string> => {
+    const payload: StoreCashClearanceRequest = {
+      cash_request_id: form.cashRequestId,
+      clearance_date: toDateInput(form.clearanceDate) ?? "",
+      exchange_rate: form.exchangeRate.trim() ? toNumber(form.exchangeRate) : null,
+      lines: form.lines.map((line) => ({
+        invoice_date: toDateInput(line.invoiceDate) ?? "",
+        pr_ref: line.prRef.trim() || null,
+        purchaser: line.purchaser.trim() || null,
+        description: line.description.trim(),
+        vendor: line.vendor.trim(),
+        vendor_phone: line.vendorPhone.trim() || null,
+        campus: line.campus.trim(),
+        division: line.division.trim(),
+        department: line.department.trim(),
+        qty: toNumber(line.qty),
+        uom: line.uom.trim(),
+        unit_price_usd: toNumber(line.unitPrice),
+        discount_usd: line.discount.trim() ? toNumber(line.discount) : null,
+        vat_usd: line.vat.trim() ? toNumber(line.vat) : null,
+      })),
+    };
 
-      if (isEdit) {
-        unwrap(
-          await paymentsCashClearancesUpdate(
-            clearanceId!,
-            payload,
-            withAuth()
-          )
-        );
-        return clearanceId!;
-      }
-      const created = unwrap<{ id: string }>(
-        await paymentsCashClearancesStore(payload, withAuth())
+    if (isEdit) {
+      unwrap(
+        await paymentsCashClearancesUpdate(
+          clearanceId!,
+          payload,
+          withAuth()
+        )
       );
-      return created.id;
-    },
-    onSuccess: (id) => {
-      qc.invalidateQueries({ queryKey: ["cash-clearances"] });
-      toast.success(isEdit ? tn("updated") : tn("created"));
-      if (!isEdit) {
-        router.push(`/payments/cash-clearances/${id}/edit`);
-      }
-    },
+      return clearanceId!;
+    }
+    const created = unwrap<{ id: string }>(
+      await paymentsCashClearancesStore(payload, withAuth())
+    );
+    return created.id;
+  };
+
+  const approval = useApprovalSubmit({
+    subjectType: CASH_CLEARANCE_SUBJECT,
+    isEdit,
+    documentId: clearanceId,
+    invalidateKey: ["cash-clearances"],
+    createEditPath: (id) => `/payments/cash-clearances/${id}/edit`,
+    createdMessage: tn("created"),
+    updatedMessage: tn("updated"),
+    canSave,
+    save,
+    snapshot: JSON.stringify(form),
+    amount: isEdit && !hydratedId ? null : total,
   });
+
+  if (isEdit && showQuery.data && hydratedId !== showQuery.data.id) {
+    const next = toForm(showQuery.data);
+    setHydratedId(showQuery.data.id);
+    setForm(next);
+    approval.markClean(JSON.stringify(next));
+  }
 
   if (isEdit && showQuery.isPending) {
     return <CashClearanceFormSkeleton />;
@@ -900,24 +907,41 @@ export function CashClearanceForm({ clearanceId, onBack }: CashClearanceFormProp
         </Card>
       </fieldset>
 
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          disabled={saveMutation.isPending}
-        >
-          {t("cancel")}
-        </Button>
-        {locked ? null : (
-          <Button
-            onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending || !canSave}
-          >
-            <Save />
-            <span>{saveMutation.isPending ? t("saving") : t("save")}</span>
+      {locked ? (
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="outline" onClick={onBack}>
+            {t("cancel")}
           </Button>
-        )}
-      </div>
+        </div>
+      ) : (
+        <SubmitApprovalPanel
+          subjectType={CASH_CLEARANCE_SUBJECT}
+          subjectId={clearanceId ?? null}
+          amount={approval.draftAmount}
+          dirty={approval.isDirty}
+          disabled={approval.saving || !canSave}
+          prepareDocument={approval.prepareDocument}
+          onAssigneesChange={approval.onAssigneesChange}
+          actions={
+            <>
+              <Button
+                variant="outline"
+                onClick={onBack}
+                disabled={approval.saving}
+              >
+                {t("cancel")}
+              </Button>
+              <Button
+                onClick={approval.handleSave}
+                disabled={approval.saving || !canSave}
+              >
+                <Save />
+                <span>{approval.saving ? t("saving") : t("save")}</span>
+              </Button>
+            </>
+          }
+        />
+      )}
     </div>
   );
 }

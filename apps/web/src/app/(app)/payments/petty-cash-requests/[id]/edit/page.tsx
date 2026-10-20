@@ -1,4 +1,4 @@
-import { PettyCashRequestFormPage } from "@/features/payments/petty-cash-request-form-page";
+import { PettyCashRequestFormPage } from "@/features/payments/cash-requests/petty-cash-request-form-page";
 
 export default async function PettyCashRequestEditRoute({
   params,

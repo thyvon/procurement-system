@@ -32,6 +32,14 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { RequiredMark } from "@/components/required-mark";
 import { useMe } from "@/hooks/use-me";
 import { approvalSubject } from "../approval-subjects";
@@ -240,37 +248,38 @@ export function SubmitApprovalPanel({
               ) : null}
             </div>
 
-            <ol>
-              {(preview.steps ?? []).map((step, index, all) => {
-                const candidates =
-                  step.actionMode === "decide" ? step.candidates ?? [] : [];
-                const items = ComboboxNS.createItems(
-                  candidates.map((candidate) => ({
-                    value: String(candidate.id),
-                    label: candidate.name,
-                  })),
-                  {
-                    getValue: (candidate) => candidate.value,
-                    getLabel: (candidate) => candidate.label,
-                  }
-                );
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="h-8 w-12">{t("stepNumber")}</TableHead>
+                  <TableHead className="h-8">{t("stepName")}</TableHead>
+                  <TableHead className="h-8 w-72">{t("assignee")}</TableHead>
+                  <TableHead className="h-8 w-56">
+                    {t("additionalMessage")}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(preview.steps ?? []).map((step, index) => {
+                  const candidates =
+                    step.actionMode === "decide" ? step.candidates ?? [] : [];
+                  const items = ComboboxNS.createItems(
+                    candidates.map((candidate) => ({
+                      value: String(candidate.id),
+                      label: candidate.name,
+                    })),
+                    {
+                      getValue: (candidate) => candidate.value,
+                      getLabel: (candidate) => candidate.label,
+                    }
+                  );
 
-                return (
-                  <li
-                    key={step.position}
-                    className="relative flex gap-3 pb-4 last:pb-0"
-                  >
-                    {index < all.length - 1 ? (
-                      <span
-                        aria-hidden
-                        className="absolute left-[11px] top-6 h-[calc(100%_-_1.5rem)] w-px bg-border"
-                      />
-                    ) : null}
-                    <span className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full border bg-background text-xs font-medium tabular-nums">
-                      {index + 1}
-                    </span>
-                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                      <div className="flex items-center gap-2">
+                  return (
+                    <TableRow key={step.position}>
+                      <TableCell className="py-1 tabular-nums">
+                        {index + 1}
+                      </TableCell>
+                      <TableCell className="whitespace-normal py-1">
                         <Label className="text-sm font-medium">
                           {step.label}
                           {step.actionMode === "decide" ? (
@@ -283,68 +292,67 @@ export function SubmitApprovalPanel({
                         {step.actionMode === "record" ? (
                           <Badge
                             variant="secondary"
-                            className="px-1.5 text-[10px] font-normal"
+                            className="ml-2 px-1.5 text-[10px] font-normal"
                           >
                             {t("auto")}
                           </Badge>
                         ) : null}
-                      </div>
-                      {step.actionMode === "record" ? (
-                        <p className="truncate text-sm text-muted-foreground">
-                          {(me.data ?? null)?.name ?? t("autoRecorded")}
-                        </p>
-                      ) : (
-                        <div className="space-y-1">
-                          <Combobox
-                            items={items}
-                            value={resolveAssignee(step)}
-                            onValueChange={(next) => {
-                              if (next === null || next === undefined) return;
-                              setAssignees((previous) => ({
-                                ...previous,
-                                [step.position]: String(next),
-                              }));
-                            }}
-                          >
-                            <ComboboxInput
-                              className="min-w-0 w-full"
-                              placeholder={
-                                candidates.length === 0
-                                  ? t("noCandidates")
-                                  : t("selectAssignee")
-                              }
-                            />
-                            <ComboboxContent>
-                              <ComboboxEmpty className="text-xs">
-                                {candidates.length === 0
-                                  ? t("noCandidates")
-                                  : t("noMatch")}
-                              </ComboboxEmpty>
-                              <ComboboxList>
-                                {(item) => (
-                                  <ComboboxItem
-                                    key={item.value}
-                                    value={item.value}
-                                    className="text-xs"
-                                  >
-                                    {item.label}
-                                  </ComboboxItem>
-                                )}
-                              </ComboboxList>
-                            </ComboboxContent>
-                          </Combobox>
-                          {candidates.length === 0 ? (
-                            <p className="text-xs text-destructive">
-                              {t("noCandidates")}
-                            </p>
-                          ) : null}
-                        </div>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
+                      </TableCell>
+                      <TableCell className="whitespace-normal py-1">
+                        {step.actionMode === "record" ? (
+                          <span className="text-sm text-muted-foreground">
+                            {(me.data ?? null)?.name ?? t("autoRecorded")}
+                          </span>
+                        ) : (
+                          <div className="min-w-0">
+                            <Combobox
+                              items={items}
+                              value={resolveAssignee(step)}
+                              onValueChange={(next) => {
+                                if (next === null || next === undefined)
+                                  return;
+                                setAssignees((previous) => ({
+                                  ...previous,
+                                  [step.position]: String(next),
+                                }));
+                              }}
+                            >
+                              <ComboboxInput
+                                className="h-8 min-w-0 w-full"
+                                placeholder={
+                                  candidates.length === 0
+                                    ? t("noCandidates")
+                                    : t("selectAssignee")
+                                }
+                              />
+                              <ComboboxContent>
+                                <ComboboxEmpty className="text-xs">
+                                  {candidates.length === 0
+                                    ? t("noCandidates")
+                                    : t("noMatch")}
+                                </ComboboxEmpty>
+                                <ComboboxList>
+                                  {(item) => (
+                                    <ComboboxItem
+                                      key={item.value}
+                                      value={item.value}
+                                      className="text-xs"
+                                    >
+                                      {item.label}
+                                    </ComboboxItem>
+                                  )}
+                                </ComboboxList>
+                              </ComboboxContent>
+                            </Combobox>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-1" />
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
         )}
       </CardContent>

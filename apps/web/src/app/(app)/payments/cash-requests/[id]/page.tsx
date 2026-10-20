@@ -1,4 +1,4 @@
-import { CashRequestDetail } from "@/features/payments/cash-request-detail";
+import { CashRequestDetail } from "@/features/payments/cash-requests/cash-request-detail";
 
 export default async function CashRequestDetailRoute({
   params,

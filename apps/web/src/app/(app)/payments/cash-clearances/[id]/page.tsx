@@ -1,4 +1,4 @@
-import { CashClearanceDetail } from "@/features/payments/cash-clearance-detail";
+import { CashClearanceDetail } from "@/features/payments/cash-clearances/cash-clearance-detail";
 
 export default async function CashClearanceDetailRoute({
   params,

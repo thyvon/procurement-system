@@ -5,7 +5,7 @@
  * this instead of assuming one subject — adding a module to approvals is one
  * entry here, mirroring the API registry entry.
  */
-export type ApprovalSubjectConfig = {
+type ApprovalSubjectConfig = {
   /**
    * The document's TanStack Query key prefix (plural literal, one key → one
    * queryFn). Approval mutations invalidate this so the subject's own list
@@ -21,7 +21,7 @@ export type ApprovalSubjectConfig = {
   resubmitPath: (subjectId: string) => string;
 };
 
-export const APPROVAL_SUBJECTS: Record<string, ApprovalSubjectConfig> = {
+const APPROVAL_SUBJECTS: Record<string, ApprovalSubjectConfig> = {
   evaluation: {
     documentQueryKey: ["evaluations"],
     detailPath: (id) => `/purchase-orders/evaluations/${id}`,

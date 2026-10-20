@@ -35,7 +35,7 @@ export type CashRequestBranch =
   | "cash-requests";
 
 /** `nav.<key>` and `payments.<key>` — the branch's label in both namespaces. */
-export type CashRequestBranchTKey =
+type CashRequestBranchTKey =
   | "pettyCashRequests"
   | "advanceRequests"
   | "cashRequests";
@@ -57,7 +57,7 @@ interface CashRequestBranchClient {
   destroy(cashRequest: string, options?: RequestInit): Promise<Envelope>;
 }
 
-export interface CashRequestBranchConfig {
+interface CashRequestBranchConfig {
   /** The single CashRequest type this branch lists, creates and may touch. */
   type: CashRequestType;
   tKey: CashRequestBranchTKey;

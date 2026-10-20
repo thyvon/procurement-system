@@ -58,9 +58,14 @@ function MetaRow({ label, value }: { label: string; value: ReactNode }) {
 
 interface CashClearanceDetailProps {
   clearanceId: string;
+  /** Approval page embed: no page chrome, just the document + print sheet. */
+  embedded?: boolean;
 }
 
-export function CashClearanceDetail({ clearanceId }: CashClearanceDetailProps) {
+export function CashClearanceDetail({
+  clearanceId,
+  embedded = false,
+}: CashClearanceDetailProps) {
   const router = useRouter();
   const tf = useTranslations("payments.form");
   const tt = useTranslations("payments.table");
@@ -127,6 +132,10 @@ export function CashClearanceDetail({ clearanceId }: CashClearanceDetailProps) {
   }
 
   if (showQuery.isError || !clearance) {
+    if (embedded) {
+      return <p className="text-sm text-destructive">{tn("loadFailed")}</p>;
+    }
+
     return (
       <div className="mt-1 min-w-0 space-y-4">
         <Button
@@ -164,55 +173,59 @@ export function CashClearanceDetail({ clearanceId }: CashClearanceDetailProps) {
   return (
     <>
       <div className="mt-1 min-w-0 space-y-6 print:hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => router.push("/payments/cash-clearances")}
-              aria-label={tf("back")}
-            >
-              <ArrowLeft />
-            </Button>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-semibold tracking-tight">
-                  {clearance.code}
-                </h1>
-                <CashClearanceStatusBadge status={status} />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {tabs("cashClearances")}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={handlePrint}>
-              <Printer />
-              {tad("print")}
-            </Button>
-            {canEdit ? (
-              <Button
-                onClick={() =>
-                  router.push(`/payments/cash-clearances/${clearance.id}/edit`)
-                }
-              >
-                <Pencil />
-                {tt("edit")}
-              </Button>
-            ) : null}
-            {canEdit ? (
+        {embedded ? null : (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
               <Button
                 variant="outline"
-                className="text-destructive hover:bg-destructive/10"
-                onClick={() => setDeleteOpen(true)}
+                size="icon"
+                onClick={() => router.push("/payments/cash-clearances")}
+                aria-label={tf("back")}
               >
-                <Trash2 />
-                {tt("delete")}
+                <ArrowLeft />
               </Button>
-            ) : null}
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-semibold tracking-tight">
+                    {clearance.code}
+                  </h1>
+                  <CashClearanceStatusBadge status={status} />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {tabs("cashClearances")}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={handlePrint}>
+                <Printer />
+                {tad("print")}
+              </Button>
+              {canEdit ? (
+                <Button
+                  onClick={() =>
+                    router.push(
+                      `/payments/cash-clearances/${clearance.id}/edit`
+                    )
+                  }
+                >
+                  <Pencil />
+                  {tt("edit")}
+                </Button>
+              ) : null}
+              {canEdit ? (
+                <Button
+                  variant="outline"
+                  className="text-destructive hover:bg-destructive/10"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 />
+                  {tt("delete")}
+                </Button>
+              ) : null}
+            </div>
           </div>
-        </div>
+        )}
 
         <Card size="sm" className="min-w-0">
           <CardHeader>
@@ -446,14 +459,14 @@ export function CashClearanceDetail({ clearanceId }: CashClearanceDetailProps) {
           </CardContent>
         </Card>
 
-        {approvalRequest ? (
+        {approvalRequest && !embedded ? (
           <div className="space-y-4">
             <h2 className="text-sm font-medium">{ta("reviewTitle")}</h2>
             <ApprovalTimeline request={approvalRequest} rounds={rounds} />
           </div>
         ) : null}
 
-        {canSubmit ? (
+        {canSubmit && !embedded ? (
           <SubmitApprovalPanel
             subjectType={CASH_CLEARANCE_SUBJECT}
             subjectId={clearance.id}

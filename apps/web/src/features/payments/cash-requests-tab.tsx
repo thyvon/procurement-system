@@ -1,13 +1,14 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import type { CashRequestResource } from "@/lib/api/model/cashRequestResource";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import type { PaymentsCashRequestsIndexStatus } from "@/lib/api/model/paymentsCashRequestsIndexStatus";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -67,17 +68,6 @@ function toRow(resource: CashRequestResource): CashRequestRow {
     updatedAt: resource.updatedAt,
     createdById: resource.createdById ?? null,
   };
-}
-
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [value, delayMs]);
-
-  return debounced;
 }
 
 const columnHelper = createColumnHelper<DataTableFeatures, CashRequestRow>();

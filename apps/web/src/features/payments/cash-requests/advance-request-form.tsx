@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { ArrowLeft, Plus, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,9 +49,12 @@ import {
 import type { StoreCashRequestRequest } from "@/lib/api/model/storeCashRequestRequest";
 import type { CashRequestResource } from "@/lib/api/model/cashRequestResource";
 import { useMe } from "@/hooks/use-me";
-import { CashRequestFormSkeleton } from "./components/cash-request-form-skeleton";
+import { useApprovalSubmit } from "@/features/approvals/use-approval-submit";
+import { SubmitApprovalPanel } from "@/features/approvals/components/submit-approval-panel";
+import { CashRequestFormSkeleton } from "../components/cash-request-form-skeleton";
 import {
   EMPTY_LINE,
+  approvalSubjectType,
   fieldLabelClass,
   hasLineError,
   lineAmountUsd,
@@ -61,7 +62,7 @@ import {
   toDateInput,
   toNumber,
   type LineForm,
-} from "./cash-request-helpers";
+} from "../cash-request-helpers";
 
 type AdvanceRequestFormValue = {
   campus: string;
@@ -172,8 +173,6 @@ export function AdvanceRequestForm({
   // existing key for the header card title.
   const td = useTranslations("breadcrumb");
   const isEdit = Boolean(advanceRequestId);
-  const qc = useQueryClient();
-  const router = useRouter();
   const meQuery = useMe();
   const [form, setForm] = useState<AdvanceRequestFormValue>(() => toForm(null));
   const [hydratedId, setHydratedId] = useState<string | null>(null);
@@ -233,11 +232,6 @@ export function AdvanceRequestForm({
   };
   const departmentNameSetFor = (divisionName: string) =>
     new Set(departmentOptionsFor(divisionName).map((o) => o.value));
-
-  if (isEdit && showQuery.data && hydratedId !== showQuery.data.id) {
-    setHydratedId(showQuery.data.id);
-    setForm(toForm(showQuery.data));
-  }
 
   const permissions = (meQuery.data?.permissions ?? []) as string[];
   const canManage = permissions.includes("payments.manage");
@@ -304,52 +298,64 @@ export function AdvanceRequestForm({
     form.lines.length > 0 &&
     !missingLines;
 
-  const saveMutation = useMutation({
-    mutationFn: async (): Promise<string> => {
-      const payload: StoreCashRequestRequest = {
-        type: "advance",
-        campus: form.campus.trim(),
-        division: form.division.trim(),
-        department: form.department.trim(),
-        request_date: toDateInput(form.requestDate) ?? "",
-        exchange_rate:
-          form.exchangeRate.trim() === "" ? null : toNumber(form.exchangeRate),
-        mode_of_payment: form.modeOfPayment.trim() || null,
-        payment_to: form.paymentTo.trim() || null,
-        bank_account_no: form.bankAccountNo.trim() || null,
-        bank_name: form.bankName.trim() || null,
-        advance_request_for: form.advanceRequestFor.trim() || null,
-        remark: form.remark.trim() || null,
-        lines: form.lines.map((line) => ({
-          description: line.description.trim(),
-          currency: line.currency,
-          amount: toNumber(line.amount),
-        })),
-      };
+  const save = async (): Promise<string> => {
+    const payload: StoreCashRequestRequest = {
+      type: "advance",
+      campus: form.campus.trim(),
+      division: form.division.trim(),
+      department: form.department.trim(),
+      request_date: toDateInput(form.requestDate) ?? "",
+      exchange_rate:
+        form.exchangeRate.trim() === "" ? null : toNumber(form.exchangeRate),
+      mode_of_payment: form.modeOfPayment.trim() || null,
+      payment_to: form.paymentTo.trim() || null,
+      bank_account_no: form.bankAccountNo.trim() || null,
+      bank_name: form.bankName.trim() || null,
+      advance_request_for: form.advanceRequestFor.trim() || null,
+      remark: form.remark.trim() || null,
+      lines: form.lines.map((line) => ({
+        description: line.description.trim(),
+        currency: line.currency,
+        amount: toNumber(line.amount),
+      })),
+    };
 
-      if (isEdit) {
-        unwrap(
-          await paymentsAdvanceRequestsUpdate(
-            advanceRequestId!,
-            payload,
-            withAuth()
-          )
-        );
-        return advanceRequestId!;
-      }
-      const created = unwrap<{ id: string }>(
-        await paymentsAdvanceRequestsStore(payload, withAuth())
+    if (isEdit) {
+      unwrap(
+        await paymentsAdvanceRequestsUpdate(
+          advanceRequestId!,
+          payload,
+          withAuth()
+        )
       );
-      return created.id;
-    },
-    onSuccess: (id) => {
-      qc.invalidateQueries({ queryKey: ["advance-requests"] });
-      toast.success(isEdit ? tc("updated") : tc("created"));
-      if (!isEdit) {
-        router.push(`/payments/advance-requests/${id}/edit`);
-      }
-    },
+      return advanceRequestId!;
+    }
+    const created = unwrap<{ id: string }>(
+      await paymentsAdvanceRequestsStore(payload, withAuth())
+    );
+    return created.id;
+  };
+
+  const approval = useApprovalSubmit({
+    subjectType: approvalSubjectType("advance"),
+    isEdit,
+    documentId: advanceRequestId,
+    invalidateKey: ["advance-requests"],
+    createEditPath: (id) => `/payments/advance-requests/${id}/edit`,
+    createdMessage: tc("created"),
+    updatedMessage: tc("updated"),
+    canSave,
+    save,
+    snapshot: JSON.stringify(form),
+    amount: isEdit && !hydratedId ? null : totalUsd,
   });
+
+  if (isEdit && showQuery.data && hydratedId !== showQuery.data.id) {
+    const next = toForm(showQuery.data);
+    setHydratedId(showQuery.data.id);
+    setForm(next);
+    approval.markClean(JSON.stringify(next));
+  }
 
   if (isEdit && showQuery.isPending) {
     return <CashRequestFormSkeleton />;
@@ -706,24 +712,41 @@ export function AdvanceRequestForm({
         </Card>
       </fieldset>
 
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          disabled={saveMutation.isPending}
-        >
-          {t("cancel")}
-        </Button>
-        {locked ? null : (
-          <Button
-            onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending || !canSave}
-          >
-            <Save />
-            <span>{saveMutation.isPending ? t("saving") : t("save")}</span>
+      {locked ? (
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="outline" onClick={onBack}>
+            {t("cancel")}
           </Button>
-        )}
-      </div>
+        </div>
+      ) : (
+        <SubmitApprovalPanel
+          subjectType={approvalSubjectType("advance")}
+          subjectId={advanceRequestId ?? null}
+          amount={approval.draftAmount}
+          dirty={approval.isDirty}
+          disabled={approval.saving || !canSave}
+          prepareDocument={approval.prepareDocument}
+          onAssigneesChange={approval.onAssigneesChange}
+          actions={
+            <>
+              <Button
+                variant="outline"
+                onClick={onBack}
+                disabled={approval.saving}
+              >
+                {t("cancel")}
+              </Button>
+              <Button
+                onClick={approval.handleSave}
+                disabled={approval.saving || !canSave}
+              >
+                <Save />
+                <span>{approval.saving ? t("saving") : t("save")}</span>
+              </Button>
+            </>
+          }
+        />
+      )}
     </div>
   );
 }

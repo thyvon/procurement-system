@@ -1,4 +1,4 @@
-import { AdvanceLiquidationDetail } from "@/features/payments/advance-liquidation-detail";
+import { AdvanceLiquidationDetail } from "@/features/payments/advance-liquidations/advance-liquidation-detail";
 
 export default async function AdvanceLiquidationDetailRoute({
   params,

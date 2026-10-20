@@ -22,16 +22,40 @@ const ALIGN_CLASS: Record<string, string> = {
 };
 
 /**
- * Table min-width budget in px — the same pattern as the evaluation matrix's
- * `tableWidth`: fixed px columns don't shrink on zoom while the viewport
- * does, so without this floor the wrapper stops scrolling, the flexible
- * description column is squeezed, and its header bleeds into the next cell.
- * Below the budget this wrapper scrolls instead.
+ * Tailwind width tokens → px, used to budget the table's min-width.
+ * Columns pass their width as the same token applied to the `<col>`; add a
+ * token here when a caller introduces a new width class.
  */
-// qty 96 + unit 128 + discount 112 + line 112 + USD 112 + uom 96 +
-// campus 128 + division 128 + department 144 + location 128 + purpose 224
-const FIXED_COLUMNS_WIDTH = 1408;
-const DESCRIPTION_MIN_WIDTH = 256;
+const WIDTH_PX: Record<string, number> = {
+  "w-8": 32,
+  "w-10": 40,
+  "w-20": 80,
+  "w-24": 96,
+  "w-28": 112,
+  "w-32": 128,
+  "w-36": 144,
+  "w-40": 160,
+  "w-44": 176,
+  "w-48": 192,
+  "w-56": 224,
+  "w-64": 256,
+  "w-72": 288,
+  "w-80": 320,
+  "w-96": 384,
+};
+
+/**
+ * Table min-width budget in px, computed from the columns actually passed —
+ * the same pattern as the evaluation matrix's `tableWidth`: fixed px
+ * columns don't shrink on zoom while the viewport does, so without this
+ * floor the wrapper stops scrolling, the flexible description column is
+ * squeezed, and its header bleeds into the next cell. Below the budget this
+ * wrapper scrolls instead; above it the table fills the card body and the
+ * width-less description column absorbs the slack while every fixed column
+ * keeps its token width. A thin table doesn't inherit a floor built for
+ * the widest one.
+ */
+const DESCRIPTION_MIN_WIDTH = 256; // flexible column (no width token)
 const INDEX_COLUMN_WIDTH = 32; // showIndex
 const ACTIONS_COLUMN_WIDTH = 40; // actions / onRemove
 
@@ -92,9 +116,14 @@ export function LineItemsTable<T>({
 }: LineItemsTableProps<T>) {
   const hasActions = Boolean(actions) || Boolean(onRemove);
   const canRemove = !disabled && rows.length > minRows;
+  const fixedWidth = columns.reduce(
+    (sum, column) => sum + (column.width ? (WIDTH_PX[column.width] ?? 0) : 0),
+    0
+  );
+  const flexibleColumns = columns.filter((column) => !column.width).length;
   const tableWidth =
-    FIXED_COLUMNS_WIDTH +
-    DESCRIPTION_MIN_WIDTH +
+    fixedWidth +
+    flexibleColumns * DESCRIPTION_MIN_WIDTH +
     (showIndex ? INDEX_COLUMN_WIDTH : 0) +
     (hasActions ? ACTIONS_COLUMN_WIDTH : 0);
 

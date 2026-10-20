@@ -1,4 +1,4 @@
-import { AdvanceLiquidationFormPage } from "@/features/payments/advance-liquidation-form-page";
+import { AdvanceLiquidationFormPage } from "@/features/payments/advance-liquidations/advance-liquidation-form-page";
 
 export default async function AdvanceLiquidationEditRoute({
   params,

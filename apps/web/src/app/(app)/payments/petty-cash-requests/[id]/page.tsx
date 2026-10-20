@@ -1,4 +1,4 @@
-import { PettyCashRequestDetail } from "@/features/payments/petty-cash-request-detail";
+import { PettyCashRequestDetail } from "@/features/payments/cash-requests/petty-cash-request-detail";
 
 export default async function PettyCashRequestDetailRoute({
   params,

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -31,9 +31,7 @@ import {
   purchaseOrdersEvaluationsStore,
   purchaseOrdersEvaluationsUpdate,
 } from "@/lib/api/evaluation/evaluation";
-import { approvalsDraftsStore } from "@/lib/api/approval-request/approval-request";
 import type { EvaluationResource } from "@/lib/api/model/evaluationResource";
-import type { StoreApprovalDraftRequest } from "@/lib/api/model/storeApprovalDraftRequest";
 import type { StoreEvaluationRequest } from "@/lib/api/model/storeEvaluationRequest";
 import type { UpdateEvaluationRequest } from "@/lib/api/model/updateEvaluationRequest";
 import { unwrap, withAuth } from "@/lib/api-client";
@@ -47,6 +45,7 @@ import {
 import { ApprovalTimeline } from "@/features/approvals/components/approval-timeline";
 import { ApprovalActionDialog } from "@/features/approvals/components/approval-action-dialog";
 import { SubmitApprovalPanel } from "@/features/approvals/components/submit-approval-panel";
+import { useApprovalSubmit } from "@/features/approvals/use-approval-submit";
 import {
   EvaluationMatrix,
   SEED_QUOTATION_COUNT,
@@ -191,17 +190,6 @@ function toUsdDraft(amount: number, currency: string, exchangeRate: string): num
   return round(amount / rate, 2);
 }
 
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [value, delayMs]);
-
-  return debounced;
-}
-
 interface EvaluationFormProps {
   onBack: () => void;
   evaluationId?: string;
@@ -212,7 +200,6 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
   const ta = useTranslations("approvals.form");
   const td = useTranslations("approvals.detail");
   const isEdit = Boolean(evaluationId);
-  const qc = useQueryClient();
   const router = useRouter();
   const me = useMe();
   const [value, setValue] = useState<EvaluationMatrixValue>(createEmptyValue);
@@ -220,12 +207,6 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
   const [currency, setCurrency] = useState("USD");
   const [exchangeRate, setExchangeRate] = useState("1");
   const [hydratedId, setHydratedId] = useState<string | null>(null);
-  const [baseline, setBaseline] = useState<string | null>(null);
-  const pendingSaveRef = useRef("");
-  const skipNavRef = useRef(false);
-  const [approvalAssignees, setApprovalAssignees] = useState<
-    Record<number, string>
-  >({});
   const [action, setAction] = useState<ApprovalAction | null>(null);
 
   const showQuery = useQuery({
@@ -242,79 +223,6 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
     queryFn: (): Promise<ApprovalRequestView[]> =>
       fetchApprovalRounds(EVALUATION_SUBJECT, evaluationId!),
     enabled: isEdit,
-  });
-
-  if (isEdit && showQuery.data && hydratedId !== showQuery.data.id) {
-    const nextValue = fromEvaluation(showQuery.data);
-    const nextBasis = showQuery.data.recommendationBasis ?? "";
-    const nextCurrency = showQuery.data.currency ?? "USD";
-    const nextExchangeRate = String(showQuery.data.exchangeRate ?? 1);
-    setHydratedId(showQuery.data.id);
-    setValue(nextValue);
-    setBasis(nextBasis);
-    setCurrency(nextCurrency);
-    setExchangeRate(nextExchangeRate);
-    setBaseline(
-      serializeForm(nextValue, nextBasis, nextCurrency, nextExchangeRate)
-    );
-  }
-
-  // Persists the approver selection with "Save" — no approval request is
-  // created until the panel's Submit.
-  const draftMutation = useMutation({
-    mutationFn: async (subjectId: string) =>
-      unwrap(
-        await approvalsDraftsStore(
-          {
-            subject_type: EVALUATION_SUBJECT,
-            subject_id: subjectId,
-            assignees: Object.fromEntries(
-              Object.entries(approvalAssignees).map(([position, userId]) => [
-                position,
-                Number(userId),
-              ])
-            ),
-          } as unknown as StoreApprovalDraftRequest,
-          withAuth()
-        )
-      ),
-  });
-
-  const saveMutation = useMutation({
-    mutationFn: async (): Promise<EvaluationResource> => {
-      const payload = toPayload(value, basis, currency, exchangeRate);
-      if (isEdit) {
-        return unwrap(
-          await purchaseOrdersEvaluationsUpdate(
-            evaluationId!,
-            payload as UpdateEvaluationRequest,
-            withAuth()
-          )
-        );
-      }
-      return unwrap(await purchaseOrdersEvaluationsStore(payload, withAuth()));
-    },
-    onSuccess: (result) => {
-      setBaseline(pendingSaveRef.current);
-      qc.invalidateQueries({ queryKey: ["evaluations"] });
-      qc.invalidateQueries({ queryKey: ["approvals", "preview"] });
-      if (skipNavRef.current) {
-        // Save chained into a submit — the panel owns the toast + navigation.
-        return;
-      }
-      if (result?.id && Object.keys(approvalAssignees).length > 0) {
-        draftMutation.mutate(result.id);
-      }
-      toast.success(isEdit ? tf("updated") : tf("created"));
-      if (!isEdit) {
-        const id = result?.id;
-        if (id) {
-          router.push(`/purchase-orders/evaluations/${id}/edit`);
-        } else {
-          onBack();
-        }
-      }
-    },
   });
 
   const evaluationStatus = showQuery.data?.status ?? null;
@@ -348,16 +256,9 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
     () => serializeForm(value, basis, currency, exchangeRate),
     [value, basis, currency, exchangeRate]
   );
-  const isDirty = isEdit && baseline !== null && currentSnapshot !== baseline;
   const awardedTotal = useMemo(
     () => (isEdit && !hydratedId ? null : computeAwardedTotal(value)),
     [isEdit, hydratedId, value]
-  );
-  const draftAmount = useDebouncedValue(
-    awardedTotal === null
-      ? null
-      : toUsdDraft(awardedTotal, currency, exchangeRate),
-    500
   );
 
   const addQuotation = () => {
@@ -410,11 +311,55 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
     return true;
   };
 
-  const handleSave = () => {
-    if (!validateForm()) return;
-    pendingSaveRef.current = serializeForm(value, basis, currency, exchangeRate);
-    saveMutation.mutate();
+  const save = async (): Promise<string> => {
+    const payload = toPayload(value, basis, currency, exchangeRate);
+    if (isEdit) {
+      const result = unwrap<EvaluationResource>(
+        await purchaseOrdersEvaluationsUpdate(
+          evaluationId!,
+          payload as UpdateEvaluationRequest,
+          withAuth()
+        )
+      );
+      return result.id;
+    }
+    const created = unwrap<EvaluationResource>(
+      await purchaseOrdersEvaluationsStore(payload, withAuth())
+    );
+    return created.id;
   };
+
+  const approval = useApprovalSubmit({
+    subjectType: EVALUATION_SUBJECT,
+    isEdit,
+    documentId: evaluationId,
+    invalidateKey: ["evaluations"],
+    createEditPath: (id) => `/purchase-orders/evaluations/${id}/edit`,
+    createdMessage: tf("created"),
+    updatedMessage: tf("updated"),
+    save,
+    snapshot: currentSnapshot,
+    amount:
+      awardedTotal === null
+        ? null
+        : toUsdDraft(awardedTotal, currency, exchangeRate),
+    beforeSave: validateForm,
+  });
+
+  if (isEdit && showQuery.data && hydratedId !== showQuery.data.id) {
+    const nextValue = fromEvaluation(showQuery.data);
+    const nextBasis = showQuery.data.recommendationBasis ?? "";
+    const nextCurrency = showQuery.data.currency ?? "USD";
+    const nextExchangeRate = String(showQuery.data.exchangeRate ?? 1);
+    setHydratedId(showQuery.data.id);
+    setValue(nextValue);
+    setBasis(nextBasis);
+    setCurrency(nextCurrency);
+    setExchangeRate(nextExchangeRate);
+    approval.markClean(
+      serializeForm(nextValue, nextBasis, nextCurrency, nextExchangeRate)
+    );
+  }
 
   const handleCurrencyChange = (next: string | null) => {
     if (!next) return;
@@ -423,25 +368,6 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
       if (!(Number.parseFloat(exchangeRate) > 1)) setExchangeRate("4100");
     } else {
       setExchangeRate("1");
-    }
-  };
-
-  /**
-   * Create mode: validates + saves and returns the new id so the approval
-   * panel can chain straight into submitting. Returns null when the form
-   * fails validation (toasts already explain why) or the save errors.
-   */
-  const prepareDocument = async (): Promise<string | null> => {
-    if (isEdit) return evaluationId ?? null;
-    if (!validateForm()) return null;
-
-    pendingSaveRef.current = serializeForm(value, basis, currency, exchangeRate);
-    skipNavRef.current = true;
-    try {
-      const created = await saveMutation.mutateAsync();
-      return created?.id ?? null;
-    } finally {
-      skipNavRef.current = false;
     }
   };
 
@@ -630,15 +556,15 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
         <SubmitApprovalPanel
           subjectType={EVALUATION_SUBJECT}
           subjectId={evaluationId ?? null}
-          amount={draftAmount}
-          dirty={isDirty}
-          disabled={saveMutation.isPending}
-          prepareDocument={prepareDocument}
-          onAssigneesChange={setApprovalAssignees}
+          amount={approval.draftAmount}
+          dirty={approval.isDirty}
+          disabled={approval.saving}
+          prepareDocument={approval.prepareDocument}
+          onAssigneesChange={approval.onAssigneesChange}
           actions={
-            <Button onClick={handleSave} disabled={saveMutation.isPending}>
+            <Button onClick={approval.handleSave} disabled={approval.saving}>
               <Save />
-              <span>{saveMutation.isPending ? tf("saving") : tf("save")}</span>
+              <span>{approval.saving ? tf("saving") : tf("save")}</span>
             </Button>
           }
         />

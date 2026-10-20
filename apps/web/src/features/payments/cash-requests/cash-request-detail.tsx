@@ -10,9 +10,9 @@ import { unwrap, withAuth } from "@/lib/api-client";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/utils";
 import type { CashRequestResource } from "@/lib/api/model/cashRequestResource";
 import {
-  paymentsPettyCashRequestsDestroy,
-  paymentsPettyCashRequestsShow,
-} from "@/lib/api/petty-cash-request/petty-cash-request";
+  paymentsCashRequestsDestroy,
+  paymentsCashRequestsShow,
+} from "@/lib/api/cash-request/cash-request";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,10 +35,11 @@ import {
   type ApprovalRequestView,
 } from "@/features/approvals/approval-types";
 import { SubmitApprovalPanel } from "@/features/approvals/components/submit-approval-panel";
-import { CashRequestStatusBadge } from "./components/cash-request-status-badge";
-import { CashRequestDetailSkeleton } from "./components/cash-request-detail-skeleton";
-import { CashRequestPrint } from "./components/cash-request-print";
-import { approvalSubjectType, typeLabel } from "./cash-request-helpers";
+import { ApprovalTimeline } from "@/features/approvals/components/approval-timeline";
+import { CashRequestStatusBadge } from "../components/cash-request-status-badge";
+import { CashRequestDetailSkeleton } from "../components/cash-request-detail-skeleton";
+import { CashRequestPrint } from "../components/cash-request-print";
+import { approvalSubjectType, typeLabel } from "../cash-request-helpers";
 import { useMe } from "@/hooks/use-me";
 
 function MetaRow({ label, value }: { label: string; value: ReactNode }) {
@@ -52,16 +53,19 @@ function MetaRow({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-interface PettyCashRequestDetailProps {
-  pettyCashRequestId: string;
+interface CashRequestDetailProps {
+  cashRequestId: string;
+  /** Approval page embed: no page chrome, just the document + print sheet. */
+  embedded?: boolean;
 }
 
-export function PettyCashRequestDetail({
-  pettyCashRequestId,
-}: PettyCashRequestDetailProps) {
+export function CashRequestDetail({
+  cashRequestId,
+  embedded = false,
+}: CashRequestDetailProps) {
   const router = useRouter();
   const tf = useTranslations("payments.form");
-  const tc = useTranslations("payments.pettyCashRequests");
+  const tc = useTranslations("payments.cashRequests");
   const tt = useTranslations("payments.table");
   // No payments.* keys for these three: the shared breadcrumb word ("Details"),
   // the purchase-order audit labels and the print button wording are the
@@ -75,9 +79,9 @@ export function PettyCashRequestDetail({
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const showQuery = useQuery({
-    queryKey: ["petty-cash-requests", "detail", pettyCashRequestId],
+    queryKey: ["cash-requests", "detail", cashRequestId],
     queryFn: async (): Promise<CashRequestResource> =>
-      unwrap(await paymentsPettyCashRequestsShow(pettyCashRequestId, withAuth())),
+      unwrap(await paymentsCashRequestsShow(cashRequestId, withAuth())),
   });
 
   // Shared key/queryFn with approval-detail: every approval round for this
@@ -89,31 +93,31 @@ export function PettyCashRequestDetail({
       "requests",
       "subject",
       subjectType,
-      pettyCashRequestId,
+      cashRequestId,
     ],
     queryFn: (): Promise<ApprovalRequestView[]> =>
-      fetchApprovalRounds(subjectType, pettyCashRequestId),
+      fetchApprovalRounds(subjectType, cashRequestId),
     enabled: Boolean(showQuery.data),
   });
 
   // The shared submit panel only invalidates ["approvals"]; this document's
-  // own status lives under ["petty-cash-requests"], so re-read the server
-  // state whenever the newest round changes (submit → in_review, decision → …).
+  // own status lives under ["cash-requests"], so re-read the server state
+  // whenever the newest round changes (submit → in_review, decision → …).
   const latestRound = roundsQuery.data?.[0] ?? null;
   useEffect(() => {
     if (latestRound) {
-      qc.invalidateQueries({ queryKey: ["petty-cash-requests"] });
+      qc.invalidateQueries({ queryKey: ["cash-requests"] });
     }
   }, [latestRound, qc]);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) =>
-      unwrap(await paymentsPettyCashRequestsDestroy(id, withAuth())),
+      unwrap(await paymentsCashRequestsDestroy(id, withAuth())),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["petty-cash-requests"] });
+      qc.invalidateQueries({ queryKey: ["cash-requests"] });
       setDeleteOpen(false);
       toast.success(tc("deleted"));
-      router.push("/payments/petty-cash-requests");
+      router.push("/payments/cash-requests");
     },
   });
 
@@ -122,11 +126,15 @@ export function PettyCashRequestDetail({
   }
 
   if (showQuery.isError || !showQuery.data) {
+    if (embedded) {
+      return <p className="text-sm text-destructive">{tc("loadFailed")}</p>;
+    }
+
     return (
       <div className="mt-1 min-w-0 space-y-4">
         <Button
           variant="outline"
-          onClick={() => router.push("/payments/petty-cash-requests")}
+          onClick={() => router.push("/payments/cash-requests")}
         >
           {tf("back")}
         </Button>
@@ -178,67 +186,69 @@ export function PettyCashRequestDetail({
   return (
     <>
       <div className="mt-1 min-w-0 space-y-6 print:hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => router.push("/payments/petty-cash-requests")}
-              aria-label={tf("back")}
-            >
-              <ArrowLeft />
-            </Button>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-semibold tracking-tight">
-                  {cashRequest.code}
-                </h1>
-                <CashRequestStatusBadge status={status} />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {tnav("pettyCashRequests")}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handlePrint}
-              disabled={roundsQuery.isPending}
-            >
-              <Printer />
-              {tpo("detail.print")}
-            </Button>
-            {latestRound ? (
+        {embedded ? null : (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
               <Button
                 variant="outline"
-                onClick={() => router.push(`/approvals/${latestRound.id}`)}
+                size="icon"
+                onClick={() => router.push("/payments/cash-requests")}
+                aria-label={tf("back")}
               >
-                {ta("viewRequest")}
+                <ArrowLeft />
               </Button>
-            ) : null}
-            {canDelete ? (
-              <Button variant="outline" onClick={() => setDeleteOpen(true)}>
-                <Trash2 />
-                {tt("delete")}
-              </Button>
-            ) : null}
-            {canEdit ? (
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-semibold tracking-tight">
+                    {cashRequest.code}
+                  </h1>
+                  <CashRequestStatusBadge status={status} />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {tnav("cashRequests")}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <Button
-                onClick={() =>
-                  router.push(
-                    `/payments/petty-cash-requests/${cashRequest.id}/edit`
-                  )
-                }
+                variant="outline"
+                onClick={handlePrint}
+                disabled={roundsQuery.isPending}
               >
-                <Pencil />
-                {tt("edit")}
+                <Printer />
+                {tpo("detail.print")}
               </Button>
-            ) : null}
+              {latestRound ? (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/approvals/${latestRound.id}`)}
+                >
+                  {ta("viewRequest")}
+                </Button>
+              ) : null}
+              {canDelete ? (
+                <Button variant="outline" onClick={() => setDeleteOpen(true)}>
+                  <Trash2 />
+                  {tt("delete")}
+                </Button>
+              ) : null}
+              {canEdit ? (
+                <Button
+                  onClick={() =>
+                    router.push(
+                      `/payments/cash-requests/${cashRequest.id}/edit`
+                    )
+                  }
+                >
+                  <Pencil />
+                  {tt("edit")}
+                </Button>
+              ) : null}
+            </div>
           </div>
-        </div>
+        )}
 
-        {banner}
+        {embedded && status === "in_review" ? null : banner}
 
         <Card size="sm" className="min-w-0">
           <CardHeader>
@@ -246,7 +256,7 @@ export function PettyCashRequestDetail({
           </CardHeader>
           <CardContent className="min-w-0 space-y-3">
             {/* Mirrors the form's head card — left column: identity and org,
-                right column: audit info. */}
+                right column: the payment block and audit info. */}
             <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
               <div className="space-y-3">
                 <MetaRow
@@ -279,6 +289,22 @@ export function PettyCashRequestDetail({
               </div>
 
               <div className="space-y-3">
+                <MetaRow
+                  label={tf("modeOfPayment")}
+                  value={cashRequest.modeOfPayment || "—"}
+                />
+                <MetaRow
+                  label={tf("paymentTo")}
+                  value={cashRequest.paymentTo || "—"}
+                />
+                <MetaRow
+                  label={tf("bankAccountNo")}
+                  value={cashRequest.bankAccountNo || "—"}
+                />
+                <MetaRow
+                  label={tf("bankName")}
+                  value={cashRequest.bankName || "—"}
+                />
                 <MetaRow
                   label={tpo("columns.createdBy")}
                   value={
@@ -368,7 +394,17 @@ export function PettyCashRequestDetail({
           </CardContent>
         </Card>
 
-        {canSubmit ? (
+        {latestRound && !embedded ? (
+          <div className="space-y-4">
+            <h2 className="text-sm font-medium">{ta("reviewTitle")}</h2>
+            <ApprovalTimeline
+              request={latestRound}
+              rounds={roundsQuery.data ?? []}
+            />
+          </div>
+        ) : null}
+
+        {canSubmit && !embedded ? (
           <SubmitApprovalPanel
             subjectType={subjectType}
             subjectId={cashRequest.id}
