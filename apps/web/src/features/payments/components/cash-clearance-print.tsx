@@ -212,7 +212,10 @@ function PrintSheet({
       </div>
 
       <div className="grid grid-cols-2 gap-x-8 gap-y-1 border border-border px-2 py-1.5 md:grid-cols-3">
-        <MetaCell pair={L.cashRequest} value={clearance.cashRequestId} />
+        <MetaCell
+          pair={L.cashRequest}
+          value={clearance.cashRequestCode ?? clearance.cashRequestId}
+        />
         <MetaCell pair={L.exchangeRate} value={String(clearance.exchangeRate ?? "")} />
         <MetaCell
           pair={L.requestAmount}

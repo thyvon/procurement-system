@@ -6,4 +6,4 @@
  */
 import type { AdvanceLiquidationResource } from './advanceLiquidationResource';
 
-export type PaymentsAdvanceLiquidationsShow200Data = AdvanceLiquidationResource & { [key: string]: unknown } & Required<Pick<AdvanceLiquidationResource & { [key: string]: unknown }, 'createdBy'>>;
+export type PaymentsAdvanceLiquidationsShow200Data = AdvanceLiquidationResource & { [key: string]: unknown } & Required<Pick<AdvanceLiquidationResource & { [key: string]: unknown }, 'cashRequestCode' | 'createdBy'>>;

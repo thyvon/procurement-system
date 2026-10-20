@@ -42,6 +42,7 @@ type AdvanceLiquidationRow = {
   id: string;
   code: string;
   cashRequestId: string;
+  cashRequestCode: string | null;
   liquidationDate: string | null;
   campus: string;
   division: string;
@@ -63,6 +64,7 @@ function toRow(resource: AdvanceLiquidationResource): AdvanceLiquidationRow {
     id: resource.id,
     code: resource.code,
     cashRequestId: resource.cashRequestId,
+    cashRequestCode: resource.cashRequestCode ?? null,
     liquidationDate: resource.liquidationDate,
     campus: resource.campus,
     division: resource.division,
@@ -120,9 +122,9 @@ function useAdvanceLiquidationColumns({
       cell: ({ row }) => (
         <span
           className="block max-w-40 truncate font-mono text-xs"
-          title={row.getValue("cashRequestId")}
+          title={row.original.cashRequestId}
         >
-          {row.getValue("cashRequestId")}
+          {row.original.cashRequestCode ?? row.original.cashRequestId}
         </span>
       ),
     }),

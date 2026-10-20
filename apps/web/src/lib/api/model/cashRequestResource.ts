@@ -34,6 +34,8 @@ export interface CashRequestResource {
   /** @nullable */
   createdBy?: string | null;
   /** @nullable */
+  createdByPosition?: string | null;
+  /** @nullable */
   createdById: number | null;
   lines?: CashRequestLineResource[];
 }

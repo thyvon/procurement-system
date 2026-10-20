@@ -111,6 +111,7 @@ it('creates a clearance against an approved request with recomputed totals', fun
         ])
         ->assertJsonPath('data.status', 'draft')
         ->assertJsonPath('data.cashRequestId', $request->getKey())
+        ->assertJsonPath('data.cashRequestCode', $request->code)
         ->assertJsonPath('data.clearanceDate', '2026-06-15')
         // 10 × 15 − 4 + 0 = 146; 500 − 146 = 354.
         ->assertJsonPath('data.totalUsd', 146)
@@ -219,7 +220,8 @@ it('never returns another entity cash clearance', function () {
     $foreignAdmin = User::factory()->create(['entity_id' => $this->otherEntity->getKey()]);
     $foreignAdmin->assignRole('admin');
 
-    $own = storeCashClearance(approvedCashRequest()->getKey())->assertStatus(201);
+    $ownRequest = approvedCashRequest();
+    $own = storeCashClearance($ownRequest->getKey())->assertStatus(201);
     $ownId = $own->json('data.id');
     $ownCode = $own->json('data.code');
 
@@ -243,7 +245,8 @@ it('never returns another entity cash clearance', function () {
     expect(array_column($listed, 'code'))->toContain($ownCode)
         ->and(array_column($listed, 'code'))->not->toContain($foreign->json('data.code'))
         ->and(array_column($listed, 'id'))->toContain($ownId)
-        ->and(array_column($listed, 'id'))->not->toContain($foreignId);
+        ->and(array_column($listed, 'id'))->not->toContain($foreignId)
+        ->and(array_column($listed, 'cashRequestCode'))->toContain($ownRequest->code);
 
     $this->actingAs($this->staff, 'sanctum')
         ->getJson("/api/v1/payments/cash-clearances/{$foreignId}")

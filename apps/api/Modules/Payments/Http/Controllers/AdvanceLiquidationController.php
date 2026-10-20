@@ -53,7 +53,7 @@ class AdvanceLiquidationController extends Controller
         $advanceLiquidation = $this->service->create($request->advanceLiquidationData(), $user);
 
         return ApiResponse::success(
-            new AdvanceLiquidationResource($advanceLiquidation->load(['lines', 'creator'])),
+            new AdvanceLiquidationResource($advanceLiquidation->load(['lines', 'creator', 'cashRequest'])),
             201,
         );
     }
@@ -62,7 +62,7 @@ class AdvanceLiquidationController extends Controller
     {
         $this->authorize('view', $advanceLiquidation);
 
-        return new AdvanceLiquidationResource($advanceLiquidation->load(['lines', 'creator']));
+        return new AdvanceLiquidationResource($advanceLiquidation->load(['lines', 'creator', 'cashRequest']));
     }
 
     public function update(UpdateAdvanceLiquidationRequest $request, AdvanceLiquidation $advanceLiquidation): AdvanceLiquidationResource
@@ -74,7 +74,7 @@ class AdvanceLiquidationController extends Controller
 
         $advanceLiquidation = $this->service->update($advanceLiquidation, $request->advanceLiquidationData(), $user);
 
-        return new AdvanceLiquidationResource($advanceLiquidation->load(['lines', 'creator']));
+        return new AdvanceLiquidationResource($advanceLiquidation->load(['lines', 'creator', 'cashRequest']));
     }
 
     public function status(UpdateAdvanceLiquidationStatusRequest $request, AdvanceLiquidation $advanceLiquidation): JsonResponse
@@ -90,7 +90,7 @@ class AdvanceLiquidationController extends Controller
             $user,
         );
 
-        return ApiResponse::success(new AdvanceLiquidationResource($advanceLiquidation->load(['lines', 'creator'])));
+        return ApiResponse::success(new AdvanceLiquidationResource($advanceLiquidation->load(['lines', 'creator', 'cashRequest'])));
     }
 
     public function destroy(AdvanceLiquidation $advanceLiquidation): JsonResponse

@@ -6,4 +6,4 @@
  */
 import type { CashClearanceResource } from './cashClearanceResource';
 
-export type PaymentsCashClearancesStatus200Data = CashClearanceResource & { [key: string]: unknown } & Required<Pick<CashClearanceResource & { [key: string]: unknown }, 'createdBy'>>;
+export type PaymentsCashClearancesStatus200Data = CashClearanceResource & { [key: string]: unknown } & Required<Pick<CashClearanceResource & { [key: string]: unknown }, 'cashRequestCode' | 'createdBy'>>;

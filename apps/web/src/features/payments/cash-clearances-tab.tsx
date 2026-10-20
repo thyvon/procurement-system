@@ -42,6 +42,7 @@ type CashClearanceRow = {
   id: string;
   code: string;
   cashRequestId: string;
+  cashRequestCode: string | null;
   clearanceDate: string | null;
   requestAmountUsd: number;
   totalUsd: number;
@@ -60,6 +61,7 @@ function toRow(resource: CashClearanceResource): CashClearanceRow {
     id: resource.id,
     code: resource.code,
     cashRequestId: resource.cashRequestId,
+    cashRequestCode: resource.cashRequestCode ?? null,
     clearanceDate: resource.clearanceDate,
     requestAmountUsd: resource.requestAmountUsd,
     totalUsd: resource.totalUsd,
@@ -114,9 +116,9 @@ function useCashClearanceColumns({
       cell: ({ row }) => (
         <span
           className="block max-w-40 truncate font-mono text-xs"
-          title={row.getValue("cashRequestId")}
+          title={row.original.cashRequestId}
         >
-          {row.getValue("cashRequestId")}
+          {row.original.cashRequestCode ?? row.original.cashRequestId}
         </span>
       ),
     }),

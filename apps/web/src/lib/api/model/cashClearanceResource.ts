@@ -11,6 +11,7 @@ export interface CashClearanceResource {
   code: string;
   status: string;
   cashRequestId: string;
+  cashRequestCode?: string;
   clearanceDate: string;
   exchangeRate: number;
   totalUsd: number;

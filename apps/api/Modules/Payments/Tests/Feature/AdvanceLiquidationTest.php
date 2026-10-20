@@ -121,6 +121,7 @@ it('liquidates an approved advance with the derived usd totals and code', functi
         ])
         ->assertJsonPath('data.status', 'draft')
         ->assertJsonPath('data.cashRequestId', $source->getKey())
+        ->assertJsonPath('data.cashRequestCode', $source->code)
         ->assertJsonPath('data.campus', 'CEN')
         ->assertJsonPath('data.liquidationDate', '2026-06-15')
         ->assertJsonPath('data.exchangeRate', 4026)
@@ -218,7 +219,8 @@ it('never returns another entity advance liquidation', function () {
     $foreignAdmin = User::factory()->create(['entity_id' => $this->otherEntity->getKey()]);
     $foreignAdmin->assignRole('admin');
 
-    $ownCode = storeAdvanceLiquidation(advanceSource()->getKey())
+    $ownSource = advanceSource();
+    $ownCode = storeAdvanceLiquidation($ownSource->getKey())
         ->assertStatus(201)
         ->json('data.code');
 
@@ -234,13 +236,14 @@ it('never returns another entity advance liquidation', function () {
         ->assertStatus(201);
     $foreignId = $foreign->json('data.id');
 
-    $codes = $this->actingAs($this->staff, 'sanctum')
+    $rows = $this->actingAs($this->staff, 'sanctum')
         ->getJson('/api/v1/payments/advance-liquidations')
         ->assertOk()
-        ->json('data.*.code');
+        ->json('data');
 
-    expect($codes)->toContain($ownCode)
-        ->not->toContain($foreign->json('data.code'));
+    expect(array_column($rows, 'code'))->toContain($ownCode)
+        ->not->toContain($foreign->json('data.code'))
+        ->and(array_column($rows, 'cashRequestCode'))->toContain($ownSource->code);
 
     $this->actingAs($this->staff, 'sanctum')
         ->getJson("/api/v1/payments/advance-liquidations/{$foreignId}")

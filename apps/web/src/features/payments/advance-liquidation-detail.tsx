@@ -234,8 +234,11 @@ export function AdvanceLiquidationDetail({
                 <MetaRow
                   label={tf("cashRequest")}
                   value={
-                    <span className="font-mono">
-                      {liquidation.cashRequestId}
+                    <span
+                      className="font-mono"
+                      title={liquidation.cashRequestId}
+                    >
+                      {liquidation.cashRequestCode ?? liquidation.cashRequestId}
                     </span>
                   }
                 />

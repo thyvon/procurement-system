@@ -6,4 +6,4 @@
  */
 import type { CashRequestResource } from './cashRequestResource';
 
-export type PaymentsCashRequestsUpdate200Data = CashRequestResource & { [key: string]: unknown } & Required<Pick<CashRequestResource & { [key: string]: unknown }, 'createdBy'>>;
+export type PaymentsCashRequestsUpdate200Data = CashRequestResource & { [key: string]: unknown } & Required<Pick<CashRequestResource & { [key: string]: unknown }, 'createdBy' | 'createdByPosition'>>;

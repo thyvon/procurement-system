@@ -215,6 +215,14 @@ function PrintSheet({
             value={cashRequest.advanceRequestFor}
           />
         ) : null}
+        <InfoRow
+          label="Created by · អ្នកបង្កើត"
+          value={cashRequest.createdBy}
+        />
+        <InfoRow
+          label="Position · តួនាទី"
+          value={cashRequest.createdByPosition}
+        />
         <InfoRow label="Remark · ចំណាំ" value={cashRequest.remark} />
       </div>
 

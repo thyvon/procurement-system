@@ -98,6 +98,7 @@ it('creates a petty cash request with a server-generated campus-aware code', fun
         ->assertJsonPath('data.department', 'ACC')
         ->assertJsonPath('data.requestDate', '2026-06-15')
         ->assertJsonPath('data.exchangeRate', 4026)
+        ->assertJsonStructure(['data' => ['createdBy', 'createdByPosition']])
         ->assertJsonCount(2, 'data.lines');
 
     expect(CashRequest::query()->count())->toBe(1);

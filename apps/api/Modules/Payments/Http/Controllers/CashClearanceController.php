@@ -53,7 +53,7 @@ class CashClearanceController extends Controller
         $cashClearance = $this->service->create($request->cashClearanceData(), $user);
 
         return ApiResponse::success(
-            new CashClearanceResource($cashClearance->load(['lines', 'creator'])),
+            new CashClearanceResource($cashClearance->load(['lines', 'creator', 'cashRequest'])),
             201,
         );
     }
@@ -62,7 +62,7 @@ class CashClearanceController extends Controller
     {
         $this->authorize('view', $cashClearance);
 
-        return new CashClearanceResource($cashClearance->load(['lines', 'creator']));
+        return new CashClearanceResource($cashClearance->load(['lines', 'creator', 'cashRequest']));
     }
 
     public function update(UpdateCashClearanceRequest $request, CashClearance $cashClearance): CashClearanceResource
@@ -74,7 +74,7 @@ class CashClearanceController extends Controller
 
         $cashClearance = $this->service->update($cashClearance, $request->cashClearanceData(), $user);
 
-        return new CashClearanceResource($cashClearance->load(['lines', 'creator']));
+        return new CashClearanceResource($cashClearance->load(['lines', 'creator', 'cashRequest']));
     }
 
     public function status(UpdateCashClearanceStatusRequest $request, CashClearance $cashClearance): JsonResponse
@@ -90,7 +90,7 @@ class CashClearanceController extends Controller
             $user,
         );
 
-        return ApiResponse::success(new CashClearanceResource($cashClearance->load(['lines', 'creator'])));
+        return ApiResponse::success(new CashClearanceResource($cashClearance->load(['lines', 'creator', 'cashRequest'])));
     }
 
     public function destroy(CashClearance $cashClearance): JsonResponse

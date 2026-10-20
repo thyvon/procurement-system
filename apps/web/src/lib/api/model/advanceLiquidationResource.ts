@@ -11,6 +11,7 @@ export interface AdvanceLiquidationResource {
   code: string;
   status: string;
   cashRequestId: string;
+  cashRequestCode?: string;
   liquidationDate: string;
   exchangeRate: number;
   campus: string;

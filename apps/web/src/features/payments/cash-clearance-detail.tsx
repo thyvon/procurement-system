@@ -228,7 +228,12 @@ export function CashClearanceDetail({ clearanceId }: CashClearanceDetailProps) {
                 <MetaRow
                   label={tf("cashRequest")}
                   value={
-                    <span className="font-mono">{clearance.cashRequestId}</span>
+                    <span
+                      className="font-mono"
+                      title={clearance.cashRequestId}
+                    >
+                      {clearance.cashRequestCode ?? clearance.cashRequestId}
+                    </span>
                   }
                 />
                 <MetaRow

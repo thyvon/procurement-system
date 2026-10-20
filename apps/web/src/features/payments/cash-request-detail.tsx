@@ -308,7 +308,16 @@ export function CashRequestDetail({ cashRequestId }: CashRequestDetailProps) {
                 ) : null}
                 <MetaRow
                   label={tpo("columns.createdBy")}
-                  value={cashRequest.createdBy ?? "—"}
+                  value={
+                    <>
+                      {cashRequest.createdBy ?? "—"}
+                      {cashRequest.createdByPosition ? (
+                        <span className="block text-muted-foreground">
+                          {cashRequest.createdByPosition}
+                        </span>
+                      ) : null}
+                    </>
+                  }
                 />
                 <MetaRow
                   label={tpo("columns.date")}
