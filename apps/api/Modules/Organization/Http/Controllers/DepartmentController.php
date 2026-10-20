@@ -13,6 +13,7 @@ use Modules\Organization\Http\Resources\DepartmentResource;
 use Modules\Organization\Models\Department;
 use Modules\Organization\Repositories\DepartmentRepositoryInterface;
 use Modules\Organization\Services\OrganizationLookupService;
+use Modules\Products\Services\CodeGenerationService;
 
 class DepartmentController extends Controller
 {
@@ -21,6 +22,7 @@ class DepartmentController extends Controller
     public function __construct(
         private readonly DepartmentRepositoryInterface $repo,
         private readonly OrganizationLookupService $lookups,
+        private readonly CodeGenerationService $codes,
     ) {}
 
     public function index(): AnonymousResourceCollection
@@ -35,6 +37,12 @@ class DepartmentController extends Controller
         unset($data['division_ids']);
 
         $this->authorize('create', Department::class);
+
+        $data['short_code'] ??= $this->codes->nextShortCode(
+            $data['name'],
+            Department::class,
+            $request->user()?->entity_id,
+        );
 
         /** @var User $user */
         $user = $request->user();

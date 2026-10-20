@@ -8,6 +8,11 @@
 export interface StoreDepartmentRequest {
   /** @maxLength 64 */
   name: string;
+  /**
+     * @maxLength 16
+     * @nullable
+     */
+  short_code?: string | null;
   is_active?: boolean;
   /** @minItems 1 */
   division_ids: string[];

@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Modules\Approvals\Models\TocaEntry;
+use Modules\Payments\Models\AdvanceLiquidation;
+use Modules\Payments\Models\AdvanceLiquidationLine;
+use Modules\Payments\Models\CashClearance;
+use Modules\Payments\Models\CashClearanceLine;
+use Modules\Payments\Models\CashRequest;
+use Modules\Payments\Models\CashRequestLine;
 use Modules\PurchaseOrders\Models\Evaluation;
 use Modules\PurchaseOrders\Models\EvaluationItem;
 use Modules\PurchaseOrders\Models\EvaluationQuotation;
@@ -39,6 +45,46 @@ class ApprovalSubjectRegistry
             'code_column' => 'code',
             'permission' => 'evaluations.manage',
             'currency_column' => 'currency',
+            'exchange_rate_column' => 'exchange_rate',
+            'submittable_statuses' => ['draft', 'returned'],
+        ],
+        'petty_cash_request' => [
+            'model' => CashRequest::class,
+            'amount_column' => 'total_usd',
+            'code_column' => 'code',
+            'permission' => 'payments.manage',
+            'exchange_rate_column' => 'exchange_rate',
+            'submittable_statuses' => ['draft', 'returned'],
+        ],
+        'advance_request' => [
+            'model' => CashRequest::class,
+            'amount_column' => 'total_usd',
+            'code_column' => 'code',
+            'permission' => 'payments.manage',
+            'exchange_rate_column' => 'exchange_rate',
+            'submittable_statuses' => ['draft', 'returned'],
+        ],
+        'cash_request' => [
+            'model' => CashRequest::class,
+            'amount_column' => 'total_usd',
+            'code_column' => 'code',
+            'permission' => 'payments.manage',
+            'exchange_rate_column' => 'exchange_rate',
+            'submittable_statuses' => ['draft', 'returned'],
+        ],
+        'cash_clearance' => [
+            'model' => CashClearance::class,
+            'amount_column' => 'total_usd',
+            'code_column' => 'code',
+            'permission' => 'payments.manage',
+            'exchange_rate_column' => 'exchange_rate',
+            'submittable_statuses' => ['draft', 'returned'],
+        ],
+        'advance_liquidation' => [
+            'model' => AdvanceLiquidation::class,
+            'amount_column' => 'total_actual_expense_usd',
+            'code_column' => 'code',
+            'permission' => 'payments.manage',
             'exchange_rate_column' => 'exchange_rate',
             'submittable_statuses' => ['draft', 'returned'],
         ],
@@ -133,10 +179,20 @@ class ApprovalSubjectRegistry
      */
     public function documentSnapshot(string $subjectType, Model $subject): array
     {
-        if ($subjectType !== 'evaluation') {
-            return [];
-        }
+        return match ($subjectType) {
+            'evaluation' => $this->evaluationSnapshot($subject),
+            'petty_cash_request', 'advance_request', 'cash_request' => $this->cashRequestSnapshot($subject),
+            'cash_clearance' => $this->cashClearanceSnapshot($subject),
+            'advance_liquidation' => $this->advanceLiquidationSnapshot($subject),
+            default => [],
+        };
+    }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function evaluationSnapshot(Model $subject): array
+    {
         /** @var Evaluation $subject */
         $items = $subject->items()
             ->orderBy('position')
@@ -165,6 +221,100 @@ class ApprovalSubjectRegistry
             'items' => $items,
             'selectedSuppliers' => $selectedSuppliers,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function cashRequestSnapshot(Model $subject): array
+    {
+        /** @var CashRequest $subject */
+        return [
+            'code' => (string) $subject->getAttribute('code'),
+            'type' => (string) $subject->getAttribute('type'),
+            'status' => (string) $subject->getAttribute('status'),
+            'campus' => (string) $subject->getAttribute('campus'),
+            'division' => (string) $subject->getAttribute('division'),
+            'department' => (string) $subject->getAttribute('department'),
+            'requestDate' => $subject->getAttribute('request_date')?->format('Y-m-d'),
+            'totalUsd' => number_format((float) $subject->getAttribute('total_usd'), 2, '.', ''),
+            'lines' => $this->amountLineSnapshot($subject),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function cashClearanceSnapshot(Model $subject): array
+    {
+        /** @var CashClearance $subject */
+        $lines = $subject->lines()
+            ->orderBy('position')
+            ->get()
+            ->map(fn (CashClearanceLine $line): array => [
+                'invoiceDate' => $line->invoice_date?->format('Y-m-d'),
+                'description' => (string) $line->description,
+                'vendor' => (string) $line->vendor,
+                'campus' => (string) $line->campus,
+                'division' => (string) $line->division,
+                'department' => (string) $line->department,
+                'qty' => number_format((float) $line->qty, 2, '.', ''),
+                'unitPriceUsd' => number_format((float) $line->unit_price_usd, 2, '.', ''),
+                'amountUsd' => number_format((float) $line->amount_usd, 2, '.', ''),
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'code' => (string) $subject->getAttribute('code'),
+            'status' => (string) $subject->getAttribute('status'),
+            'clearanceDate' => $subject->getAttribute('clearance_date')?->format('Y-m-d'),
+            'totalUsd' => number_format((float) $subject->getAttribute('total_usd'), 2, '.', ''),
+            'requestAmountUsd' => number_format((float) $subject->getAttribute('request_amount_usd'), 2, '.', ''),
+            'balanceUsd' => number_format((float) $subject->getAttribute('balance_usd'), 2, '.', ''),
+            'lines' => $lines,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function advanceLiquidationSnapshot(Model $subject): array
+    {
+        /** @var AdvanceLiquidation $subject */
+        return [
+            'code' => (string) $subject->getAttribute('code'),
+            'status' => (string) $subject->getAttribute('status'),
+            'liquidationDate' => $subject->getAttribute('liquidation_date')?->format('Y-m-d'),
+            'campus' => (string) $subject->getAttribute('campus'),
+            'division' => (string) $subject->getAttribute('division'),
+            'department' => (string) $subject->getAttribute('department'),
+            'totalActualExpenseUsd' => number_format((float) $subject->getAttribute('total_actual_expense_usd'), 2, '.', ''),
+            'totalCashAdvanceUsd' => number_format((float) $subject->getAttribute('total_cash_advance_usd'), 2, '.', ''),
+            'remainingCashUsd' => number_format((float) $subject->getAttribute('remaining_cash_usd'), 2, '.', ''),
+            'lines' => $this->amountLineSnapshot($subject),
+        ];
+    }
+
+    /**
+     * Shared line shape for cash requests and advance liquidations: the
+     * description, its currency, the entered amount and the USD equivalent.
+     *
+     * @return array<int, array{description: string, currency: string, amount: string, amountUsd: string}>
+     */
+    private function amountLineSnapshot(Model $subject): array
+    {
+        return $subject->lines()
+            ->orderBy('position')
+            ->get()
+            ->map(fn (CashRequestLine|AdvanceLiquidationLine $line): array => [
+                'description' => (string) $line->description,
+                'currency' => (string) $line->currency,
+                'amount' => number_format((float) $line->amount, 2, '.', ''),
+                'amountUsd' => number_format((float) $line->amount_usd, 2, '.', ''),
+            ])
+            ->values()
+            ->all();
     }
 
     /**

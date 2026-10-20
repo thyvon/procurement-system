@@ -45,6 +45,66 @@ it('creates, updates and soft-deletes a campus as admin', function () {
     expect(Campus::withTrashed()->find($campusId)->deleted_at)->not->toBeNull();
 });
 
+it('derives a short code from the name when the client omits one', function () {
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/organization/campuses', ['name' => 'Main Campus'])
+        ->assertStatus(201)
+        ->assertJsonPath('data.shortCode', 'MAIN CAMPU');
+});
+
+it('keeps an explicit short code on create and update', function () {
+    $created = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/organization/campuses', ['name' => 'Head Office', 'short_code' => 'HQ'])
+        ->assertStatus(201)
+        ->assertJsonPath('data.shortCode', 'HQ');
+
+    $this->patchJson("/api/v1/organization/campuses/{$created->json('data.id')}", ['short_code' => 'HDO'])
+        ->assertOk()
+        ->assertJsonPath('data.shortCode', 'HDO');
+});
+
+it('rejects a short code already taken in the same entity', function () {
+    Campus::create(['name' => 'Taken', 'entity_id' => $this->entity->getKey(), 'short_code' => 'TAKEN']);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/organization/campuses', ['name' => 'Another', 'short_code' => 'TAKEN'])
+        ->assertStatus(422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors'])
+        ->assertJsonStructure(['errors' => ['short_code']]);
+
+    expect(Campus::query()->where('name', 'Another')->exists())->toBeFalse();
+});
+
+it('allows the same short code in another entity', function () {
+    Campus::create(['name' => 'Foreign', 'entity_id' => $this->otherEntity->getKey(), 'short_code' => 'TWIN']);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/organization/campuses', ['name' => 'Local Twin', 'short_code' => 'TWIN'])
+        ->assertStatus(201)
+        ->assertJsonPath('data.shortCode', 'TWIN');
+});
+
+it('rejects a short code longer than sixteen characters', function () {
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/organization/campuses', ['name' => 'Too Long', 'short_code' => str_repeat('X', 17)])
+        ->assertStatus(422)
+        ->assertJsonStructure(['errors' => ['short_code']]);
+});
+
+it('frees the short code on soft delete', function () {
+    $first = $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/organization/campuses', ['name' => 'Main Campus', 'short_code' => 'MAIN CAMPU'])
+        ->assertStatus(201)
+        ->assertJsonPath('data.shortCode', 'MAIN CAMPU');
+
+    $this->deleteJson("/api/v1/organization/campuses/{$first->json('data.id')}")->assertOk();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/organization/campuses', ['name' => 'Satellite Campus', 'short_code' => 'MAIN CAMPU'])
+        ->assertStatus(201)
+        ->assertJsonPath('data.shortCode', 'MAIN CAMPU');
+});
+
 it('forbids staff from creating campuses', function () {
     $this->actingAs($this->staff, 'sanctum')
         ->postJson('/api/v1/organization/campuses', ['name' => 'Nope'])
@@ -67,7 +127,8 @@ it('creates a division with departments and echoes departmentIds', function () {
             'department_ids' => $departments->pluck('id')->values()->all(),
         ])
         ->assertStatus(201)
-        ->assertJsonPath('data.name', 'Finance');
+        ->assertJsonPath('data.name', 'Finance')
+        ->assertJsonPath('data.shortCode', 'FINANCE');
 
     $divisionId = $created->json('data.id');
 
@@ -103,7 +164,8 @@ it('creates a department with divisions and echoes divisionIds', function () {
             'division_ids' => $divisions->pluck('id')->values()->all(),
         ])
         ->assertStatus(201)
-        ->assertJsonPath('data.name', 'Accounting');
+        ->assertJsonPath('data.name', 'Accounting')
+        ->assertJsonPath('data.shortCode', 'ACCOUNTING');
 
     $departmentId = $created->json('data.id');
 

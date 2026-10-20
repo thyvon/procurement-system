@@ -8,6 +8,8 @@
 export interface UpdateDivisionRequest {
   /** @maxLength 64 */
   name?: string;
+  /** @maxLength 16 */
+  short_code?: string;
   is_active?: boolean;
   department_ids?: string[];
 }

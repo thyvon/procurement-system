@@ -8,5 +8,7 @@
 export interface UpdateCampusRequest {
   /** @maxLength 64 */
   name?: string;
+  /** @maxLength 16 */
+  short_code?: string;
   is_active?: boolean;
 }

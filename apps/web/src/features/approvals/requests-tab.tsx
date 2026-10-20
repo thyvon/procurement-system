@@ -277,16 +277,21 @@ export function RequestsTab() {
         { page: number; perPage: number; total: number }
       >(response);
       const resources = (envelope.data ?? []) as unknown[];
-      const subjectLabel = t("subjects.evaluation");
+      const subjectLabels: Record<string, string> = {
+        evaluation: t("subjects.evaluation"),
+        petty_cash_request: t("subjects.petty_cash_request"),
+        advance_request: t("subjects.advance_request"),
+        cash_request: t("subjects.cash_request"),
+        cash_clearance: t("subjects.cash_clearance"),
+        advance_liquidation: t("subjects.advance_liquidation"),
+      };
 
       return {
         data: resources.map((resource) => {
           const request = parseApprovalRequest(resource);
           return toRow(
             request,
-            request.subjectType === "evaluation"
-              ? subjectLabel
-              : request.subjectType
+            subjectLabels[request.subjectType] ?? request.subjectType
           );
         }),
         meta: envelope.meta,
@@ -392,6 +397,23 @@ export function RequestsTab() {
               items={[
                 { value: "all", label: t("table.allSubjects") },
                 { value: "evaluation", label: t("subjects.evaluation") },
+                {
+                  value: "petty_cash_request",
+                  label: t("subjects.petty_cash_request"),
+                },
+                {
+                  value: "advance_request",
+                  label: t("subjects.advance_request"),
+                },
+                { value: "cash_request", label: t("subjects.cash_request") },
+                {
+                  value: "cash_clearance",
+                  label: t("subjects.cash_clearance"),
+                },
+                {
+                  value: "advance_liquidation",
+                  label: t("subjects.advance_liquidation"),
+                },
               ]}
             >
               <SelectTrigger className="h-8">
@@ -401,6 +423,21 @@ export function RequestsTab() {
                 <SelectItem value="all">{t("table.allSubjects")}</SelectItem>
                 <SelectItem value="evaluation">
                   {t("subjects.evaluation")}
+                </SelectItem>
+                <SelectItem value="petty_cash_request">
+                  {t("subjects.petty_cash_request")}
+                </SelectItem>
+                <SelectItem value="advance_request">
+                  {t("subjects.advance_request")}
+                </SelectItem>
+                <SelectItem value="cash_request">
+                  {t("subjects.cash_request")}
+                </SelectItem>
+                <SelectItem value="cash_clearance">
+                  {t("subjects.cash_clearance")}
+                </SelectItem>
+                <SelectItem value="advance_liquidation">
+                  {t("subjects.advance_liquidation")}
                 </SelectItem>
               </SelectContent>
             </Select>

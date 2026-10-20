@@ -8,6 +8,8 @@
 export interface UpdateDepartmentRequest {
   /** @maxLength 64 */
   name?: string;
+  /** @maxLength 16 */
+  short_code?: string;
   is_active?: boolean;
   division_ids?: string[];
 }

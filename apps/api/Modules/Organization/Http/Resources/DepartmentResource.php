@@ -19,6 +19,7 @@ class DepartmentResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'shortCode' => $this->short_code,
             'isActive' => $this->is_active,
             'divisionIds' => $this->whenLoaded(
                 'divisions',

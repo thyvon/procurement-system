@@ -8,5 +8,10 @@
 export interface StoreCampusRequest {
   /** @maxLength 64 */
   name: string;
+  /**
+     * @maxLength 16
+     * @nullable
+     */
+  short_code?: string | null;
   is_active?: boolean;
 }

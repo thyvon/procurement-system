@@ -13,4 +13,9 @@ export type StoreTocaEntryRequestSubjectType = typeof StoreTocaEntryRequestSubje
 
 export const StoreTocaEntryRequestSubjectType = {
   evaluation: 'evaluation',
+  petty_cash_request: 'petty_cash_request',
+  advance_request: 'advance_request',
+  cash_request: 'cash_request',
+  cash_clearance: 'cash_clearance',
+  advance_liquidation: 'advance_liquidation',
 } as const;

@@ -73,6 +73,10 @@ trait InteractsWithOrgLookups
     {
         $this->authorize('delete', $model);
 
+        // A plain unique index cannot exclude soft-deleted rows, so freeing the
+        // short code lets a recycled name re-own it.
+        $model->update(['short_code' => null]);
+
         $this->repo()->delete($model);
 
         return ApiResponse::success(['deleted' => true]);

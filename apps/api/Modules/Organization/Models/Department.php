@@ -14,6 +14,7 @@ use Modules\Organization\Database\Factories\DepartmentFactory;
 #[Fillable([
     'entity_id',
     'name',
+    'short_code',
     'is_active',
     'created_by',
     'updated_by',

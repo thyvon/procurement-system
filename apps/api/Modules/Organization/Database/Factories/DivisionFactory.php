@@ -5,6 +5,7 @@ namespace Modules\Organization\Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Modules\Organization\Models\Division;
 use Modules\Organization\Models\Entity;
+use Modules\Products\Services\CodeGenerationService;
 
 /**
  * Auto-generated factories per project rule. Resolves the tenant the same
@@ -19,9 +20,13 @@ class DivisionFactory extends Factory
      */
     public function definition(): array
     {
+        $entityId = $this->resolveEntity();
+        $name = fake()->unique()->words(2, true);
+
         return [
-            'entity_id' => $this->resolveEntity(),
-            'name' => fake()->unique()->words(2, true),
+            'entity_id' => $entityId,
+            'name' => $name,
+            'short_code' => app(CodeGenerationService::class)->nextShortCode($name, Division::class, $entityId),
             'is_active' => true,
         ];
     }

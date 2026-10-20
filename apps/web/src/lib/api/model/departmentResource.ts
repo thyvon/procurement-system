@@ -8,6 +8,8 @@
 export interface DepartmentResource {
   id: string;
   name: string;
+  /** @nullable */
+  shortCode: string | null;
   isActive: boolean;
   divisionIds?: unknown[];
 }

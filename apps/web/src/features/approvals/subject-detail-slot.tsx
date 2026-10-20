@@ -15,9 +15,29 @@ function EvaluationSubjectDetail({
   return <EvaluationDetail evaluationId={subjectId} embedded={embedded} />;
 }
 
+function DocumentPlaceholder() {
+  const t = useTranslations("approvals.detail");
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("document")}</CardTitle>
+      </CardHeader>
+      <CardContent className="text-sm text-muted-foreground">
+        {t("noDocumentPreview")}
+      </CardContent>
+    </Card>
+  );
+}
+
 /** One entry per ApprovalSubjectRegistry type: subjectType → its detail view. */
 const SUBJECT_DETAILS: Record<string, ComponentType<SubjectDetailProps>> = {
   evaluation: EvaluationSubjectDetail,
+  petty_cash_request: DocumentPlaceholder,
+  advance_request: DocumentPlaceholder,
+  cash_request: DocumentPlaceholder,
+  cash_clearance: DocumentPlaceholder,
+  advance_liquidation: DocumentPlaceholder,
 };
 
 export function SubjectDetailSlot({
@@ -27,20 +47,10 @@ export function SubjectDetailSlot({
   subjectType: string;
   subjectId: string;
 }) {
-  const t = useTranslations("approvals.detail");
   const Detail = subjectId ? SUBJECT_DETAILS[subjectType] : undefined;
 
   if (!Detail) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("document")}</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          {t("noDocumentPreview")}
-        </CardContent>
-      </Card>
-    );
+    return <DocumentPlaceholder />;
   }
 
   return <Detail subjectId={subjectId} embedded />;

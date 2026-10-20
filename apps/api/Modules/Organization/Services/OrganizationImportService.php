@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use Modules\Organization\Models\Campus;
 use Modules\Organization\Models\Department;
 use Modules\Organization\Models\Division;
+use Modules\Products\Services\CodeGenerationService;
 
 /**
  * Spreadsheet import for organization lookups (campuses, departments).
@@ -16,6 +17,8 @@ use Modules\Organization\Models\Division;
  */
 class OrganizationImportService
 {
+    public function __construct(private readonly CodeGenerationService $codes) {}
+
     /**
      * @param  array<int, array<string, mixed>>  $rows
      * @return array{imported: int, skipped: int, errors: array<int, array{row: int, message: string}>}
@@ -56,6 +59,7 @@ class OrganizationImportService
                 Campus::create([
                     'entity_id' => $actor->entity_id,
                     'name' => $name,
+                    'short_code' => $this->codes->nextShortCode($name, Campus::class, $actor->entity_id),
                     'is_active' => $this->resolveStatus($row),
                     'created_by' => $actor->getKey(),
                     'updated_by' => $actor->getKey(),
@@ -153,6 +157,7 @@ class OrganizationImportService
                 $department = Department::create([
                     'entity_id' => $actor->entity_id,
                     'name' => $name,
+                    'short_code' => $this->codes->nextShortCode($name, Department::class, $actor->entity_id),
                     'is_active' => $this->resolveStatus($row),
                     'created_by' => $actor->getKey(),
                     'updated_by' => $actor->getKey(),

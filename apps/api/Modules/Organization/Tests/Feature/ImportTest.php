@@ -65,6 +65,9 @@ it('imports valid campus rows and reports per-row errors for bad ones', function
 
     expect(Campus::query()->where('name', 'Main Campus')->where('entity_id', $this->entity->getKey())->exists())->toBeTrue()
         ->and(Campus::query()->where('name', 'Archived Campus')->first()->is_active)->toBeFalse();
+
+    expect(Campus::query()->where('name', 'Main Campus')->first()->short_code)->toBe('MAIN CAMPU')
+        ->and(Campus::query()->where('name', 'Archived Campus')->first()->short_code)->toBe('ARCHIVED C');
 });
 
 it('imports department rows and links divisions by name', function () {
@@ -89,6 +92,7 @@ it('imports department rows and links divisions by name', function () {
     $department = Department::query()->with('divisions:id')->where('name', 'Accounting')->first();
     expect($department->divisions->pluck('id')->all())
         ->toEqualCanonicalizing([$finance->getKey(), $hr->getKey()]);
+    expect($department->short_code)->toBe('ACCOUNTING');
 });
 
 it('rejects an empty import payload with the standard 422 envelope', function () {

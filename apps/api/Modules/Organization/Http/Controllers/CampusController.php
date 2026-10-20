@@ -10,6 +10,7 @@ use Modules\Organization\Http\Requests\UpdateCampusRequest;
 use Modules\Organization\Http\Resources\CampusResource;
 use Modules\Organization\Models\Campus;
 use Modules\Organization\Repositories\CampusRepositoryInterface;
+use Modules\Products\Services\CodeGenerationService;
 
 class CampusController extends Controller
 {
@@ -17,6 +18,7 @@ class CampusController extends Controller
 
     public function __construct(
         private readonly CampusRepositoryInterface $repo,
+        private readonly CodeGenerationService $codes,
     ) {}
 
     public function index(): AnonymousResourceCollection
@@ -26,7 +28,14 @@ class CampusController extends Controller
 
     public function store(StoreCampusRequest $request): JsonResponse
     {
-        return $this->doStore($request->validated());
+        $data = $request->validated();
+        $data['short_code'] ??= $this->codes->nextShortCode(
+            $data['name'],
+            Campus::class,
+            $request->user()?->entity_id,
+        );
+
+        return $this->doStore($data);
     }
 
     public function show(Campus $campus): CampusResource

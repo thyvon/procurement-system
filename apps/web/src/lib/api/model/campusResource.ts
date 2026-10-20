@@ -8,5 +8,7 @@
 export interface CampusResource {
   id: string;
   name: string;
+  /** @nullable */
+  shortCode: string | null;
   isActive: boolean;
 }

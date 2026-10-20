@@ -9,5 +9,6 @@
     "Approvals": true,
     "Notifications": true,
     "Telegram": true,
-    "Invoices": true
+    "Invoices": true,
+    "Payments": true
 }

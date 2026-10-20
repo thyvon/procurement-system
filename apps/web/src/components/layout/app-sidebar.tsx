@@ -103,6 +103,20 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    key: "payments",
+    icon: ClipboardList,
+    enabled: true,
+    children: [
+      { key: "cashRequests", href: "/payments/cash-requests", enabled: true },
+      { key: "cashClearances", href: "/payments/cash-clearances", enabled: true },
+      {
+        key: "advanceLiquidations",
+        href: "/payments/advance-liquidations",
+        enabled: true,
+      },
+    ],
+  },
+  {
     key: "organization",
     icon: Building2,
     enabled: true,
