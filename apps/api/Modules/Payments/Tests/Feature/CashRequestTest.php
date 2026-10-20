@@ -52,16 +52,21 @@ function cashRequestPayload(array $overrides = []): array
     ], $overrides);
 }
 
-function storeCashRequest(array $overrides = [], ?User $user = null): TestResponse
+function storeCashRequestTo(string $url, array $overrides = [], ?User $user = null): TestResponse
 {
     $user ??= test()->admin;
 
     return test()->actingAs($user, 'sanctum')
-        ->postJson('/api/v1/payments/cash-requests', cashRequestPayload($overrides));
+        ->postJson($url, cashRequestPayload($overrides));
+}
+
+function storeCashRequest(array $overrides = [], ?User $user = null): TestResponse
+{
+    return storeCashRequestTo('/api/v1/payments/petty-cash-requests', $overrides, $user);
 }
 
 it('requires authentication', function () {
-    $this->getJson('/api/v1/payments/cash-requests')->assertStatus(401);
+    $this->getJson('/api/v1/payments/petty-cash-requests')->assertStatus(401);
 });
 
 it('forbids staff from creating cash requests but lets them list', function () {
@@ -72,7 +77,7 @@ it('forbids staff from creating cash requests but lets them list', function () {
     storeCashRequest();
 
     $response = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/payments/cash-requests')
+        ->getJson('/api/v1/payments/petty-cash-requests')
         ->assertOk()
         ->assertJsonPath('meta.page', 1)
         ->assertJsonPath('meta.perPage', 20)
@@ -151,7 +156,7 @@ it('updates a draft by replacing the whole line list', function () {
     $payload['lines'] = [cashRequestLine(['description' => 'Printer toner', 'amount' => 100])];
 
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/payments/cash-requests/{$id}", $payload)
+        ->patchJson("/api/v1/payments/petty-cash-requests/{$id}", $payload)
         ->assertOk()
         ->assertJsonPath('data.division', 'OPS')
         ->assertJsonPath('data.remark', 'Updated June petty cash.')
@@ -169,12 +174,12 @@ it('cancels a draft and blocks any further status change', function () {
     $id = storeCashRequest()->json('data.id');
 
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/payments/cash-requests/{$id}/status", ['status' => 'cancelled'])
+        ->patchJson("/api/v1/payments/petty-cash-requests/{$id}/status", ['status' => 'cancelled'])
         ->assertOk()
         ->assertJsonPath('data.status', 'cancelled');
 
     $response = $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/payments/cash-requests/{$id}/status", ['status' => 'cancelled'])
+        ->patchJson("/api/v1/payments/petty-cash-requests/{$id}/status", ['status' => 'cancelled'])
         ->assertStatus(422)
         ->assertJsonPath('statusCode', 422)
         ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
@@ -190,7 +195,7 @@ it('refuses to cancel an approved cash request', function () {
     ])->getKey();
 
     $response = $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/payments/cash-requests/{$id}/status", ['status' => 'cancelled'])
+        ->patchJson("/api/v1/payments/petty-cash-requests/{$id}/status", ['status' => 'cancelled'])
         ->assertStatus(422)
         ->assertJsonPath('statusCode', 422)
         ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
@@ -203,7 +208,7 @@ it('soft-deletes a draft cash request', function () {
     $id = storeCashRequest()->json('data.id');
 
     $this->actingAs($this->admin, 'sanctum')
-        ->deleteJson("/api/v1/payments/cash-requests/{$id}")
+        ->deleteJson("/api/v1/payments/petty-cash-requests/{$id}")
         ->assertOk()
         ->assertJsonPath('data.deleted', true);
 
@@ -213,7 +218,7 @@ it('soft-deletes a draft cash request', function () {
         ->and($cashRequest->deleted_at)->not->toBeNull();
 
     $this->actingAs($this->staff, 'sanctum')
-        ->getJson("/api/v1/payments/cash-requests/{$id}")
+        ->getJson("/api/v1/payments/petty-cash-requests/{$id}")
         ->assertNotFound();
 });
 
@@ -224,7 +229,7 @@ it('blocks deleting a cash request that is no longer a draft', function () {
     ])->getKey();
 
     $response = $this->actingAs($this->admin, 'sanctum')
-        ->deleteJson("/api/v1/payments/cash-requests/{$id}")
+        ->deleteJson("/api/v1/payments/petty-cash-requests/{$id}")
         ->assertStatus(422)
         ->assertJsonPath('statusCode', 422)
         ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
@@ -241,21 +246,21 @@ it('forbids another admin from editing or deleting a draft they do not own', fun
     $otherAdmin->assignRole('admin');
 
     $this->actingAs($otherAdmin, 'sanctum')
-        ->patchJson("/api/v1/payments/cash-requests/{$id}", cashRequestPayload())
+        ->patchJson("/api/v1/payments/petty-cash-requests/{$id}", cashRequestPayload())
         ->assertStatus(403);
 
     $this->actingAs($otherAdmin, 'sanctum')
-        ->deleteJson("/api/v1/payments/cash-requests/{$id}")
+        ->deleteJson("/api/v1/payments/petty-cash-requests/{$id}")
         ->assertStatus(403);
 
     // The creator keeps both abilities.
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/payments/cash-requests/{$id}", cashRequestPayload(['remark' => 'Touched by the owner.']))
+        ->patchJson("/api/v1/payments/petty-cash-requests/{$id}", cashRequestPayload(['remark' => 'Touched by the owner.']))
         ->assertOk()
         ->assertJsonPath('data.remark', 'Touched by the owner.');
 
     $this->actingAs($this->admin, 'sanctum')
-        ->deleteJson("/api/v1/payments/cash-requests/{$id}")
+        ->deleteJson("/api/v1/payments/petty-cash-requests/{$id}")
         ->assertOk()
         ->assertJsonPath('data.deleted', true);
 });
@@ -271,7 +276,7 @@ it('never returns another entity cash request', function () {
     $foreignId = $foreign->json('data.id');
 
     $codes = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/payments/cash-requests')
+        ->getJson('/api/v1/payments/petty-cash-requests')
         ->assertOk()
         ->json('data.*.code');
 
@@ -279,29 +284,30 @@ it('never returns another entity cash request', function () {
         ->not->toContain($foreign->json('data.code'));
 
     $this->actingAs($this->staff, 'sanctum')
-        ->getJson("/api/v1/payments/cash-requests/{$foreignId}")
+        ->getJson("/api/v1/payments/petty-cash-requests/{$foreignId}")
         ->assertNotFound();
 });
 
-it('filters the index by type and status', function () {
-    $advanceDraftId = storeCashRequest([
+it('scopes each branch to its own request type', function () {
+    $advanceDraftId = storeCashRequestTo('/api/v1/payments/advance-requests', [
         'type' => 'advance',
         'advance_request_for' => 'June field visit',
     ])->json('data.id');
 
-    $advanceCancelledId = storeCashRequest([
+    $advanceCancelledId = storeCashRequestTo('/api/v1/payments/advance-requests', [
         'type' => 'advance',
         'advance_request_for' => 'June team building',
     ])->json('data.id');
 
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/payments/cash-requests/{$advanceCancelledId}/status", ['status' => 'cancelled'])
+        ->patchJson("/api/v1/payments/advance-requests/{$advanceCancelledId}/status", ['status' => 'cancelled'])
         ->assertOk();
 
     $pettyId = storeCashRequest()->json('data.id');
 
+    // The status filter still works — inside the branch's own type.
     $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/payments/cash-requests?type=advance&status=draft')
+        ->getJson('/api/v1/payments/advance-requests?status=draft')
         ->assertOk()
         ->assertJsonPath('meta.total', 1)
         ->assertJsonPath('data.0.id', $advanceDraftId)
@@ -309,13 +315,68 @@ it('filters the index by type and status', function () {
         ->assertJsonPath('data.0.status', 'draft');
 
     $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/payments/cash-requests?type=advance')
+        ->getJson('/api/v1/payments/advance-requests')
         ->assertOk()
         ->assertJsonPath('meta.total', 2);
 
     $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/payments/cash-requests?type=petty_cash')
+        ->getJson('/api/v1/payments/petty-cash-requests')
         ->assertOk()
         ->assertJsonPath('meta.total', 1)
-        ->assertJsonPath('data.0.id', $pettyId);
+        ->assertJsonPath('data.0.id', $pettyId)
+        ->assertJsonPath('data.0.type', 'petty_cash');
+});
+
+it('hides a document from every other branch', function () {
+    $pettyId = storeCashRequest()->json('data.id');
+
+    foreach (['advance-requests', 'cash-requests'] as $branch) {
+        $this->actingAs($this->admin, 'sanctum')
+            ->getJson("/api/v1/payments/{$branch}/{$pettyId}")
+            ->assertNotFound();
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->patchJson("/api/v1/payments/{$branch}/{$pettyId}/status", ['status' => 'cancelled'])
+            ->assertNotFound();
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->deleteJson("/api/v1/payments/{$branch}/{$pettyId}")
+            ->assertNotFound();
+    }
+
+    expect(CashRequest::query()->count())->toBe(1);
+});
+
+it('rejects a payload whose type contradicts the branch', function () {
+    $response = storeCashRequest([
+        'type' => 'advance',
+        'advance_request_for' => 'June field visit',
+    ])
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors' => ['type']]);
+
+    expect($response->json('errors.type'))->not->toBeEmpty()
+        ->and(CashRequest::query()->count())->toBe(0);
+});
+
+it('creates an advance and a cash request under their own branches', function () {
+    storeCashRequestTo('/api/v1/payments/advance-requests', [
+        'type' => 'advance',
+        'advance_request_for' => 'June field visit',
+    ])
+        ->assertStatus(201)
+        ->assertJsonPath('data.type', 'advance')
+        ->assertJsonPath('data.code', 'AD-CEN-202606-0001');
+
+    storeCashRequestTo('/api/v1/payments/cash-requests', ['type' => 'cash'])
+        ->assertStatus(201)
+        ->assertJsonPath('data.type', 'cash')
+        ->assertJsonPath('data.code', 'CR-CEN-202606-0001');
+
+    // The petty cash branch never sees them.
+    $this->actingAs($this->staff, 'sanctum')
+        ->getJson('/api/v1/payments/petty-cash-requests')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 0);
 });

@@ -110,6 +110,40 @@ export type ApprovalRequestView = {
 
 export const EVALUATION_SUBJECT = "evaluation";
 
+type SubjectLabelKey =
+  | "evaluation"
+  | "petty_cash_request"
+  | "advance_request"
+  | "cash_request"
+  | "cash_clearance"
+  | "advance_liquidation";
+
+type SubjectTranslator = (key: SubjectLabelKey) => string;
+
+function subjectLabels(t: SubjectTranslator): Record<string, string> {
+  return {
+    evaluation: t("evaluation"),
+    petty_cash_request: t("petty_cash_request"),
+    advance_request: t("advance_request"),
+    cash_request: t("cash_request"),
+    cash_clearance: t("cash_clearance"),
+    advance_liquidation: t("advance_liquidation"),
+  };
+}
+
+/**
+ * Human label for an approval subject type — `approvals.subjects.*`, passed
+ * as `useTranslations("approvals.subjects")`. Unknown types fall back to the
+ * raw value so nothing renders blank.
+ */
+export function subjectLabel(
+  t: SubjectTranslator,
+  subjectType: string
+): string {
+  if (!subjectType) return "";
+  return subjectLabels(t)[subjectType] ?? subjectType;
+}
+
 /**
  * Every approval round ever submitted for a document, newest first —
  * the shared queryFn behind ["approvals","requests","subject",type,id],

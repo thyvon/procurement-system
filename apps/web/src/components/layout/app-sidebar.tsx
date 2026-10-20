@@ -107,6 +107,8 @@ const navItems: NavItem[] = [
     icon: ClipboardList,
     enabled: true,
     children: [
+      { key: "pettyCashRequests", href: "/payments/petty-cash-requests", enabled: true },
+      { key: "advanceRequests", href: "/payments/advance-requests", enabled: true },
       { key: "cashRequests", href: "/payments/cash-requests", enabled: true },
       { key: "cashClearances", href: "/payments/cash-clearances", enabled: true },
       {

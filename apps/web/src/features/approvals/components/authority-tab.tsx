@@ -37,7 +37,7 @@ import {
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
 import { AuthorityDialog, type TocaEntryRow } from "./authority-dialog"
 import type { ApprovalFlowRow } from "./flow-dialog"
-import { decideStepLabels } from "../approval-types"
+import { decideStepLabels, subjectLabel } from "../approval-types"
 
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -98,7 +98,7 @@ function useAuthorityColumns({
       ),
       cell: ({ row }) => {
         const subject = row.getValue("subjectType")
-        return subject === "evaluation" ? ts("evaluation") : subject
+        return subjectLabel(ts, String(subject))
       },
     }),
     columnHelper.accessor("stepKey", {

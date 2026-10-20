@@ -89,7 +89,7 @@ beforeEach(function () {
 function paymentsCashRequest(): TestResponse
 {
     return test()->actingAs(test()->admin, 'sanctum')
-        ->postJson('/api/v1/payments/cash-requests', [
+        ->postJson('/api/v1/payments/petty-cash-requests', [
             'type' => 'petty_cash',
             'campus' => 'CEN',
             'division' => 'FIN',
@@ -209,7 +209,7 @@ it('walks a cash request through approval and syncs its status', function () {
         ->assertJsonPath('data.currentStep.key', 'checked');
 
     $this->actingAs($this->admin, 'sanctum')
-        ->getJson("/api/v1/payments/cash-requests/{$id}")
+        ->getJson("/api/v1/payments/petty-cash-requests/{$id}")
         ->assertOk()
         ->assertJsonPath('data.status', 'in_review');
 
@@ -226,7 +226,7 @@ it('walks a cash request through approval and syncs its status', function () {
         ->assertJsonPath('data.currentStep', null);
 
     $this->actingAs($this->admin, 'sanctum')
-        ->getJson("/api/v1/payments/cash-requests/{$id}")
+        ->getJson("/api/v1/payments/petty-cash-requests/{$id}")
         ->assertOk()
         ->assertJsonPath('data.status', 'approved');
 

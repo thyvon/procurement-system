@@ -150,9 +150,11 @@ class AdvanceLiquidationService
     }
 
     /**
-     * The referenced cash request must exist. The approved-source guard
-     * belongs to create(): it is the entry gate, while updates only keep the
-     * money columns in step with the source.
+     * The referenced cash request must exist and be an advance request: a
+     * liquidation settles the AD branch only (petty cash is cleared, cash
+     * requests settle themselves). The approved-source guard belongs to
+     * create(): it is the entry gate, while updates only keep the money
+     * columns in step with the source.
      *
      * @param  array<string, mixed>  $data
      */
@@ -163,6 +165,12 @@ class AdvanceLiquidationService
         if ($source === null) {
             throw ValidationException::withMessages([
                 'cash_request_id' => 'Record not found.',
+            ]);
+        }
+
+        if ($source->type !== CashRequest::TYPE_ADVANCE) {
+            throw ValidationException::withMessages([
+                'cash_request_id' => "Only an advance request can be liquidated, this one is '{$source->type}'.",
             ]);
         }
 

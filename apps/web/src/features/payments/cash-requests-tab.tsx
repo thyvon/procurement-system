@@ -7,13 +7,8 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
-import {
-  paymentsCashRequestsDestroy,
-  paymentsCashRequestsIndex,
-} from "@/lib/api/cash-request/cash-request";
 import type { CashRequestResource } from "@/lib/api/model/cashRequestResource";
 import type { PaymentsCashRequestsIndexStatus } from "@/lib/api/model/paymentsCashRequestsIndexStatus";
-import type { PaymentsCashRequestsIndexType } from "@/lib/api/model/paymentsCashRequestsIndexType";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton";
@@ -34,24 +29,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
 import { useMe } from "@/hooks/use-me";
 import { CashRequestStatusBadge } from "./components/cash-request-status-badge";
-import { typeLabel, typeOptions } from "./cash-request-helpers";
+import { CASH_REQUEST_BRANCHES, type CashRequestBranch } from "./cash-request-branches";
 
 type CashRequestRow = {
   id: string;
   code: string;
-  type: string;
   campus: string;
   division: string;
   department: string;
@@ -71,7 +58,6 @@ function toRow(resource: CashRequestResource): CashRequestRow {
   return {
     id: resource.id,
     code: resource.code,
-    type: resource.type,
     campus: resource.campus,
     division: resource.division,
     department: resource.department,
@@ -111,7 +97,6 @@ function useCashRequestColumns({
 }): ColumnDef<DataTableFeatures, CashRequestRow>[] {
   const tc = useTranslations("payments.columns");
   const tt = useTranslations("payments.table");
-  const tf = useTranslations("payments.form");
 
   return [
     columnHelper.accessor("code", {
@@ -121,15 +106,6 @@ function useCashRequestColumns({
       cell: ({ row }) => (
         <span className="font-mono text-xs">{row.getValue("code")}</span>
       ),
-    }),
-    columnHelper.accessor("type", {
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={tc("type")} />
-      ),
-      cell: ({ row }) => {
-        const value = row.getValue("type") as string;
-        return <span className="text-muted-foreground">{typeLabel(tf, value)}</span>;
-      },
     }),
     columnHelper.accessor("campus", {
       header: ({ column }) => (
@@ -231,13 +207,14 @@ function useCashRequestColumns({
   ] as ColumnDef<DataTableFeatures, CashRequestRow>[];
 }
 
-export function CashRequestsTab() {
-  const t = useTranslations("payments.cashRequests");
+interface CashRequestsTabProps {
+  branch: CashRequestBranch;
+}
+
+export function CashRequestsTab({ branch }: CashRequestsTabProps) {
+  const { client, tKey } = CASH_REQUEST_BRANCHES[branch];
+  const t = useTranslations(`payments.${tKey}`);
   const tt = useTranslations("payments.table");
-  const tf = useTranslations("payments.form");
-  // No payments.* key for "All types" — the approvals tray label is the
-  // closest existing one (same wording, same locale files).
-  const ta = useTranslations("approvals.table");
   const router = useRouter();
   const qc = useQueryClient();
   const meQuery = useMe();
@@ -247,37 +224,31 @@ export function CashRequestsTab() {
   const [deleteTarget, setDeleteTarget] = useState<CashRequestRow | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(20);
 
   const debouncedSearch = useDebouncedValue(search, 300);
-  const typeSelectOptions = typeOptions(tf);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) =>
-      unwrap(await paymentsCashRequestsDestroy(id, withAuth())),
+      unwrap(await client.destroy(id, withAuth())),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["cash-requests"] });
+      qc.invalidateQueries({ queryKey: [branch] });
       setDeleteTarget(null);
       toast.success(t("deleted"));
     },
   });
 
   const query = useQuery({
-    queryKey: ["cash-requests", debouncedSearch, statusFilter, typeFilter, page, perPage],
+    queryKey: [branch, debouncedSearch, statusFilter, page, perPage],
     queryFn: async (): Promise<CashRequestsPage> => {
-      const response = await paymentsCashRequestsIndex(
+      const response = await client.index(
         {
           search: debouncedSearch || undefined,
           status:
             statusFilter === "all"
               ? undefined
               : (statusFilter as PaymentsCashRequestsIndexStatus),
-          type:
-            typeFilter === "all"
-              ? undefined
-              : (typeFilter as PaymentsCashRequestsIndexType),
           page: page + 1,
           per_page: perPage,
         },
@@ -299,14 +270,15 @@ export function CashRequestsTab() {
   const columns = useCashRequestColumns({
     canManage,
     currentUserId,
-    onViewRequest: (cashRequest) => router.push(`/payments/cash-requests/${cashRequest.id}`),
+    onViewRequest: (cashRequest) =>
+      router.push(`/payments/${branch}/${cashRequest.id}`),
     onEditRequest: (cashRequest) =>
-      router.push(`/payments/cash-requests/${cashRequest.id}/edit`),
+      router.push(`/payments/${branch}/${cashRequest.id}/edit`),
     onDeleteRequest: setDeleteTarget,
   });
 
   if (query.isPending) {
-    return <DataTableSkeleton columns={9} actions={2} />;
+    return <DataTableSkeleton columns={8} actions={2} />;
   }
 
   const meta = query.data?.meta ?? { page: page + 1, perPage, total: 0 };
@@ -353,34 +325,11 @@ export function CashRequestsTab() {
         searchPlaceholder={tt("searchPlaceholder")}
         toolbar={
           <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value={typeFilter}
-              onValueChange={(value) => {
-                setTypeFilter(value ?? "all");
-                setPage(0);
-              }}
-              items={[
-                { value: "all", label: ta("allSubjects") },
-                ...typeSelectOptions.map((option) => ({
-                  value: option.value,
-                  label: option.label,
-                })),
-              ]}
-            >
-              <SelectTrigger className="h-8">
-                <SelectValue placeholder={ta("allSubjects")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{ta("allSubjects")}</SelectItem>
-                {typeSelectOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             {canManage ? (
-              <Button type="button" onClick={() => router.push("/payments/cash-requests/new")}>
+              <Button
+                type="button"
+                onClick={() => router.push(`/payments/${branch}/new`)}
+              >
                 <Plus className="mr-2 size-4" />
                 {t("newTitle")}
               </Button>

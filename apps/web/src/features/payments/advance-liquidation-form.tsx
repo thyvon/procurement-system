@@ -46,9 +46,9 @@ import {
   paymentsAdvanceLiquidationsUpdate,
 } from "@/lib/api/advance-liquidation/advance-liquidation";
 import {
-  paymentsCashRequestsIndex,
-  paymentsCashRequestsShow,
-} from "@/lib/api/cash-request/cash-request";
+  paymentsAdvanceRequestsIndex,
+  paymentsAdvanceRequestsShow,
+} from "@/lib/api/advance-request/advance-request";
 import { organizationCampusesIndex } from "@/lib/api/campus/campus";
 import { organizationDivisionsIndex } from "@/lib/api/division/division";
 import { organizationDepartmentsIndex } from "@/lib/api/department/department";
@@ -214,14 +214,14 @@ export function AdvanceLiquidationForm({
 
   // The picker only offers approved advance requests — server-side filtered.
   const cashRequestsQuery = useQuery({
-    queryKey: ["cash-requests", "approved", "advance"],
+    queryKey: ["advance-requests", "approved"],
     queryFn: async () =>
       unwrapWithMeta<
         CashRequestResource[],
         { page: number; perPage: number; total: number }
       >(
-        await paymentsCashRequestsIndex(
-          { status: "approved", type: "advance", per_page: 100 },
+        await paymentsAdvanceRequestsIndex(
+          { status: "approved", per_page: 100 },
           withAuth()
         )
       ),
@@ -268,10 +268,10 @@ export function AdvanceLiquidationForm({
     !!form.cashRequestId &&
     !approvedOptions.some((option) => option.value === form.cashRequestId);
   const linkedCashRequestQuery = useQuery({
-    queryKey: ["cash-requests", "detail", form.cashRequestId || null],
+    queryKey: ["advance-requests", "detail", form.cashRequestId || null],
     queryFn: async (): Promise<CashRequestResource> =>
       unwrap(
-        await paymentsCashRequestsShow(form.cashRequestId, withAuth())
+        await paymentsAdvanceRequestsShow(form.cashRequestId, withAuth())
       ),
     enabled: linkedMissing,
   });

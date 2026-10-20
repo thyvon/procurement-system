@@ -40,34 +40,30 @@ import {
 } from "@/components/ui/combobox";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { cn, formatMoney } from "@/lib/utils";
+import { organizationCampusesIndex } from "@/lib/api/campus/campus";
+import { organizationDivisionsIndex } from "@/lib/api/division/division";
+import { organizationDepartmentsIndex } from "@/lib/api/department/department";
 import {
   paymentsCashRequestsShow,
   paymentsCashRequestsStore,
   paymentsCashRequestsUpdate,
 } from "@/lib/api/cash-request/cash-request";
-import { organizationCampusesIndex } from "@/lib/api/campus/campus";
-import { organizationDivisionsIndex } from "@/lib/api/division/division";
-import { organizationDepartmentsIndex } from "@/lib/api/department/department";
 import type { StoreCashRequestRequest } from "@/lib/api/model/storeCashRequestRequest";
 import type { CashRequestResource } from "@/lib/api/model/cashRequestResource";
 import { useMe } from "@/hooks/use-me";
 import { CashRequestFormSkeleton } from "./components/cash-request-form-skeleton";
 import {
+  EMPTY_LINE,
+  fieldLabelClass,
+  hasLineError,
   lineAmountUsd,
-  showsAdvanceRequestFor,
-  showsPaymentFields,
-  typeOptions,
-  type CashRequestType,
+  toDate,
+  toDateInput,
+  toNumber,
+  type LineForm,
 } from "./cash-request-helpers";
 
-type LineForm = {
-  description: string;
-  currency: "USD" | "KHR";
-  amount: string;
-};
-
 type CashRequestFormValue = {
-  type: CashRequestType | "";
   campus: string;
   division: string;
   department: string;
@@ -77,19 +73,11 @@ type CashRequestFormValue = {
   paymentTo: string;
   bankAccountNo: string;
   bankName: string;
-  advanceRequestFor: string;
   remark: string;
   lines: LineForm[];
 };
 
-const EMPTY_LINE: LineForm = {
-  description: "",
-  currency: "USD",
-  amount: "",
-};
-
 const EMPTY_FORM: CashRequestFormValue = {
-  type: "",
   campus: "",
   division: "",
   department: "",
@@ -99,16 +87,9 @@ const EMPTY_FORM: CashRequestFormValue = {
   paymentTo: "",
   bankAccountNo: "",
   bankName: "",
-  advanceRequestFor: "",
   remark: "",
   lines: [{ ...EMPTY_LINE }],
 };
-
-// w-36 (not w-32) so the longest label — "Mode of payment" plus its required
-// mark and colon — stays on one line; matches the detail page's MetaRow
-// label column.
-const fieldLabelClass =
-  "w-36 shrink-0 text-left after:ml-1 after:content-[':']";
 
 /** Combobox for the campus/division/department header cells. */
 function FieldCombobox({
@@ -148,41 +129,10 @@ function FieldCombobox({
   );
 }
 
-function toNumber(value: string): number {
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function toDateInput(date: Date | undefined): string | null {
-  if (!date) return null;
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function toDate(value: string | null | undefined): Date | undefined {
-  if (!value) return undefined;
-  const [year, month, day] = value.split("-").map(Number);
-  if (!year || !month || !day) return undefined;
-  return new Date(year, month - 1, day);
-}
-
-function hasLineError(line: LineForm): boolean {
-  // Every cell is required by the API — an empty number input reads as 0, so
-  // the raw strings must be checked for money too.
-  return (
-    !line.description.trim() ||
-    line.amount.trim() === "" ||
-    toNumber(line.amount) < 0
-  );
-}
-
 function toForm(resource?: CashRequestResource | null): CashRequestFormValue {
   if (!resource) return { ...EMPTY_FORM, lines: [{ ...EMPTY_LINE }] };
   const lines = resource.lines ?? [];
   return {
-    type: (resource.type as CashRequestType | null) ?? "",
     campus: resource.campus ?? "",
     division: resource.division ?? "",
     department: resource.department ?? "",
@@ -192,7 +142,6 @@ function toForm(resource?: CashRequestResource | null): CashRequestFormValue {
     paymentTo: resource.paymentTo ?? "",
     bankAccountNo: resource.bankAccountNo ?? "",
     bankName: resource.bankName ?? "",
-    advanceRequestFor: resource.advanceRequestFor ?? "",
     remark: resource.remark ?? "",
     lines:
       lines.length > 0
@@ -210,13 +159,15 @@ interface CashRequestFormProps {
   onBack: () => void;
 }
 
-export function CashRequestForm({ cashRequestId, onBack }: CashRequestFormProps) {
+export function CashRequestForm({
+  cashRequestId,
+  onBack,
+}: CashRequestFormProps) {
   const t = useTranslations("payments.form");
   const tc = useTranslations("payments.cashRequests");
   // No payments.form.detailsCard — the shared breadcrumb word is the closest
   // existing key for the header card title.
   const td = useTranslations("breadcrumb");
-  const typeSelectOptions = typeOptions(t);
   const isEdit = Boolean(cashRequestId);
   const qc = useQueryClient();
   const router = useRouter();
@@ -227,9 +178,7 @@ export function CashRequestForm({ cashRequestId, onBack }: CashRequestFormProps)
   const showQuery = useQuery({
     queryKey: ["cash-requests", "detail", cashRequestId],
     queryFn: async (): Promise<CashRequestResource> =>
-      unwrap(
-        await paymentsCashRequestsShow(cashRequestId!, withAuth())
-      ),
+      unwrap(await paymentsCashRequestsShow(cashRequestId!, withAuth())),
     enabled: isEdit,
   });
 
@@ -300,9 +249,6 @@ export function CashRequestForm({ cashRequestId, onBack }: CashRequestFormProps)
     !canManage ||
     (isEdit && (!["draft", "returned"].includes(status ?? "") || !isOwner));
 
-  const payFields = showsPaymentFields(form.type);
-  const advanceFields = showsAdvanceRequestFor(form.type);
-
   const patch = (changes: Partial<CashRequestFormValue>) =>
     setForm((current) => ({ ...current, ...changes }));
 
@@ -345,35 +291,29 @@ export function CashRequestForm({ cashRequestId, onBack }: CashRequestFormProps)
   // UX-only gate: the API's 422 is the source of truth.
   const missingLines = form.lines.some(hasLineError);
   const canSave =
-    !!form.type &&
     !!form.campus.trim() &&
     !!form.division.trim() &&
     !!form.department.trim() &&
     !!form.requestDate &&
     (form.exchangeRate.trim() === "" || toNumber(form.exchangeRate) > 0) &&
     (!hasKhrLine || toNumber(form.exchangeRate) > 0) &&
-    (!advanceFields || !!form.advanceRequestFor.trim()) &&
     form.lines.length > 0 &&
     !missingLines;
 
   const saveMutation = useMutation({
     mutationFn: async (): Promise<string> => {
       const payload: StoreCashRequestRequest = {
-        // The '' select placeholder is unreachable — canSave gates it.
-        type: form.type as StoreCashRequestRequest["type"],
+        type: "cash",
         campus: form.campus.trim(),
         division: form.division.trim(),
         department: form.department.trim(),
         request_date: toDateInput(form.requestDate) ?? "",
         exchange_rate:
           form.exchangeRate.trim() === "" ? null : toNumber(form.exchangeRate),
-        mode_of_payment: payFields ? form.modeOfPayment.trim() || null : null,
-        payment_to: payFields ? form.paymentTo.trim() || null : null,
-        bank_account_no: payFields ? form.bankAccountNo.trim() || null : null,
-        bank_name: payFields ? form.bankName.trim() || null : null,
-        advance_request_for: advanceFields
-          ? form.advanceRequestFor.trim() || null
-          : null,
+        mode_of_payment: form.modeOfPayment.trim() || null,
+        payment_to: form.paymentTo.trim() || null,
+        bank_account_no: form.bankAccountNo.trim() || null,
+        bank_name: form.bankName.trim() || null,
         remark: form.remark.trim() || null,
         lines: form.lines.map((line) => ({
           description: line.description.trim(),
@@ -384,11 +324,7 @@ export function CashRequestForm({ cashRequestId, onBack }: CashRequestFormProps)
 
       if (isEdit) {
         unwrap(
-          await paymentsCashRequestsUpdate(
-            cashRequestId!,
-            payload,
-            withAuth()
-          )
+          await paymentsCashRequestsUpdate(cashRequestId!, payload, withAuth())
         );
         return cashRequestId!;
       }
@@ -459,30 +395,6 @@ export function CashRequestForm({ cashRequestId, onBack }: CashRequestFormProps)
                 columns are ~176px. */}
             <div className="grid grid-cols-1 gap-x-16 gap-y-3 lg:grid-cols-2">
               <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Label className={fieldLabelClass}>
-                    {t("type")} <RequiredMark />
-                  </Label>
-                  <Select
-                    value={form.type || null}
-                    onValueChange={(value) =>
-                      patch({ type: (value as CashRequestType) || "" })
-                    }
-                    items={typeSelectOptions}
-                  >
-                    <SelectTrigger className="w-full flex-1">
-                      <SelectValue placeholder={t("type")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {typeSelectOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 <div className="flex items-center gap-2">
                   <Label className={fieldLabelClass}>
                     {t("requestDate")} <RequiredMark />
@@ -570,84 +482,59 @@ export function CashRequestForm({ cashRequestId, onBack }: CashRequestFormProps)
                   />
                 </div>
 
-                {/* Payment block: advance and cash requests only. */}
-                {payFields ? (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="cr-mode" className={fieldLabelClass}>
-                        {t("modeOfPayment")}
-                      </Label>
-                      <Input
-                        id="cr-mode"
-                        value={form.modeOfPayment}
-                        onChange={(e) =>
-                          patch({ modeOfPayment: e.target.value })
-                        }
-                        placeholder={t("modeOfPayment")}
-                        className="flex-1"
-                      />
-                    </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="cr-mode" className={fieldLabelClass}>
+                    {t("modeOfPayment")}
+                  </Label>
+                  <Input
+                    id="cr-mode"
+                    value={form.modeOfPayment}
+                    onChange={(e) => patch({ modeOfPayment: e.target.value })}
+                    placeholder={t("modeOfPayment")}
+                    className="flex-1"
+                  />
+                </div>
 
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="cr-payment-to" className={fieldLabelClass}>
-                        {t("paymentTo")}
-                      </Label>
-                      <Input
-                        id="cr-payment-to"
-                        value={form.paymentTo}
-                        onChange={(e) => patch({ paymentTo: e.target.value })}
-                        placeholder={t("paymentTo")}
-                        className="flex-1"
-                      />
-                    </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="cr-payment-to" className={fieldLabelClass}>
+                    {t("paymentTo")}
+                  </Label>
+                  <Input
+                    id="cr-payment-to"
+                    value={form.paymentTo}
+                    onChange={(e) => patch({ paymentTo: e.target.value })}
+                    placeholder={t("paymentTo")}
+                    className="flex-1"
+                  />
+                </div>
 
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="cr-bank-account" className={fieldLabelClass}>
-                        {t("bankAccountNo")}
-                      </Label>
-                      <Input
-                        id="cr-bank-account"
-                        value={form.bankAccountNo}
-                        onChange={(e) =>
-                          patch({ bankAccountNo: e.target.value })
-                        }
-                        placeholder={t("bankAccountNo")}
-                        className="flex-1"
-                      />
-                    </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="cr-bank-account" className={fieldLabelClass}>
+                    {t("bankAccountNo")}
+                  </Label>
+                  <Input
+                    id="cr-bank-account"
+                    value={form.bankAccountNo}
+                    onChange={(e) =>
+                      patch({ bankAccountNo: e.target.value })
+                    }
+                    placeholder={t("bankAccountNo")}
+                    className="flex-1"
+                  />
+                </div>
 
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="cr-bank-name" className={fieldLabelClass}>
-                        {t("bankName")}
-                      </Label>
-                      <Input
-                        id="cr-bank-name"
-                        value={form.bankName}
-                        onChange={(e) => patch({ bankName: e.target.value })}
-                        placeholder={t("bankName")}
-                        className="flex-1"
-                      />
-                    </div>
-                  </>
-                ) : null}
-
-                {/* Adv. request for: advance requests only. */}
-                {advanceFields ? (
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="cr-advance-for" className={fieldLabelClass}>
-                      {t("advanceRequestFor")} <RequiredMark />
-                    </Label>
-                    <Input
-                      id="cr-advance-for"
-                      value={form.advanceRequestFor}
-                      onChange={(e) =>
-                        patch({ advanceRequestFor: e.target.value })
-                      }
-                      placeholder={t("advanceRequestFor")}
-                      className="flex-1"
-                    />
-                  </div>
-                ) : null}
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="cr-bank-name" className={fieldLabelClass}>
+                    {t("bankName")}
+                  </Label>
+                  <Input
+                    id="cr-bank-name"
+                    value={form.bankName}
+                    onChange={(e) => patch({ bankName: e.target.value })}
+                    placeholder={t("bankName")}
+                    className="flex-1"
+                  />
+                </div>
               </div>
             </div>
           </CardContent>

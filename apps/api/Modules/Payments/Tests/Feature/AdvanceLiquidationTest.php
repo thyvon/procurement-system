@@ -101,6 +101,22 @@ it('requires the source cash request to be approved', function () {
     expect(AdvanceLiquidation::query()->count())->toBe(0);
 });
 
+it('refuses to liquidate a source that is not an advance', function () {
+    $petty = CashRequest::factory()->approved()->create([
+        'entity_id' => $this->entity->getKey(),
+        'created_by' => $this->admin->getKey(),
+        'total_usd' => 500,
+    ]);
+
+    $response = storeAdvanceLiquidation($petty->getKey())
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors' => ['cash_request_id']]);
+
+    expect($response->json('errors.cash_request_id'))->not->toBeEmpty()
+        ->and(AdvanceLiquidation::query()->count())->toBe(0);
+});
+
 it('liquidates an approved advance with the derived usd totals and code', function () {
     $source = advanceSource(['total_usd' => 600]);
 

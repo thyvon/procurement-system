@@ -100,6 +100,22 @@ it('requires the source cash request to be approved', function () {
     expect(CashClearance::query()->count())->toBe(0);
 });
 
+it('refuses to clear a source that is not petty cash', function () {
+    $advance = CashRequest::factory()->advance()->approved()->create([
+        'entity_id' => $this->entity->getKey(),
+        'created_by' => $this->admin->getKey(),
+        'total_usd' => 600,
+    ]);
+
+    $response = storeCashClearance($advance->getKey())
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors' => ['cash_request_id']]);
+
+    expect($response->json('errors.cash_request_id'))->not->toBeEmpty()
+        ->and(CashClearance::query()->count())->toBe(0);
+});
+
 it('creates a clearance against an approved request with recomputed totals', function () {
     $request = approvedCashRequest(['total_usd' => 500]);
 

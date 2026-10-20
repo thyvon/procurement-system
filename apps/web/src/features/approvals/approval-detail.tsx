@@ -24,6 +24,7 @@ import {
 import {
   fetchApprovalRounds,
   parseApprovalRequest,
+  subjectLabel,
   type ApprovalAction,
   type ApprovalRequestView,
 } from "./approval-types";
@@ -139,9 +140,7 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
               <ApprovalStatusBadge status={request.status} />
             </div>
             <p className="text-sm text-muted-foreground">
-              {request.subjectType === "evaluation"
-                ? ts("evaluation")
-                : request.subjectType}
+              {subjectLabel(ts, request.subjectType)}
             </p>
           </div>
         </div>

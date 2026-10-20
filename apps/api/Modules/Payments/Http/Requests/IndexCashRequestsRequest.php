@@ -14,6 +14,9 @@ class IndexCashRequestsRequest extends FormRequest
     }
 
     /**
+     * No `type` key: the branch URI owns the type and the controller injects
+     * it into the filters.
+     *
      * @return array<string, array<int, mixed>>
      */
     public function rules(): array
@@ -21,7 +24,6 @@ class IndexCashRequestsRequest extends FormRequest
         return [
             'search' => ['sometimes', 'string', 'max:255'],
             'status' => ['sometimes', 'nullable', Rule::in(CashRequest::STATUSES)],
-            'type' => ['sometimes', 'nullable', Rule::in(CashRequest::TYPES)],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'page' => ['sometimes', 'integer', 'min:1'],
         ];

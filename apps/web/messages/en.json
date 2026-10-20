@@ -49,6 +49,8 @@
     "invoices": "Invoice",
     "directPurchaseInvoices": "Direct Purchase Inv",
     "payments": "Payments",
+    "pettyCashRequests": "Petty Cash Requests",
+    "advanceRequests": "Advance Requests",
     "cashRequests": "Cash Requests",
     "cashClearances": "Cash Clearances",
     "advanceLiquidations": "Advance Liquidations",
@@ -795,7 +797,7 @@
   },
   "payments": {
     "title": "Payments",
-    "description": "Cash requests, cash clearances and advance liquidations.",
+    "description": "Petty cash, advance and cash requests, cash clearances and advance liquidations.",
     "tabs": {
       "cashRequests": "Cash Requests",
       "cashClearances": "Cash Clearances",
@@ -855,6 +857,28 @@
       "confirmDelete": "Delete",
       "deleting": "Deleting...",
       "deleteDescription": "Are you sure you want to delete <strong>{name}</strong>? This action cannot be undone."
+    },
+    "pettyCashRequests": {
+      "newTitle": "New petty cash request",
+      "editTitle": "Edit petty cash request",
+      "newDescription": "Enter the petty cash request details and its lines.",
+      "editDescription": "Update the petty cash request details, lines and totals.",
+      "loadFailed": "We couldn't load this petty cash request.",
+      "deleteTitle": "Delete petty cash request",
+      "created": "Petty cash request created.",
+      "updated": "Petty cash request updated.",
+      "deleted": "Petty cash request deleted."
+    },
+    "advanceRequests": {
+      "newTitle": "New advance request",
+      "editTitle": "Edit advance request",
+      "newDescription": "Enter the advance request details and its lines.",
+      "editDescription": "Update the advance request details, lines and totals.",
+      "loadFailed": "We couldn't load this advance request.",
+      "deleteTitle": "Delete advance request",
+      "created": "Advance request created.",
+      "updated": "Advance request updated.",
+      "deleted": "Advance request deleted."
     },
     "cashRequests": {
       "newTitle": "New cash request",

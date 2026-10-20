@@ -8,6 +8,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Modules\Approvals\Database\Seeders\ApprovalsDatabaseSeeder;
 use Modules\Organization\Models\Entity;
+use Modules\Payments\Database\Seeders\PaymentsDatabaseSeeder;
 use Modules\Users\Database\Seeders\PermissionSeeder;
 use Spatie\Permission\Models\Role;
 
@@ -45,5 +46,6 @@ class DatabaseSeeder extends Seeder
         $admin->assignRole('admin');
 
         $this->call(ApprovalsDatabaseSeeder::class);
+        $this->call(PaymentsDatabaseSeeder::class);
     }
 }

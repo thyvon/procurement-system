@@ -14,6 +14,7 @@ import {
 } from "@/lib/api/user/user"
 import { rolesRolesIndex } from "@/lib/api/role/role"
 import { approvalsTocaEntriesIndex } from "@/lib/api/toca-entry/toca-entry"
+import { subjectLabel } from "@/features/approvals/approval-types"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton"
@@ -217,8 +218,6 @@ export function UsersTab() {
   const tCol = useTranslations("approvals.settings.columns")
   const tAppr = useTranslations("approvals.settings.table")
   const ts = useTranslations("approvals.subjects")
-  const subjectLabel = (subjectType: string) =>
-    subjectType === "evaluation" ? ts("evaluation") : subjectType
   const qc = useQueryClient()
   const meQuery = useMe()
   const permissions = (meQuery.data?.permissions ?? []) as string[]
@@ -477,7 +476,7 @@ export function UsersTab() {
                     return (
                       <div key={subjectType} className="space-y-1.5">
                         <div className="text-sm font-medium">
-                          {subjectLabel(subjectType)}:
+                          {subjectLabel(ts, subjectType)}:
                         </div>
                         <Table>
                           <TableHeader>

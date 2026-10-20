@@ -38,7 +38,7 @@ import {
   paymentsCashClearancesStore,
   paymentsCashClearancesUpdate,
 } from "@/lib/api/cash-clearance/cash-clearance";
-import { paymentsCashRequestsIndex, paymentsCashRequestsShow } from "@/lib/api/cash-request/cash-request";
+import { paymentsPettyCashRequestsIndex, paymentsPettyCashRequestsShow } from "@/lib/api/petty-cash-request/petty-cash-request";
 import { organizationCampusesIndex } from "@/lib/api/campus/campus";
 import { organizationDivisionsIndex } from "@/lib/api/division/division";
 import { organizationDepartmentsIndex } from "@/lib/api/department/department";
@@ -248,14 +248,20 @@ export function CashClearanceForm({ clearanceId, onBack }: CashClearanceFormProp
     enabled: isEdit,
   });
 
-  // The picker only offers approved cash requests — server-side filtered.
+  // The picker only offers approved petty cash requests — the API clears the
+  // PC branch only (advances are liquidated, cash requests settle themselves).
   const cashRequestsQuery = useQuery({
-    queryKey: ["cash-requests", "approved"],
+    queryKey: ["petty-cash-requests", "approved"],
     queryFn: async () =>
       unwrapWithMeta<
         CashRequestResource[],
         { page: number; perPage: number; total: number }
-      >(await paymentsCashRequestsIndex({ status: "approved", per_page: 100 }, withAuth())),
+      >(
+        await paymentsPettyCashRequestsIndex(
+          { status: "approved", per_page: 100 },
+          withAuth()
+        )
+      ),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -299,10 +305,10 @@ export function CashClearanceForm({ clearanceId, onBack }: CashClearanceFormProp
     !!form.cashRequestId &&
     !approvedOptions.some((option) => option.value === form.cashRequestId);
   const linkedCashRequestQuery = useQuery({
-    queryKey: ["cash-requests", "detail", form.cashRequestId || null],
+    queryKey: ["petty-cash-requests", "detail", form.cashRequestId || null],
     queryFn: async (): Promise<CashRequestResource> =>
       unwrap(
-        await paymentsCashRequestsShow(form.cashRequestId, withAuth())
+        await paymentsPettyCashRequestsShow(form.cashRequestId, withAuth())
       ),
     enabled: linkedMissing,
   });

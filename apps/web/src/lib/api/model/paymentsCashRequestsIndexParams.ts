@@ -5,7 +5,6 @@
  * OpenAPI spec version: 0.0.1
  */
 import type { PaymentsCashRequestsIndexStatus } from './paymentsCashRequestsIndexStatus';
-import type { PaymentsCashRequestsIndexType } from './paymentsCashRequestsIndexType';
 
 export type PaymentsCashRequestsIndexParams = {
 /**
@@ -16,10 +15,6 @@ search?: string;
  * @nullable
  */
 status?: PaymentsCashRequestsIndexStatus;
-/**
- * @nullable
- */
-type?: PaymentsCashRequestsIndexType;
 /**
  * @minimum 1
  * @maximum 100

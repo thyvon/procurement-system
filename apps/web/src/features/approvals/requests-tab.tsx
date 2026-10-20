@@ -31,6 +31,7 @@ import { type DataTableFeatures } from "@/components/ui/data-table-features";
 import { useMe } from "@/hooks/use-me";
 import {
   parseApprovalRequest,
+  subjectLabel,
   type ApprovalRequestView,
   type ApprovalStatus,
 } from "./approval-types";
@@ -218,6 +219,7 @@ const DEFAULT_STATUS = "all";
 
 export function RequestsTab() {
   const t = useTranslations("approvals");
+  const ts = useTranslations("approvals.subjects");
   const router = useRouter();
   const meQuery = useMe();
   const currentUserId = meQuery.data?.id ?? null;
@@ -277,22 +279,11 @@ export function RequestsTab() {
         { page: number; perPage: number; total: number }
       >(response);
       const resources = (envelope.data ?? []) as unknown[];
-      const subjectLabels: Record<string, string> = {
-        evaluation: t("subjects.evaluation"),
-        petty_cash_request: t("subjects.petty_cash_request"),
-        advance_request: t("subjects.advance_request"),
-        cash_request: t("subjects.cash_request"),
-        cash_clearance: t("subjects.cash_clearance"),
-        advance_liquidation: t("subjects.advance_liquidation"),
-      };
 
       return {
         data: resources.map((resource) => {
           const request = parseApprovalRequest(resource);
-          return toRow(
-            request,
-            subjectLabels[request.subjectType] ?? request.subjectType
-          );
+          return toRow(request, subjectLabel(ts, request.subjectType));
         }),
         meta: envelope.meta,
       };

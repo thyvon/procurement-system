@@ -8,11 +8,11 @@ import { toast } from "sonner";
 import { ArrowLeft, Pencil, Printer, Trash2 } from "lucide-react";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/utils";
+import type { CashRequestResource } from "@/lib/api/model/cashRequestResource";
 import {
   paymentsCashRequestsDestroy,
   paymentsCashRequestsShow,
 } from "@/lib/api/cash-request/cash-request";
-import type { CashRequestResource } from "@/lib/api/model/cashRequestResource";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -38,12 +38,7 @@ import { SubmitApprovalPanel } from "@/features/approvals/components/submit-appr
 import { CashRequestStatusBadge } from "./components/cash-request-status-badge";
 import { CashRequestDetailSkeleton } from "./components/cash-request-detail-skeleton";
 import { CashRequestPrint } from "./components/cash-request-print";
-import {
-  approvalSubjectType,
-  showsAdvanceRequestFor,
-  showsPaymentFields,
-  typeLabel,
-} from "./cash-request-helpers";
+import { approvalSubjectType, typeLabel } from "./cash-request-helpers";
 import { useMe } from "@/hooks/use-me";
 
 function MetaRow({ label, value }: { label: string; value: ReactNode }) {
@@ -127,7 +122,10 @@ export function CashRequestDetail({ cashRequestId }: CashRequestDetailProps) {
   if (showQuery.isError || !showQuery.data) {
     return (
       <div className="mt-1 min-w-0 space-y-4">
-        <Button variant="outline" onClick={() => router.push("/payments/cash-requests")}>
+        <Button
+          variant="outline"
+          onClick={() => router.push("/payments/cash-requests")}
+        >
           {tf("back")}
         </Button>
         <p className="text-sm text-destructive">{tc("loadFailed")}</p>
@@ -149,8 +147,6 @@ export function CashRequestDetail({ cashRequestId }: CashRequestDetailProps) {
   const canEdit = canAct && ["draft", "returned"].includes(status);
   const canDelete = canAct && status === "draft";
   const canSubmit = canAct && ["draft", "returned"].includes(status);
-  const payFields = showsPaymentFields(cashRequest.type);
-  const advanceFields = showsAdvanceRequestFor(cashRequest.type);
 
   const handlePrint = () => {
     const originalTitle = document.title;
@@ -246,8 +242,7 @@ export function CashRequestDetail({ cashRequestId }: CashRequestDetailProps) {
           </CardHeader>
           <CardContent className="min-w-0 space-y-3">
             {/* Mirrors the form's head card — left column: identity and org,
-                right column: the payment block (advance/cash only), Adv.
-                request for (advance only) and audit info. */}
+                right column: the payment block and audit info. */}
             <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
               <div className="space-y-3">
                 <MetaRow
@@ -280,32 +275,22 @@ export function CashRequestDetail({ cashRequestId }: CashRequestDetailProps) {
               </div>
 
               <div className="space-y-3">
-                {payFields ? (
-                  <>
-                    <MetaRow
-                      label={tf("modeOfPayment")}
-                      value={cashRequest.modeOfPayment || "—"}
-                    />
-                    <MetaRow
-                      label={tf("paymentTo")}
-                      value={cashRequest.paymentTo || "—"}
-                    />
-                    <MetaRow
-                      label={tf("bankAccountNo")}
-                      value={cashRequest.bankAccountNo || "—"}
-                    />
-                    <MetaRow
-                      label={tf("bankName")}
-                      value={cashRequest.bankName || "—"}
-                    />
-                  </>
-                ) : null}
-                {advanceFields ? (
-                  <MetaRow
-                    label={tf("advanceRequestFor")}
-                    value={cashRequest.advanceRequestFor || "—"}
-                  />
-                ) : null}
+                <MetaRow
+                  label={tf("modeOfPayment")}
+                  value={cashRequest.modeOfPayment || "—"}
+                />
+                <MetaRow
+                  label={tf("paymentTo")}
+                  value={cashRequest.paymentTo || "—"}
+                />
+                <MetaRow
+                  label={tf("bankAccountNo")}
+                  value={cashRequest.bankAccountNo || "—"}
+                />
+                <MetaRow
+                  label={tf("bankName")}
+                  value={cashRequest.bankName || "—"}
+                />
                 <MetaRow
                   label={tpo("columns.createdBy")}
                   value={

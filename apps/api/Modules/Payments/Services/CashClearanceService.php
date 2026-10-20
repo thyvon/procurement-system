@@ -158,9 +158,11 @@ class CashClearanceService
     }
 
     /**
-     * The referenced cash request must exist. The approved-source and
-     * one-clearance guards belong to create(): they are the entry gate, while
-     * updates only keep the money columns in step with the source.
+     * The referenced cash request must exist and be a petty cash request:
+     * a clearance settles the PC branch only (advances are liquidated, cash
+     * requests settle themselves). The approved-source and one-clearance
+     * guards belong to create(): they are the entry gate, while updates only
+     * keep the money columns in step with the source.
      *
      * @param  array<string, mixed>  $data
      */
@@ -171,6 +173,12 @@ class CashClearanceService
         if ($source === null) {
             throw ValidationException::withMessages([
                 'cash_request_id' => 'Record not found.',
+            ]);
+        }
+
+        if ($source->type !== CashRequest::TYPE_PETTY_CASH) {
+            throw ValidationException::withMessages([
+                'cash_request_id' => "Only a petty cash request can be cleared, this one is '{$source->type}'.",
             ]);
         }
 

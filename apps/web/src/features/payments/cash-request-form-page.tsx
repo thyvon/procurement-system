@@ -7,7 +7,9 @@ interface CashRequestFormPageProps {
   cashRequestId?: string;
 }
 
-export function CashRequestFormPage({ cashRequestId }: CashRequestFormPageProps) {
+export function CashRequestFormPage({
+  cashRequestId,
+}: CashRequestFormPageProps) {
   const router = useRouter();
 
   return (
