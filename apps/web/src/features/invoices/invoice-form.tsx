@@ -46,11 +46,13 @@ import {
   invoicesInvoicesStore,
   invoicesInvoicesUpdate,
 } from "@/lib/api/invoice/invoice";
+import { paymentsCashRequestsIndex } from "@/lib/api/cash-request/cash-request";
 import { organizationCampusesIndex } from "@/lib/api/campus/campus";
 import { organizationDivisionsIndex } from "@/lib/api/division/division";
 import { organizationDepartmentsIndex } from "@/lib/api/department/department";
 import type { StoreInvoiceRequest } from "@/lib/api/model/storeInvoiceRequest";
 import type { InvoiceResource } from "@/lib/api/model/invoiceResource";
+import type { CashRequestResource } from "@/lib/api/model/cashRequestResource";
 import { useMe } from "@/hooks/use-me";
 import { InvoiceFormSkeleton } from "./components/invoice-form-skeleton";
 import {
@@ -109,8 +111,6 @@ const EMPTY_LINE: LineForm = {
   unitPrice: "",
   discount: "",
 };
-
-const CASH_REFERENCE_OPTIONS: { value: string; label: string }[] = [];
 
 const EMPTY_FORM: InvoiceFormValue = {
   invoiceNumber: "",
@@ -340,12 +340,34 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Approved cash requests power the cash-reference picker: only fetched
+  // once a cash-settled transaction type is chosen (credit needs none).
+  const cashRequestsQuery = useQuery({
+    queryKey: ["cashRequests", "invoiceOptions"],
+    queryFn: async () =>
+      unwrap<CashRequestResource[]>(
+        await paymentsCashRequestsIndex(
+          { status: "approved", per_page: 100 },
+          withAuth()
+        )
+      ),
+    enabled:
+      form.transactionType === "petty_cash" ||
+      form.transactionType === "advance",
+    staleTime: 5 * 60 * 1000,
+  });
+
   const campusOptions = (campusesQuery.data ?? [])
     .filter((c) => c.isActive)
     .map((c) => ({ value: c.name, label: c.name }));
   const divisionOptions = (divisionsQuery.data ?? [])
     .filter((d) => d.isActive)
     .map((d) => ({ value: d.name, label: d.name }));
+  // Narrowed to the chosen transaction type: a petty-cash invoice draws
+  // on petty-cash requests, an advance invoice on advance requests.
+  const cashReferenceOptions = (cashRequestsQuery.data ?? [])
+    .filter((r) => r.type === form.transactionType)
+    .map((r) => ({ value: r.code, label: r.code }));
   // Cascade: the department list stays empty until a division is picked,
   // then narrows to that division's linked departments.
   const divisionIdByName = new Map(
@@ -636,9 +658,16 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                   </Label>
                   <Select
                     value={form.transactionType || null}
-                    onValueChange={(value) =>
-                      patch({ transactionType: (value as TransactionType) || "" })
-                    }
+                    onValueChange={(value) => {
+                      const next = (value as TransactionType | null) || "";
+                      // Credit invoices carry no cash reference — drop any
+                      // picked one so it is not silently submitted.
+                      patch(
+                        next === "credit" || next === ""
+                          ? { transactionType: next, cashReference: "" }
+                          : { transactionType: next }
+                      );
+                    }}
                     items={txTypeSelectOptions}
                   >
                     <SelectTrigger className="w-full flex-1">
@@ -654,38 +683,41 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                   </Select>
                 </div>
 
-                {/* Options are wired from the DB later — the combobox renders
-                    its empty state until then. */}
-                <div className="flex items-center gap-2">
-                  <Label className={fieldLabelClass}>{t("cashReference")}</Label>
-                  <Combobox
-                    items={CASH_REFERENCE_OPTIONS}
-                    value={form.cashReference || null}
-                    onValueChange={(value) =>
-                      patch({ cashReference: value ?? "" })
-                    }
-                  >
-                    <ComboboxInput
-                      placeholder={t("cashReferencePlaceholder")}
-                      className="flex-1"
-                    />
-                    <ComboboxContent>
-                      <ComboboxEmpty>
-                        {t("cashReferenceEmpty")}
-                      </ComboboxEmpty>
-                      <ComboboxList>
-                        {(option) => (
-                          <ComboboxItem
-                            key={option.value}
-                            value={option.value}
-                          >
-                            {option.label}
-                          </ComboboxItem>
-                        )}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
-                </div>
+                {form.transactionType !== "credit" &&
+                  form.transactionType !== "" && (
+                    <div className="flex items-center gap-2">
+                      <Label className={fieldLabelClass}>
+                        {t("cashReference")} <RequiredMark />
+                      </Label>
+                      <Combobox
+                        items={cashReferenceOptions}
+                        value={form.cashReference || null}
+                        onValueChange={(value) =>
+                          patch({ cashReference: value ?? "" })
+                        }
+                      >
+                        <ComboboxInput
+                          placeholder={t("cashReferencePlaceholder")}
+                          className="flex-1"
+                        />
+                        <ComboboxContent>
+                          <ComboboxEmpty>
+                            {t("cashReferenceEmpty")}
+                          </ComboboxEmpty>
+                          <ComboboxList>
+                            {(option) => (
+                              <ComboboxItem
+                                key={option.value}
+                                value={option.value}
+                              >
+                                {option.label}
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                    </div>
+                  )}
               </div>
 
               {/* -ml-8/pl-8 centers the border in the grid's 64px gap. */}

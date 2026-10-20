@@ -502,17 +502,17 @@ it('recomputes the vat amount and replaces the head fields on update', function 
     ])->json('data.id');
 
     // Transaction type, payment term and the supplier fields are required,
-    // so an update must swap them for new values; cash_reference is the one
-    // head field that can still be cleared.
+    // so an update must swap them for new values; cash_reference is only
+    // clearable by moving the invoice to credit (where it is not required).
     $response = $this->actingAs($this->admin, 'sanctum')
         ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
-            'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+            'transaction_type' => Invoice::TRANSACTION_TYPE_CREDIT,
             'payment_term' => Invoice::PAYMENT_TERM_CREDIT_1W,
             'cash_reference' => null,
             'vat_percent' => 5,
         ]))
         ->assertOk()
-        ->assertJsonPath('data.transactionType', 'petty_cash')
+        ->assertJsonPath('data.transactionType', 'credit')
         ->assertJsonPath('data.paymentTerm', 'credit_1w')
         ->assertJsonPath('data.cashReference', null)
         ->assertJsonPath('data.vatPercent', 5)
@@ -520,12 +520,83 @@ it('recomputes the vat amount and replaces the head fields on update', function 
 
     $invoice = Invoice::query()->findOrFail($id);
 
-    expect($invoice->transaction_type)->toBe('petty_cash')
+    expect($invoice->transaction_type)->toBe('credit')
         ->and($invoice->payment_term)->toBe('credit_1w')
         ->and($invoice->cash_reference)->toBeNull()
         ->and((float) $invoice->vat_percent)->toBe(5.0)
         // subtotal 45 − 5 discount = 40; 5% of 40 → 2.
         ->and((float) $invoice->vat_amount)->toBe(2.0);
+});
+
+it('requires a cash reference for cash-settled invoices but not for credit', function () {
+    storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+        'cash_reference' => null,
+    ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['cash_reference']);
+
+    storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
+        'cash_reference' => null,
+    ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['cash_reference']);
+
+    storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_CREDIT,
+        'cash_reference' => null,
+    ])->assertStatus(201);
+});
+
+it('derives paid_at from the invoice date for cash-settled invoices', function () {
+    $id = storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+        'cash_reference' => 'PC-001',
+        'invoice_date' => '2026-10-01',
+    ])
+        ->assertStatus(201)
+        ->assertJsonPath('data.paidAt', '2026-10-01 00:00')
+        ->json('data.id');
+
+    expect(Invoice::query()->findOrFail($id)->paid_at?->format('Y-m-d'))->toBe('2026-10-01');
+});
+
+it('leaves paid_at empty for credit invoices', function () {
+    $id = storeInvoice()->json('data.id');
+
+    $invoice = Invoice::query()->findOrFail($id);
+
+    expect($invoice->transaction_type)->toBe('credit')
+        ->and($invoice->paid_at)->toBeNull();
+});
+
+it('re-stamps paid_at on update when the transaction type changes', function () {
+    $id = storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
+        'cash_reference' => 'CSH-001',
+        'invoice_date' => '2026-10-01',
+    ])->json('data.id');
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
+            'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+            'cash_reference' => 'CSH-002',
+            'invoice_date' => '2026-10-15',
+        ]))
+        ->assertOk();
+
+    expect(Invoice::query()->findOrFail($id)->paid_at?->format('Y-m-d'))->toBe('2026-10-15');
+
+    // Moving to credit clears the stamp again.
+    $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
+            'transaction_type' => Invoice::TRANSACTION_TYPE_CREDIT,
+            'cash_reference' => null,
+        ]))
+        ->assertOk();
+
+    expect(Invoice::query()->findOrFail($id)->paid_at)->toBeNull();
 });
 
 it('rejects an unknown transaction type or payment term', function () {

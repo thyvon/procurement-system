@@ -49,6 +49,7 @@ class InvoiceService
                 'supplier_address' => $data['supplier_address'] ?? null,
                 'transaction_type' => $data['transaction_type'] ?? null,
                 'cash_reference' => $data['cash_reference'] ?? null,
+                'paid_at' => $this->derivePaidAt($data),
                 'payment_term' => $data['payment_term'] ?? null,
                 'invoice_date' => $data['invoice_date'],
                 'due_date' => $data['due_date'] ?? null,
@@ -86,6 +87,7 @@ class InvoiceService
                 'supplier_address' => $data['supplier_address'] ?? null,
                 'transaction_type' => $data['transaction_type'] ?? null,
                 'cash_reference' => $data['cash_reference'] ?? null,
+                'paid_at' => $this->derivePaidAt($data),
                 'payment_term' => $data['payment_term'] ?? null,
                 'invoice_date' => $data['invoice_date'],
                 'due_date' => $data['due_date'] ?? null,
@@ -146,6 +148,22 @@ class InvoiceService
                 'status' => "Only a draft invoice can be deleted, this one is '{$invoice->status}'.",
             ]);
         }
+    }
+
+    /**
+     * `paid_at` is derived, never client-accepted: cash-settled invoices
+     * (petty_cash, advance) are paid on their invoice date; credit invoices
+     * are not paid yet. Recomputed on every write so switching the
+     * transaction type re-stamps (or clears) it.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function derivePaidAt(array $data): ?string
+    {
+        return match ($data['transaction_type'] ?? null) {
+            Invoice::TRANSACTION_TYPE_PETTY_CASH, Invoice::TRANSACTION_TYPE_ADVANCE => $data['invoice_date'],
+            default => null,
+        };
     }
 
     /**

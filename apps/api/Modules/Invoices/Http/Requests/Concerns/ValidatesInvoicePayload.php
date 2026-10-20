@@ -25,7 +25,12 @@ trait ValidatesInvoicePayload
             'supplier_phone' => ['required', 'string', 'max:32'],
             'supplier_address' => ['required', 'string', 'max:255'],
             'transaction_type' => ['required', 'string', Rule::in(Invoice::TRANSACTION_TYPES)],
-            'cash_reference' => ['nullable', 'string', 'max:64'],
+            'cash_reference' => [
+                'nullable',
+                'string',
+                'max:64',
+                'required_unless:transaction_type,'.Invoice::TRANSACTION_TYPE_CREDIT,
+            ],
             'payment_term' => ['required', 'string', Rule::in(Invoice::PAYMENT_TERMS)],
             'invoice_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:invoice_date'],
