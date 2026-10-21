@@ -995,6 +995,35 @@ it('shows a returned request in the inbox and badge count of its owner', functio
         ->assertJsonPath('data.count', 0);
 });
 
+it('lists a document once after it is returned across several rounds', function () {
+    $evaluation = approvalsEvaluation();
+
+    $firstRound = approvalsPending($evaluation);
+    approvalsAct($firstRound, 'return', 'Fix the awarded total.', $this->firstApprover)->assertOk();
+
+    $secondRound = approvalsPending($evaluation);
+    approvalsAct($secondRound, 'return', 'Still wrong.', $this->firstApprover)->assertOk();
+
+    expect(ApprovalRequest::query()->count())->toBe(2);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/inbox')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.id', $secondRound->getKey())
+        ->assertJsonPath('data.0.status', 'returned');
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/inbox?status=returned')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/approvals/inbox/count')
+        ->assertOk()
+        ->assertJsonPath('data.count', 1);
+});
+
 it('searches the inbox by document code', function () {
     approvalsPending(approvalsEvaluation(44, 'EVAL-26-001'));
     approvalsPending(approvalsEvaluation(80, 'EVAL-26-002'));
