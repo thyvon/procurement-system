@@ -1,0 +1,135 @@
+@import 'tailwindcss';
+
+/*
+ * Official print-sheet styles for the server-rendered PDFs
+ * (Modules/*/Resources/views/print/*): a faithful twin of the browser print
+ * rules in apps/web/src/app/globals.css, minus the Next.js fonts — the two
+ * sheet fonts are bundled from resources/fonts and inlined into the built
+ * CSS (Vite assetsInlineLimit) so the renderer never needs a network fetch.
+ *
+ * Built via `npm run build` (entry resources/css/print.css); the print
+ * services inline the built file into the PDF HTML — see
+ * App\Support\PrintStylesheet.
+ */
+
+@source '../../Modules/**/resources/views/**/*.blade.php';
+@source '../views/**/*.blade.php';
+
+@font-face {
+    font-family: 'Tw Cen MT';
+    src: url('../fonts/tw-cen-mt.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: block;
+}
+
+@font-face {
+    font-family: 'Battambang';
+    src: url('../fonts/Battambang-Variable.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: block;
+}
+
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --font-sans: 'Tw Cen MT', 'Battambang', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Same tokens as apps/web globals.css:root — the sheet is a light document. */
+:root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.32 0.01 250);
+    --muted: oklch(0.97 0.005 250);
+    --muted-foreground: oklch(0.45 0.04 250);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.91 0.01 250);
+    --radius: 0.25rem;
+}
+
+@layer base {
+    body {
+        background: var(--background);
+        color: var(--foreground);
+        font-family: var(--font-sans);
+    }
+}
+
+/* Mirrors apps/web globals.css: A4 landscape, 8mm — also passed to the
+ * renderer via PdfBuilder::margins(), so CSS and engine agree. */
+@page {
+    size: A4 landscape;
+    margin: 8mm;
+}
+
+@media print {
+    html,
+    body {
+        background: #fff !important;
+    }
+
+    .print-area {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        font-family: var(--font-sans);
+    }
+
+    .print-area,
+    .print-area * {
+        border-color: #000 !important;
+    }
+
+    .print-area table,
+    .print-area table * {
+        font-size: 8pt !important;
+    }
+
+    .print-area td,
+    .print-area th {
+        padding: 1px 2px !important;
+    }
+
+    .print-area th {
+        font-weight: 700 !important;
+    }
+
+    .print-area td > div,
+    .print-area th > div {
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    .print-area table {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
+    .print-area .overflow-x-auto {
+        overflow: visible !important;
+        max-width: none !important;
+    }
+
+    .print-area .truncate {
+        overflow: visible !important;
+        text-overflow: clip !important;
+        white-space: normal !important;
+    }
+
+    .print-area thead {
+        display: table-header-group;
+    }
+
+    .print-area tr {
+        break-inside: avoid;
+    }
+
+    .print-signature {
+        break-inside: avoid;
+    }
+}

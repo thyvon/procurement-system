@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Modules\Payments\Http\Requests\IndexCashClearancesRequest;
 use Modules\Payments\Http\Requests\StoreCashClearanceRequest;
 use Modules\Payments\Http\Requests\UpdateCashClearanceRequest;
@@ -14,12 +15,15 @@ use Modules\Payments\Http\Resources\CashClearanceResource;
 use Modules\Payments\Models\CashClearance;
 use Modules\Payments\Repositories\CashClearanceRepositoryInterface;
 use Modules\Payments\Services\CashClearanceService;
+use Modules\Payments\Services\PaymentPrintService;
+use Spatie\LaravelPdf\PdfBuilder;
 
 class CashClearanceController extends Controller
 {
     public function __construct(
         private readonly CashClearanceRepositoryInterface $repo,
         private readonly CashClearanceService $service,
+        private readonly PaymentPrintService $print,
     ) {}
 
     public function index(IndexCashClearancesRequest $request): JsonResponse
@@ -63,6 +67,16 @@ class CashClearanceController extends Controller
         $this->authorize('view', $cashClearance);
 
         return new CashClearanceResource($cashClearance->load(['lines', 'creator', 'cashRequest']));
+    }
+
+    public function print(Request $request, CashClearance $cashClearance): PdfBuilder
+    {
+        $this->authorize('view', $cashClearance);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        return $this->print->forCashClearance($cashClearance, $user);
     }
 
     public function update(UpdateCashClearanceRequest $request, CashClearance $cashClearance): CashClearanceResource

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Modules\Payments\Http\Requests\IndexAdvanceLiquidationsRequest;
 use Modules\Payments\Http\Requests\StoreAdvanceLiquidationRequest;
 use Modules\Payments\Http\Requests\UpdateAdvanceLiquidationRequest;
@@ -14,12 +15,15 @@ use Modules\Payments\Http\Resources\AdvanceLiquidationResource;
 use Modules\Payments\Models\AdvanceLiquidation;
 use Modules\Payments\Repositories\AdvanceLiquidationRepositoryInterface;
 use Modules\Payments\Services\AdvanceLiquidationService;
+use Modules\Payments\Services\PaymentPrintService;
+use Spatie\LaravelPdf\PdfBuilder;
 
 class AdvanceLiquidationController extends Controller
 {
     public function __construct(
         private readonly AdvanceLiquidationRepositoryInterface $repo,
         private readonly AdvanceLiquidationService $service,
+        private readonly PaymentPrintService $print,
     ) {}
 
     public function index(IndexAdvanceLiquidationsRequest $request): JsonResponse
@@ -63,6 +67,16 @@ class AdvanceLiquidationController extends Controller
         $this->authorize('view', $advanceLiquidation);
 
         return new AdvanceLiquidationResource($advanceLiquidation->load(['lines', 'creator', 'cashRequest']));
+    }
+
+    public function print(Request $request, AdvanceLiquidation $advanceLiquidation): PdfBuilder
+    {
+        $this->authorize('view', $advanceLiquidation);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        return $this->print->forAdvanceLiquidation($advanceLiquidation, $user);
     }
 
     public function update(UpdateAdvanceLiquidationRequest $request, AdvanceLiquidation $advanceLiquidation): AdvanceLiquidationResource

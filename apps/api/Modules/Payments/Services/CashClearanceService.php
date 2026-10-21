@@ -42,24 +42,8 @@ class CashClearanceService
         return DB::transaction(function () use ($data, $user): CashClearance {
             $source = $this->resolveSource($data);
 
-            if ($source->status !== CashRequest::STATUS_APPROVED) {
-                throw ValidationException::withMessages([
-                    'cash_request_id' => "Only an approved cash request can be cleared, this one is '{$source->status}'.",
-                ]);
-            }
-
-            // No DB unique index on purpose: a soft-deleted clearance must not
-            // block recreating the final one, so the rule lives here only.
-            $alreadyCleared = CashClearance::query()
-                ->where('cash_request_id', $source->getKey())
-                ->whereNull('deleted_at')
-                ->exists();
-
-            if ($alreadyCleared) {
-                throw ValidationException::withMessages([
-                    'cash_request_id' => 'This cash request already has a clearance.',
-                ]);
-            }
+            $this->ensureApprovedSource($source);
+            $this->ensureNoOtherClearance($source, null);
 
             $cashClearance = CashClearance::create([
                 'entity_id' => $user->entity_id,
@@ -97,6 +81,11 @@ class CashClearanceService
 
         return DB::transaction(function () use ($cashClearance, $data, $user): CashClearance {
             $source = $this->resolveSource($data);
+
+            // Updates repoint the clearance like a create does, so both entry
+            // guards run again (excluding this clearance from the check).
+            $this->ensureApprovedSource($source);
+            $this->ensureNoOtherClearance($source, $cashClearance);
 
             $cashClearance->update([
                 'cash_request_id' => $source->getKey(),
@@ -161,8 +150,8 @@ class CashClearanceService
      * The referenced cash request must exist and be a petty cash request:
      * a clearance settles the PC branch only (advances are liquidated, cash
      * requests settle themselves). The approved-source and one-clearance
-     * guards belong to create(): they are the entry gate, while updates only
-     * keep the money columns in step with the source.
+     * guards live in ensureApprovedSource()/ensureNoOtherClearance() and run
+     * on create and update alike.
      *
      * @param  array<string, mixed>  $data
      */
@@ -183,6 +172,35 @@ class CashClearanceService
         }
 
         return $source;
+    }
+
+    private function ensureApprovedSource(CashRequest $source): void
+    {
+        if ($source->status !== CashRequest::STATUS_APPROVED) {
+            throw ValidationException::withMessages([
+                'cash_request_id' => "Only an approved cash request can be cleared, this one is '{$source->status}'.",
+            ]);
+        }
+    }
+
+    /**
+     * No DB unique index on purpose: a soft-deleted clearance must not block
+     * recreating the final one, so the rule lives here only. `$except` keeps
+     * an updating clearance from colliding with itself.
+     */
+    private function ensureNoOtherClearance(CashRequest $source, ?CashClearance $except): void
+    {
+        $alreadyCleared = CashClearance::query()
+            ->where('cash_request_id', $source->getKey())
+            ->whereNull('deleted_at')
+            ->when($except !== null, fn ($query) => $query->whereKeyNot($except->getKey()))
+            ->exists();
+
+        if ($alreadyCleared) {
+            throw ValidationException::withMessages([
+                'cash_request_id' => 'This cash request already has a clearance.',
+            ]);
+        }
     }
 
     /**

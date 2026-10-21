@@ -1,15 +1,16 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
-import { Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { Ban, Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   paymentsCashClearancesDestroy,
   paymentsCashClearancesIndex,
+  paymentsCashClearancesStatus,
 } from "@/lib/api/cash-clearance/cash-clearance";
 import type { CashClearanceResource } from "@/lib/api/model/cashClearanceResource";
 import type { PaymentsCashClearancesIndexStatus } from "@/lib/api/model/paymentsCashClearancesIndexStatus";
@@ -36,7 +37,9 @@ import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
 import { useMe } from "@/hooks/use-me";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { CashClearanceStatusBadge } from "./components/cash-clearance-status-badge";
+import { CancelDocumentDialog } from "../components/cancel-document-dialog";
 
 type CashClearanceRow = {
   id: string;
@@ -71,17 +74,6 @@ function toRow(resource: CashClearanceResource): CashClearanceRow {
   };
 }
 
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [value, delayMs]);
-
-  return debounced;
-}
-
 const columnHelper = createColumnHelper<DataTableFeatures, CashClearanceRow>();
 
 function useCashClearanceColumns({
@@ -89,12 +81,14 @@ function useCashClearanceColumns({
   currentUserId,
   onViewRequest,
   onEditRequest,
+  onCancelRequest,
   onDeleteRequest,
 }: {
   canManage: boolean;
   currentUserId: number | null;
   onViewRequest: (clearance: CashClearanceRow) => void;
   onEditRequest: (clearance: CashClearanceRow) => void;
+  onCancelRequest: (clearance: CashClearanceRow) => void;
   onDeleteRequest: (clearance: CashClearanceRow) => void;
 }): ColumnDef<DataTableFeatures, CashClearanceRow>[] {
   const tc = useTranslations("payments.columns");
@@ -176,14 +170,16 @@ function useCashClearanceColumns({
       enableHiding: false,
       cell: ({ row }) => {
         const clearance = row.original;
-        // Server rule: manage AND owner may write (own documents only);
-        // edit/delete only while the API still accepts them (draft).
+        // Server rule: payments.manage AND owner may write (own documents
+        // only); edit while the API still accepts it, delete while a draft.
         const isOwner =
           clearance.createdById !== null &&
           currentUserId !== null &&
           Number(clearance.createdById) === currentUserId;
         const canAct = canManage && isOwner;
-        const canEdit = canAct && clearance.status === "draft";
+        const canEdit = canAct && ["draft", "returned"].includes(clearance.status);
+        const canCancel = canAct && clearance.status === "draft";
+        const canDelete = canAct && clearance.status === "draft";
         return (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="ghost" className="size-8 p-0" />}>
@@ -202,7 +198,13 @@ function useCashClearanceColumns({
                     {tt("edit")}
                   </DropdownMenuItem>
                 ) : null}
-                {canEdit ? (
+                {canCancel ? (
+                  <DropdownMenuItem onClick={() => onCancelRequest(clearance)}>
+                    <Ban className="mr-2 size-4" />
+                    {tt("cancelDocument")}
+                  </DropdownMenuItem>
+                ) : null}
+                {canDelete ? (
                   <DropdownMenuItem
                     className="text-destructive"
                     onClick={() => onDeleteRequest(clearance)}
@@ -230,6 +232,7 @@ export function CashClearancesTab() {
   const canManage = permissions.includes("payments.manage");
   const currentUserId = meQuery.data?.id ?? null;
   const [deleteTarget, setDeleteTarget] = useState<CashClearanceRow | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<CashClearanceRow | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(0);
@@ -244,6 +247,18 @@ export function CashClearancesTab() {
       qc.invalidateQueries({ queryKey: ["cash-clearances"] });
       setDeleteTarget(null);
       toast.success(tn("deleted"));
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async (id: string) =>
+      unwrap(
+        await paymentsCashClearancesStatus(id, { status: "cancelled" }, withAuth())
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cash-clearances"] });
+      setCancelTarget(null);
+      toast.success(tn("cancelled"));
     },
   });
 
@@ -281,6 +296,7 @@ export function CashClearancesTab() {
     onViewRequest: (clearance) => router.push(`/payments/cash-clearances/${clearance.id}`),
     onEditRequest: (clearance) =>
       router.push(`/payments/cash-clearances/${clearance.id}/edit`),
+    onCancelRequest: setCancelTarget,
     onDeleteRequest: setDeleteTarget,
   });
 
@@ -315,7 +331,10 @@ export function CashClearancesTab() {
         }}
         filterColumn="status"
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={(value) => {
+          setStatusFilter(value);
+          setPage(0);
+        }}
         filterOptions={[
           { label: tt("draft"), value: "draft" },
           { label: tt("inReview"), value: "in_review" },
@@ -368,6 +387,15 @@ export function CashClearancesTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CancelDocumentDialog
+        open={!!cancelTarget}
+        code={cancelTarget?.code ?? null}
+        title={tn("cancelDocumentTitle")}
+        pending={cancelMutation.isPending}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        onConfirm={() => cancelTarget && cancelMutation.mutate(cancelTarget.id)}
+      />
     </div>
   );
 }

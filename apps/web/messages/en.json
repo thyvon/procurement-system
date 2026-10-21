@@ -285,6 +285,7 @@
       "amount": "Amount",
       "flow": "Flow",
       "assignee": "Responsible user",
+      "assigneePosition": "Responsible user Position",
       "stepNumber": "Step#",
       "stepName": "Step Name",
       "additionalMessage": "Additional Message",
@@ -301,7 +302,6 @@
       "submitting": "Submitting…",
       "submitted": "Submitted for approval.",
       "loadFailed": "Could not load the approval flow for this document.",
-      "loading": "Loading approval flow…",
       "saveFirst": "Save your changes before submitting — the approval runs on the saved document."
     },
     "form": {
@@ -875,7 +875,11 @@
       "cancel": "Cancel",
       "confirmDelete": "Delete",
       "deleting": "Deleting...",
-      "deleteDescription": "Are you sure you want to delete <strong>{name}</strong>? This action cannot be undone."
+      "deleteDescription": "Are you sure you want to delete <strong>{name}</strong>? This action cannot be undone.",
+      "cancelDocument": "Cancel",
+      "cancelDocumentDescription": "Are you sure you want to cancel <strong>{name}</strong>? This action cannot be undone.",
+      "confirmCancelDocument": "Cancel document",
+      "cancelling": "Cancelling..."
     },
     "pettyCashRequests": {
       "newTitle": "New petty cash request",
@@ -886,7 +890,9 @@
       "deleteTitle": "Delete petty cash request",
       "created": "Petty cash request created.",
       "updated": "Petty cash request updated.",
-      "deleted": "Petty cash request deleted."
+      "deleted": "Petty cash request deleted.",
+      "cancelDocumentTitle": "Cancel petty cash request",
+      "cancelled": "Petty cash request cancelled."
     },
     "advanceRequests": {
       "newTitle": "New advance request",
@@ -897,7 +903,9 @@
       "deleteTitle": "Delete advance request",
       "created": "Advance request created.",
       "updated": "Advance request updated.",
-      "deleted": "Advance request deleted."
+      "deleted": "Advance request deleted.",
+      "cancelDocumentTitle": "Cancel advance request",
+      "cancelled": "Advance request cancelled."
     },
     "cashRequests": {
       "newTitle": "New cash request",
@@ -908,7 +916,9 @@
       "deleteTitle": "Delete cash request",
       "created": "Cash request created.",
       "updated": "Cash request updated.",
-      "deleted": "Cash request deleted."
+      "deleted": "Cash request deleted.",
+      "cancelDocumentTitle": "Cancel cash request",
+      "cancelled": "Cash request cancelled."
     },
     "cashClearances": {
       "newTitle": "New cash clearance",
@@ -920,7 +930,9 @@
       "deleteTitle": "Delete cash clearance",
       "created": "Cash clearance created.",
       "updated": "Cash clearance updated.",
-      "deleted": "Cash clearance deleted."
+      "deleted": "Cash clearance deleted.",
+      "cancelDocumentTitle": "Cancel cash clearance",
+      "cancelled": "Cash clearance cancelled."
     },
     "advanceLiquidations": {
       "newTitle": "New advance liquidation",
@@ -933,7 +945,9 @@
       "deleteTitle": "Delete advance liquidation",
       "created": "Advance liquidation created.",
       "updated": "Advance liquidation updated.",
-      "deleted": "Advance liquidation deleted."
+      "deleted": "Advance liquidation deleted.",
+      "cancelDocumentTitle": "Cancel advance liquidation",
+      "cancelled": "Advance liquidation cancelled."
     },
     "form": {
       "code": "Code",

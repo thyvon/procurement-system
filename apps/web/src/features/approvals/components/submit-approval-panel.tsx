@@ -32,6 +32,7 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -218,7 +219,17 @@ export function SubmitApprovalPanel({
       </CardHeader>
       <CardContent className="min-w-0 space-y-3">
         {previewQuery.isPending ? (
-          <p className="text-sm text-muted-foreground">{t("loading")}</p>
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-x-6 gap-y-1">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-28" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-5/6" />
+            </div>
+          </div>
         ) : previewQuery.isError || !preview ? (
           <p className="text-sm text-destructive">
             {(previewQuery.error as Error | null)?.message ?? t("loadFailed")}
@@ -254,7 +265,10 @@ export function SubmitApprovalPanel({
                   <TableHead className="h-8 w-12">{t("stepNumber")}</TableHead>
                   <TableHead className="h-8">{t("stepName")}</TableHead>
                   <TableHead className="h-8 w-72">{t("assignee")}</TableHead>
-                  <TableHead className="h-8 w-56">
+                  <TableHead className="h-8 w-44">
+                    {t("assigneePosition")}
+                  </TableHead>
+                  <TableHead className="hidden h-8 w-56 md:table-cell">
                     {t("additionalMessage")}
                   </TableHead>
                 </TableRow>
@@ -273,6 +287,17 @@ export function SubmitApprovalPanel({
                       getLabel: (candidate) => candidate.label,
                     }
                   );
+                  const selectedCandidate =
+                    step.actionMode === "decide"
+                      ? candidates.find(
+                          (candidate) =>
+                            String(candidate.id) === resolveAssignee(step)
+                        )
+                      : undefined;
+                  const positionText =
+                    step.actionMode === "record"
+                      ? (me.data ?? null)?.position ?? null
+                      : selectedCandidate?.position ?? null;
 
                   return (
                     <TableRow key={step.position}>
@@ -347,7 +372,16 @@ export function SubmitApprovalPanel({
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="py-1" />
+                      <TableCell className="whitespace-normal py-1">
+                        {positionText ? (
+                          positionText
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden py-1 text-muted-foreground md:table-cell">
+                        —
+                      </TableCell>
                     </TableRow>
                   );
                 })}

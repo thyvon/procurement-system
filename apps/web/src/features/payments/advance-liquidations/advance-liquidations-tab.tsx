@@ -1,15 +1,16 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
-import { Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { Ban, Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   paymentsAdvanceLiquidationsDestroy,
   paymentsAdvanceLiquidationsIndex,
+  paymentsAdvanceLiquidationsStatus,
 } from "@/lib/api/advance-liquidation/advance-liquidation";
 import type { AdvanceLiquidationResource } from "@/lib/api/model/advanceLiquidationResource";
 import type { PaymentsAdvanceLiquidationsIndexStatus } from "@/lib/api/model/paymentsAdvanceLiquidationsIndexStatus";
@@ -36,7 +37,9 @@ import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
 import { useMe } from "@/hooks/use-me";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { AdvanceLiquidationStatusBadge } from "./components/advance-liquidation-status-badge";
+import { CancelDocumentDialog } from "../components/cancel-document-dialog";
 
 type AdvanceLiquidationRow = {
   id: string;
@@ -77,17 +80,6 @@ function toRow(resource: AdvanceLiquidationResource): AdvanceLiquidationRow {
   };
 }
 
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [value, delayMs]);
-
-  return debounced;
-}
-
 const columnHelper = createColumnHelper<DataTableFeatures, AdvanceLiquidationRow>();
 
 function useAdvanceLiquidationColumns({
@@ -95,12 +87,14 @@ function useAdvanceLiquidationColumns({
   currentUserId,
   onViewRequest,
   onEditRequest,
+  onCancelRequest,
   onDeleteRequest,
 }: {
   canManage: boolean;
   currentUserId: number | null;
   onViewRequest: (liquidation: AdvanceLiquidationRow) => void;
   onEditRequest: (liquidation: AdvanceLiquidationRow) => void;
+  onCancelRequest: (liquidation: AdvanceLiquidationRow) => void;
   onDeleteRequest: (liquidation: AdvanceLiquidationRow) => void;
 }): ColumnDef<DataTableFeatures, AdvanceLiquidationRow>[] {
   const tc = useTranslations("payments.columns");
@@ -205,14 +199,16 @@ function useAdvanceLiquidationColumns({
       enableHiding: false,
       cell: ({ row }) => {
         const liquidation = row.original;
-        // Server rule: manage AND owner may write (own documents only);
-        // edit/delete only while the API still accepts them (draft).
+        // Server rule: payments.manage AND owner may write (own documents
+        // only); edit while the API still accepts it, delete while a draft.
         const isOwner =
           liquidation.createdById !== null &&
           currentUserId !== null &&
           Number(liquidation.createdById) === currentUserId;
         const canAct = canManage && isOwner;
-        const canEdit = canAct && liquidation.status === "draft";
+        const canEdit = canAct && ["draft", "returned"].includes(liquidation.status);
+        const canCancel = canAct && liquidation.status === "draft";
+        const canDelete = canAct && liquidation.status === "draft";
         return (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="ghost" className="size-8 p-0" />}>
@@ -231,7 +227,13 @@ function useAdvanceLiquidationColumns({
                     {tt("edit")}
                   </DropdownMenuItem>
                 ) : null}
-                {canEdit ? (
+                {canCancel ? (
+                  <DropdownMenuItem onClick={() => onCancelRequest(liquidation)}>
+                    <Ban className="mr-2 size-4" />
+                    {tt("cancelDocument")}
+                  </DropdownMenuItem>
+                ) : null}
+                {canDelete ? (
                   <DropdownMenuItem
                     className="text-destructive"
                     onClick={() => onDeleteRequest(liquidation)}
@@ -261,6 +263,9 @@ export function AdvanceLiquidationsTab() {
   const [deleteTarget, setDeleteTarget] = useState<AdvanceLiquidationRow | null>(
     null
   );
+  const [cancelTarget, setCancelTarget] = useState<AdvanceLiquidationRow | null>(
+    null
+  );
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(0);
@@ -277,6 +282,22 @@ export function AdvanceLiquidationsTab() {
       qc.invalidateQueries({ queryKey: ["advance-liquidations"] });
       setDeleteTarget(null);
       toast.success(tn("deleted"));
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async (id: string) =>
+      unwrap(
+        await paymentsAdvanceLiquidationsStatus(
+          id,
+          { status: "cancelled" },
+          withAuth()
+        )
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["advance-liquidations"] });
+      setCancelTarget(null);
+      toast.success(tn("cancelled"));
     },
   });
 
@@ -321,6 +342,7 @@ export function AdvanceLiquidationsTab() {
       router.push(`/payments/advance-liquidations/${liquidation.id}`),
     onEditRequest: (liquidation) =>
       router.push(`/payments/advance-liquidations/${liquidation.id}/edit`),
+    onCancelRequest: setCancelTarget,
     onDeleteRequest: setDeleteTarget,
   });
 
@@ -355,7 +377,10 @@ export function AdvanceLiquidationsTab() {
         }}
         filterColumn="status"
         filterValue={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={(value) => {
+          setStatusFilter(value);
+          setPage(0);
+        }}
         filterOptions={[
           { label: tt("draft"), value: "draft" },
           { label: tt("inReview"), value: "in_review" },
@@ -413,6 +438,15 @@ export function AdvanceLiquidationsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CancelDocumentDialog
+        open={!!cancelTarget}
+        code={cancelTarget?.code ?? null}
+        title={tn("cancelDocumentTitle")}
+        pending={cancelMutation.isPending}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        onConfirm={() => cancelTarget && cancelMutation.mutate(cancelTarget.id)}
+      />
     </div>
   );
 }

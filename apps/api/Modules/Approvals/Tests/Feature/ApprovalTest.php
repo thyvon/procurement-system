@@ -1262,3 +1262,76 @@ it('filters the tray by status, subject type and date', function () {
         ->assertStatus(422)
         ->assertJsonPath('statusCode', 422);
 });
+
+it('hides a document from every tray once it is deleted', function () {
+    $evaluation = approvalsEvaluation();
+    $round = approvalsPending($evaluation);
+    approvalsAct($round, 'return', 'Fix the awarded total.', $this->firstApprover)->assertOk();
+
+    // A returned document sits in its owner's trays ...
+    $this->actingAs($this->admin, 'sanctum')->getJson('/api/v1/approvals/inbox')
+        ->assertOk()->assertJsonPath('meta.total', 1);
+    $this->actingAs($this->admin, 'sanctum')->getJson('/api/v1/approvals/inbox/count')
+        ->assertOk()->assertJsonPath('data.count', 1);
+    $this->actingAs($this->admin, 'sanctum')->getJson('/api/v1/approvals/outbox')
+        ->assertOk()->assertJsonPath('meta.total', 1);
+    $this->actingAs($this->admin, 'sanctum')->getJson('/api/v1/approvals/requests')
+        ->assertOk()->assertJsonPath('meta.total', 1);
+
+    // ... but a returned evaluation is back in draft, the one state its
+    // owner may delete it from.
+    $this->actingAs($this->admin, 'sanctum')
+        ->deleteJson("/api/v1/purchase-orders/evaluations/{$evaluation->getKey()}")
+        ->assertOk();
+
+    expect($evaluation->fresh()->deleted_at)->not->toBeNull();
+
+    $this->actingAs($this->admin, 'sanctum')->getJson('/api/v1/approvals/inbox')
+        ->assertOk()->assertJsonPath('meta.total', 0);
+    $this->actingAs($this->admin, 'sanctum')->getJson('/api/v1/approvals/inbox/count')
+        ->assertOk()->assertJsonPath('data.count', 0);
+    $this->actingAs($this->admin, 'sanctum')->getJson('/api/v1/approvals/outbox')
+        ->assertOk()->assertJsonPath('meta.total', 0);
+    $this->actingAs($this->admin, 'sanctum')->getJson('/api/v1/approvals/requests')
+        ->assertOk()->assertJsonPath('meta.total', 0);
+
+    // The round is history, not data loss: restoring the document brings
+    // every tray back.
+    $evaluation->restore();
+
+    $this->actingAs($this->admin, 'sanctum')->getJson('/api/v1/approvals/inbox')
+        ->assertOk()->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.status', 'returned');
+});
+
+it('lists a document once in the outbox and the full list across rounds', function () {
+    $evaluation = approvalsEvaluation();
+
+    $firstRound = approvalsPending($evaluation);
+    approvalsAct($firstRound, 'return', 'Fix the awarded total.', $this->firstApprover)->assertOk();
+
+    $secondRound = approvalsPending($evaluation);
+
+    expect(ApprovalRequest::query()->count())->toBe(2);
+
+    $this->actingAs($this->admin, 'sanctum')->getJson('/api/v1/approvals/outbox')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.id', $secondRound->getKey())
+        ->assertJsonPath('data.0.status', 'pending');
+
+    $this->actingAs($this->admin, 'sanctum')->getJson('/api/v1/approvals/requests')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.id', $secondRound->getKey());
+
+    // Filters act on the current round: the superseded return is history,
+    // not a second row to find.
+    $this->actingAs($this->admin, 'sanctum')->getJson('/api/v1/approvals/requests?status=returned')
+        ->assertOk()->assertJsonPath('meta.total', 0);
+
+    // Scoped to one document the same endpoint is its audit trail.
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/approvals/requests?subject_type=evaluation&subject_id={$evaluation->getKey()}")
+        ->assertOk()->assertJsonPath('meta.total', 2);
+});

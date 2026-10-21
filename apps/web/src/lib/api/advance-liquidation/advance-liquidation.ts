@@ -29,6 +29,7 @@ import type {
   PaymentsAdvanceLiquidationsDestroy200,
   PaymentsAdvanceLiquidationsIndex200,
   PaymentsAdvanceLiquidationsIndexParams,
+  PaymentsAdvanceLiquidationsPrint200,
   PaymentsAdvanceLiquidationsShow200,
   PaymentsAdvanceLiquidationsStatus200,
   PaymentsAdvanceLiquidationsStore201,
@@ -982,6 +983,188 @@ export function usePaymentsAdvanceLiquidationsStatus<TData = Awaited<ReturnType<
   const queryOptions = getPaymentsAdvanceLiquidationsStatusQueryOptions(advanceLiquidation,updateAdvanceLiquidationStatusRequest,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type paymentsAdvanceLiquidationsPrintResponse200 = {
+  data: PaymentsAdvanceLiquidationsPrint200
+  status: 200
+}
+
+export type paymentsAdvanceLiquidationsPrintResponse401 = {
+  data: AuthenticationExceptionResponse
+  status: 401
+}
+
+export type paymentsAdvanceLiquidationsPrintResponse403 = {
+  data: AuthorizationExceptionResponse
+  status: 403
+}
+
+export type paymentsAdvanceLiquidationsPrintResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
+export type paymentsAdvanceLiquidationsPrintResponseSuccess = (paymentsAdvanceLiquidationsPrintResponse200) & {
+  headers: Headers;
+};
+export type paymentsAdvanceLiquidationsPrintResponseError = (paymentsAdvanceLiquidationsPrintResponse401 | paymentsAdvanceLiquidationsPrintResponse403 | paymentsAdvanceLiquidationsPrintResponse404) & {
+  headers: Headers;
+};
+
+export type paymentsAdvanceLiquidationsPrintResponse = (paymentsAdvanceLiquidationsPrintResponseSuccess | paymentsAdvanceLiquidationsPrintResponseError)
+
+export const getPaymentsAdvanceLiquidationsPrintUrl = (advanceLiquidation: string,) => {
+
+
+
+
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/payments/advance-liquidations/${advanceLiquidation}/print`
+}
+
+export const paymentsAdvanceLiquidationsPrint = async (advanceLiquidation: string, options?: RequestInit): Promise<paymentsAdvanceLiquidationsPrintResponse> => {
+
+  const res = await fetch(getPaymentsAdvanceLiquidationsPrintUrl(advanceLiquidation),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: paymentsAdvanceLiquidationsPrintResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as paymentsAdvanceLiquidationsPrintResponse
+}
+
+
+
+
+
+export const getPaymentsAdvanceLiquidationsPrintQueryKey = (advanceLiquidation: string,) => {
+    return [
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/payments/advance-liquidations/${advanceLiquidation}/print`
+    ] as const;
+    }
+
+
+export const getPaymentsAdvanceLiquidationsPrintQueryOptions = <TData = Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(advanceLiquidation: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPaymentsAdvanceLiquidationsPrintQueryKey(advanceLiquidation);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>> = ({ signal }) => paymentsAdvanceLiquidationsPrint(advanceLiquidation, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: advanceLiquidation !== null && advanceLiquidation !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PaymentsAdvanceLiquidationsPrintQueryResult = NonNullable<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>>
+export type PaymentsAdvanceLiquidationsPrintQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
+
+
+export function usePaymentsAdvanceLiquidationsPrint<TData = Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ advanceLiquidation: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>,
+          TError,
+          Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsAdvanceLiquidationsPrint<TData = Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ advanceLiquidation: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>,
+          TError,
+          Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsAdvanceLiquidationsPrint<TData = Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ advanceLiquidation: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function usePaymentsAdvanceLiquidationsPrint<TData = Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ advanceLiquidation: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPaymentsAdvanceLiquidationsPrintQueryOptions(advanceLiquidation,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getPaymentsAdvanceLiquidationsPrintSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(advanceLiquidation: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPaymentsAdvanceLiquidationsPrintQueryKey(advanceLiquidation);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>> = ({ signal }) => paymentsAdvanceLiquidationsPrint(advanceLiquidation, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PaymentsAdvanceLiquidationsPrintSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>>
+export type PaymentsAdvanceLiquidationsPrintSuspenseQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
+
+
+export function usePaymentsAdvanceLiquidationsPrintSuspense<TData = Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ advanceLiquidation: string, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsAdvanceLiquidationsPrintSuspense<TData = Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ advanceLiquidation: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsAdvanceLiquidationsPrintSuspense<TData = Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ advanceLiquidation: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function usePaymentsAdvanceLiquidationsPrintSuspense<TData = Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ advanceLiquidation: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsAdvanceLiquidationsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPaymentsAdvanceLiquidationsPrintSuspenseQueryOptions(advanceLiquidation,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }

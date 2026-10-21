@@ -15,8 +15,8 @@ type ApprovalSubjectConfig = {
   /** The subject's detail page — where a submitted document is viewed. */
   detailPath: (subjectId: string) => string;
   /**
-   * Where a returned document is fixed and resubmitted: evaluation's form
-   * (its submit panel lives there), payments' detail page (same reason).
+   * Where a returned document is fixed and resubmitted: both modules' edit
+   * form — the submit panel lives there, never on the read-only detail page.
    */
   resubmitPath: (subjectId: string) => string;
 };
@@ -30,27 +30,27 @@ const APPROVAL_SUBJECTS: Record<string, ApprovalSubjectConfig> = {
   petty_cash_request: {
     documentQueryKey: ["petty-cash-requests"],
     detailPath: (id) => `/payments/petty-cash-requests/${id}`,
-    resubmitPath: (id) => `/payments/petty-cash-requests/${id}`,
+    resubmitPath: (id) => `/payments/petty-cash-requests/${id}/edit`,
   },
   advance_request: {
     documentQueryKey: ["advance-requests"],
     detailPath: (id) => `/payments/advance-requests/${id}`,
-    resubmitPath: (id) => `/payments/advance-requests/${id}`,
+    resubmitPath: (id) => `/payments/advance-requests/${id}/edit`,
   },
   cash_request: {
     documentQueryKey: ["cash-requests"],
     detailPath: (id) => `/payments/cash-requests/${id}`,
-    resubmitPath: (id) => `/payments/cash-requests/${id}`,
+    resubmitPath: (id) => `/payments/cash-requests/${id}/edit`,
   },
   cash_clearance: {
     documentQueryKey: ["cash-clearances"],
     detailPath: (id) => `/payments/cash-clearances/${id}`,
-    resubmitPath: (id) => `/payments/cash-clearances/${id}`,
+    resubmitPath: (id) => `/payments/cash-clearances/${id}/edit`,
   },
   advance_liquidation: {
     documentQueryKey: ["advance-liquidations"],
     detailPath: (id) => `/payments/advance-liquidations/${id}`,
-    resubmitPath: (id) => `/payments/advance-liquidations/${id}`,
+    resubmitPath: (id) => `/payments/advance-liquidations/${id}/edit`,
   },
 };
 

@@ -628,13 +628,7 @@ export function PettyCashRequestForm({
         </Card>
       </fieldset>
 
-      {locked ? (
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="outline" onClick={onBack}>
-            {t("cancel")}
-          </Button>
-        </div>
-      ) : (
+      {locked ? null : (
         <SubmitApprovalPanel
           subjectType={approvalSubjectType("petty_cash")}
           subjectId={pettyCashRequestId ?? null}
@@ -644,22 +638,13 @@ export function PettyCashRequestForm({
           prepareDocument={approval.prepareDocument}
           onAssigneesChange={approval.onAssigneesChange}
           actions={
-            <>
-              <Button
-                variant="outline"
-                onClick={onBack}
-                disabled={approval.saving}
-              >
-                {t("cancel")}
-              </Button>
-              <Button
-                onClick={approval.handleSave}
-                disabled={approval.saving || !canSave}
-              >
-                <Save />
-                <span>{approval.saving ? t("saving") : t("save")}</span>
-              </Button>
-            </>
+            <Button
+              onClick={approval.handleSave}
+              disabled={approval.saving || !canSave}
+            >
+              <Save />
+              <span>{approval.saving ? t("saving") : t("save")}</span>
+            </Button>
           }
         />
       )}

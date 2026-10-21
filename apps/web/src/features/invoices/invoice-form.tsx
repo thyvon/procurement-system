@@ -1132,15 +1132,8 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
         </Card>
       </fieldset>
 
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          disabled={saveMutation.isPending}
-        >
-          {t("cancel")}
-        </Button>
-        {locked ? null : (
+      {locked ? null : (
+        <div className="flex items-center justify-end gap-2">
           <Button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending || !canSave}
@@ -1148,8 +1141,8 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
             <Save />
             <span>{saveMutation.isPending ? t("saving") : t("save")}</span>
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

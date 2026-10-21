@@ -4,6 +4,7 @@ import { approvalsRequestsIndex } from "@/lib/api/approval-request/approval-requ
 export type ApprovalCandidate = {
   id: number;
   name: string;
+  position?: string | null;
 };
 
 export type ApprovalFlowView = {

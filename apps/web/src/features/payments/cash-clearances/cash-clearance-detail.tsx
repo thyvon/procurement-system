@@ -6,12 +6,13 @@ import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Printer, Trash2 } from "lucide-react";
+import { ArrowLeft, Ban, Pencil, Printer, Trash2 } from "lucide-react";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { formatDate, formatMoney } from "@/lib/utils";
 import {
   paymentsCashClearancesDestroy,
   paymentsCashClearancesShow,
+  paymentsCashClearancesStatus,
 } from "@/lib/api/cash-clearance/cash-clearance";
 import type { CashClearanceResource } from "@/lib/api/model/cashClearanceResource";
 import type { CashClearanceLineResource } from "@/lib/api/model/cashClearanceLineResource";
@@ -37,9 +38,9 @@ import {
   type ApprovalRequestView,
 } from "@/features/approvals/approval-types";
 import { ApprovalTimeline } from "@/features/approvals/components/approval-timeline";
-import { SubmitApprovalPanel } from "@/features/approvals/components/submit-approval-panel";
 import { useMe } from "@/hooks/use-me";
 import { CashClearanceStatusBadge } from "./components/cash-clearance-status-badge";
+import { CancelDocumentDialog } from "../components/cancel-document-dialog";
 import { CashClearanceDetailSkeleton } from "./components/cash-clearance-detail-skeleton";
 import { CashClearancePrint } from "./components/cash-clearance-print";
 
@@ -76,6 +77,7 @@ export function CashClearanceDetail({
   const meQuery = useMe();
   const qc = useQueryClient();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const showQuery = useQuery({
     queryKey: ["cash-clearances", "detail", clearanceId],
@@ -106,6 +108,18 @@ export function CashClearanceDetail({
       qc.invalidateQueries({ queryKey: ["cash-clearances"] });
       toast.success(tn("deleted"));
       router.push("/payments/cash-clearances");
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async (id: string) =>
+      unwrap(
+        await paymentsCashClearancesStatus(id, { status: "cancelled" }, withAuth())
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cash-clearances"] });
+      toast.success(tn("cancelled"));
+      setCancelOpen(false);
     },
   });
 
@@ -155,10 +169,12 @@ export function CashClearanceDetail({
     clearance.createdById != null &&
     meQuery.data != null &&
     Number(clearance.createdById) === meQuery.data.id;
-  // Mirrors the API: payments.manage AND owner, only while a draft.
-  const canEdit = canManage && isOwner && status === "draft";
-  const canSubmit =
-    canManage && isOwner && (status === "draft" || status === "returned");
+  // Mirrors the API: payments.manage AND owner; editable while draft or
+  // returned, deletable only while a draft.
+  const canAct = canManage && isOwner;
+  const canEdit = canAct && ["draft", "returned"].includes(clearance.status);
+  const canCancel = canAct && clearance.status === "draft";
+  const canDelete = canAct && clearance.status === "draft";
 
   const handlePrint = () => {
     const originalTitle = document.title;
@@ -213,7 +229,13 @@ export function CashClearanceDetail({
                   {tt("edit")}
                 </Button>
               ) : null}
-              {canEdit ? (
+              {canCancel ? (
+                <Button variant="outline" onClick={() => setCancelOpen(true)}>
+                  <Ban />
+                  {tt("cancelDocument")}
+                </Button>
+              ) : null}
+              {canDelete ? (
                 <Button
                   variant="outline"
                   className="text-destructive hover:bg-destructive/10"
@@ -466,14 +488,6 @@ export function CashClearanceDetail({
           </div>
         ) : null}
 
-        {canSubmit && !embedded ? (
-          <SubmitApprovalPanel
-            subjectType={CASH_CLEARANCE_SUBJECT}
-            subjectId={clearance.id}
-            amount={Number(clearance.totalUsd)}
-          />
-        ) : null}
-
         <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
           <DialogContent>
             <DialogHeader>
@@ -503,6 +517,15 @@ export function CashClearanceDetail({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <CancelDocumentDialog
+          open={cancelOpen}
+          code={clearance.code}
+          title={tn("cancelDocumentTitle")}
+          pending={cancelMutation.isPending}
+          onOpenChange={setCancelOpen}
+          onConfirm={() => cancelMutation.mutate(clearance.id)}
+        />
       </div>
 
       <CashClearancePrint

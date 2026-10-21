@@ -212,6 +212,35 @@ it('updates a draft clearance by replacing the lines and recomputing totals', fu
         ->and((float) $clearance->balance_usd)->toBe(470.0);
 });
 
+it('re-runs the approved-source and one-clearance guards on update', function () {
+    $first = approvedCashRequest(['total_usd' => 500]);
+    $second = approvedCashRequest(['total_usd' => 700]);
+    $draftSource = CashRequest::factory()->create([
+        'entity_id' => $this->entity->getKey(),
+        'created_by' => $this->admin->getKey(),
+        'total_usd' => 300,
+    ]);
+
+    $id = storeCashClearance($first->getKey())->json('data.id');
+
+    // Repointing onto an approved request that already has a clearance.
+    storeCashClearance($second->getKey())->assertStatus(201);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/payments/cash-clearances/{$id}", clearancePayload($second->getKey()))
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors' => ['cash_request_id']]);
+
+    // Repointing onto an unapproved source is refused on update too.
+    $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/payments/cash-clearances/{$id}", clearancePayload($draftSource->getKey()))
+        ->assertStatus(422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors' => ['cash_request_id']]);
+
+    expect(CashClearance::query()->findOrFail($id)->cash_request_id)->toBe($first->getKey());
+});
+
 it('cancels a draft clearance and blocks deleting it afterwards', function () {
     $request = approvedCashRequest();
     $id = storeCashClearance($request->getKey())->json('data.id');

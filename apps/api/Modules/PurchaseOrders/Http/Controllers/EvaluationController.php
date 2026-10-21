@@ -13,13 +13,16 @@ use Modules\PurchaseOrders\Http\Requests\UpdateEvaluationRequest;
 use Modules\PurchaseOrders\Http\Resources\EvaluationResource;
 use Modules\PurchaseOrders\Models\Evaluation;
 use Modules\PurchaseOrders\Repositories\EvaluationRepositoryInterface;
+use Modules\PurchaseOrders\Services\EvaluationPrintService;
 use Modules\PurchaseOrders\Services\EvaluationService;
+use Spatie\LaravelPdf\PdfBuilder;
 
 class EvaluationController extends Controller
 {
     public function __construct(
         private readonly EvaluationRepositoryInterface $repo,
         private readonly EvaluationService $service,
+        private readonly EvaluationPrintService $print,
     ) {}
 
     public function index(IndexEvaluationsRequest $request): JsonResponse
@@ -63,6 +66,16 @@ class EvaluationController extends Controller
         $this->authorize('view', $evaluation);
 
         return new EvaluationResource($evaluation->load(['items', 'quotations.lines', 'creator']));
+    }
+
+    public function print(Request $request, Evaluation $evaluation): PdfBuilder
+    {
+        $this->authorize('view', $evaluation);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        return $this->print->forEvaluation($evaluation, $user);
     }
 
     public function update(UpdateEvaluationRequest $request, Evaluation $evaluation): EvaluationResource

@@ -34,7 +34,6 @@ import {
   fetchApprovalRounds,
   type ApprovalRequestView,
 } from "@/features/approvals/approval-types";
-import { SubmitApprovalPanel } from "@/features/approvals/components/submit-approval-panel";
 import { ApprovalTimeline } from "@/features/approvals/components/approval-timeline";
 import { CashRequestStatusBadge } from "../components/cash-request-status-badge";
 import { CashRequestDetailSkeleton } from "../components/cash-request-detail-skeleton";
@@ -156,7 +155,6 @@ export function PettyCashRequestDetail({
   const canAct = canManage && isOwner;
   const canEdit = canAct && ["draft", "returned"].includes(status);
   const canDelete = canAct && status === "draft";
-  const canSubmit = canAct && ["draft", "returned"].includes(status);
 
   const handlePrint = () => {
     const originalTitle = document.title;
@@ -386,13 +384,6 @@ export function PettyCashRequestDetail({
               rounds={roundsQuery.data ?? []}
             />
           </div>
-        ) : null}
-
-        {canSubmit && !embedded ? (
-          <SubmitApprovalPanel
-            subjectType={subjectType}
-            subjectId={cashRequest.id}
-          />
         ) : null}
       </div>
 

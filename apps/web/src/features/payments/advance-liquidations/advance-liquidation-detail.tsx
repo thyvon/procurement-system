@@ -6,12 +6,13 @@ import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Printer, Trash2 } from "lucide-react";
+import { ArrowLeft, Ban, Pencil, Printer, Trash2 } from "lucide-react";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { formatDate, formatMoney } from "@/lib/utils";
 import {
   paymentsAdvanceLiquidationsDestroy,
   paymentsAdvanceLiquidationsShow,
+  paymentsAdvanceLiquidationsStatus,
 } from "@/lib/api/advance-liquidation/advance-liquidation";
 import type { AdvanceLiquidationResource } from "@/lib/api/model/advanceLiquidationResource";
 import type { AdvanceLiquidationLineResource } from "@/lib/api/model/advanceLiquidationLineResource";
@@ -37,9 +38,9 @@ import {
   type ApprovalRequestView,
 } from "@/features/approvals/approval-types";
 import { ApprovalTimeline } from "@/features/approvals/components/approval-timeline";
-import { SubmitApprovalPanel } from "@/features/approvals/components/submit-approval-panel";
 import { useMe } from "@/hooks/use-me";
 import { AdvanceLiquidationStatusBadge } from "./components/advance-liquidation-status-badge";
+import { CancelDocumentDialog } from "../components/cancel-document-dialog";
 import { AdvanceLiquidationDetailSkeleton } from "./components/advance-liquidation-detail-skeleton";
 import { AdvanceLiquidationPrint } from "./components/advance-liquidation-print";
 
@@ -76,6 +77,7 @@ export function AdvanceLiquidationDetail({
   const meQuery = useMe();
   const qc = useQueryClient();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const showQuery = useQuery({
     queryKey: ["advance-liquidations", "detail", liquidationId],
@@ -108,6 +110,22 @@ export function AdvanceLiquidationDetail({
       qc.invalidateQueries({ queryKey: ["advance-liquidations"] });
       toast.success(tn("deleted"));
       router.push("/payments/advance-liquidations");
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async (id: string) =>
+      unwrap(
+        await paymentsAdvanceLiquidationsStatus(
+          id,
+          { status: "cancelled" },
+          withAuth()
+        )
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["advance-liquidations"] });
+      toast.success(tn("cancelled"));
+      setCancelOpen(false);
     },
   });
 
@@ -157,10 +175,12 @@ export function AdvanceLiquidationDetail({
     liquidation.createdById != null &&
     meQuery.data != null &&
     Number(liquidation.createdById) === meQuery.data.id;
-  // Mirrors the API: payments.manage AND owner, only while a draft.
-  const canEdit = canManage && isOwner && status === "draft";
-  const canSubmit =
-    canManage && isOwner && (status === "draft" || status === "returned");
+  // Mirrors the API: payments.manage AND owner; editable while draft or
+  // returned, deletable only while a draft.
+  const canAct = canManage && isOwner;
+  const canEdit = canAct && ["draft", "returned"].includes(liquidation.status);
+  const canCancel = canAct && liquidation.status === "draft";
+  const canDelete = canAct && liquidation.status === "draft";
 
   const handlePrint = () => {
     const originalTitle = document.title;
@@ -215,7 +235,13 @@ export function AdvanceLiquidationDetail({
                   {tt("edit")}
                 </Button>
               ) : null}
-              {canEdit ? (
+              {canCancel ? (
+                <Button variant="outline" onClick={() => setCancelOpen(true)}>
+                  <Ban />
+                  {tt("cancelDocument")}
+                </Button>
+              ) : null}
+              {canDelete ? (
                 <Button
                   variant="outline"
                   className="text-destructive hover:bg-destructive/10"
@@ -397,14 +423,6 @@ export function AdvanceLiquidationDetail({
           </div>
         ) : null}
 
-        {canSubmit && !embedded ? (
-          <SubmitApprovalPanel
-            subjectType={ADVANCE_LIQUIDATION_SUBJECT}
-            subjectId={liquidation.id}
-            amount={Number(liquidation.totalActualExpenseUsd)}
-          />
-        ) : null}
-
         <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
           <DialogContent>
             <DialogHeader>
@@ -434,6 +452,15 @@ export function AdvanceLiquidationDetail({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <CancelDocumentDialog
+          open={cancelOpen}
+          code={liquidation.code}
+          title={tn("cancelDocumentTitle")}
+          pending={cancelMutation.isPending}
+          onOpenChange={setCancelOpen}
+          onConfirm={() => cancelMutation.mutate(liquidation.id)}
+        />
       </div>
 
       <AdvanceLiquidationPrint

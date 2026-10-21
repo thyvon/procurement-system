@@ -36,7 +36,12 @@ class ApprovalSubjectRegistry
      * only these statuses may enter (or re-enter) the approval flow, so an
      * approved or rejected document can never open a new round.
      *
-     * @var array<string, array{model: class-string<Model>, amount_column: string, code_column: string, permission: string, currency_column?: string, exchange_rate_column?: string, submittable_statuses?: array<int, string>}>
+     * `type_value` discriminates subjects that share one model across several
+     * subject types (petty cash / advance / cash all back onto CashRequest):
+     * a document whose `type` differs is rejected instead of being routed
+     * through another subject type's flow and authority bands.
+     *
+     * @var array<string, array{model: class-string<Model>, amount_column: string, code_column: string, permission: string, currency_column?: string, exchange_rate_column?: string, submittable_statuses?: array<int, string>, type_value?: string}>
      */
     private const SUBJECTS = [
         'evaluation' => [
@@ -50,6 +55,7 @@ class ApprovalSubjectRegistry
         ],
         'petty_cash_request' => [
             'model' => CashRequest::class,
+            'type_value' => CashRequest::TYPE_PETTY_CASH,
             'amount_column' => 'total_usd',
             'code_column' => 'code',
             'permission' => 'payments.manage',
@@ -58,6 +64,7 @@ class ApprovalSubjectRegistry
         ],
         'advance_request' => [
             'model' => CashRequest::class,
+            'type_value' => CashRequest::TYPE_ADVANCE,
             'amount_column' => 'total_usd',
             'code_column' => 'code',
             'permission' => 'payments.manage',
@@ -66,6 +73,7 @@ class ApprovalSubjectRegistry
         ],
         'cash_request' => [
             'model' => CashRequest::class,
+            'type_value' => CashRequest::TYPE_CASH,
             'amount_column' => 'total_usd',
             'code_column' => 'code',
             'permission' => 'payments.manage',
@@ -91,7 +99,7 @@ class ApprovalSubjectRegistry
     ];
 
     /**
-     * @return array{model: class-string<Model>, amount_column: string, code_column: string, permission: string, currency_column?: string, exchange_rate_column?: string, submittable_statuses?: array<int, string>}
+     * @return array{model: class-string<Model>, amount_column: string, code_column: string, permission: string, currency_column?: string, exchange_rate_column?: string, submittable_statuses?: array<int, string>, type_value?: string}
      */
     public function definition(string $subjectType): array
     {
@@ -115,6 +123,14 @@ class ApprovalSubjectRegistry
         if ($subject === null) {
             throw ValidationException::withMessages([
                 'subjectId' => 'Record not found.',
+            ]);
+        }
+
+        $typeValue = $definition['type_value'] ?? null;
+
+        if ($typeValue !== null && (string) $subject->getAttribute('type') !== $typeValue) {
+            throw ValidationException::withMessages([
+                'subjectType' => 'The document does not match this approval subject type.',
             ]);
         }
 

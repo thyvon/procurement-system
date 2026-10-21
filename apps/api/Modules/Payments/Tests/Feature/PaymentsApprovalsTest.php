@@ -197,6 +197,26 @@ it('freezes a cash request snapshot with its header and lines', function () {
         ]);
 });
 
+it('rejects submitting a document under another cash request subject type', function () {
+    $id = paymentsCashRequest()
+        ->assertStatus(201)
+        ->json('data.id');
+
+    test()->actingAs($this->admin, 'sanctum')
+        ->postJson('/api/v1/approvals/requests', [
+            'subject_type' => 'advance_request',
+            'subject_id' => $id,
+            'assignees' => paymentsApprovalsAssignees(),
+        ])
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonPath('errors.subjectType.0', 'The document does not match this approval subject type.');
+
+    // The round never opened and the document is untouched.
+    expect(ApprovalRequest::query()->count())->toBe(0)
+        ->and(CashRequest::query()->findOrFail($id)->status)->toBe('draft');
+});
+
 it('walks a cash request through approval and syncs its status', function () {
     $id = paymentsCashRequest()
         ->assertStatus(201)

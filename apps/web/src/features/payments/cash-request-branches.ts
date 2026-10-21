@@ -2,6 +2,7 @@ import {
   paymentsAdvanceRequestsDestroy,
   paymentsAdvanceRequestsIndex,
   paymentsAdvanceRequestsShow,
+  paymentsAdvanceRequestsStatus,
   paymentsAdvanceRequestsStore,
   paymentsAdvanceRequestsUpdate,
 } from "@/lib/api/advance-request/advance-request";
@@ -9,6 +10,7 @@ import {
   paymentsCashRequestsDestroy,
   paymentsCashRequestsIndex,
   paymentsCashRequestsShow,
+  paymentsCashRequestsStatus,
   paymentsCashRequestsStore,
   paymentsCashRequestsUpdate,
 } from "@/lib/api/cash-request/cash-request";
@@ -16,12 +18,14 @@ import {
   paymentsPettyCashRequestsDestroy,
   paymentsPettyCashRequestsIndex,
   paymentsPettyCashRequestsShow,
+  paymentsPettyCashRequestsStatus,
   paymentsPettyCashRequestsStore,
   paymentsPettyCashRequestsUpdate,
 } from "@/lib/api/petty-cash-request/petty-cash-request";
 import type { PaymentsCashRequestsIndexParams } from "@/lib/api/model/paymentsCashRequestsIndexParams";
 import type { StoreCashRequestRequest } from "@/lib/api/model/storeCashRequestRequest";
 import type { UpdateCashRequestRequest } from "@/lib/api/model/updateCashRequestRequest";
+import type { UpdateCashRequestStatusRequest } from "@/lib/api/model/updateCashRequestStatusRequest";
 import type { CashRequestType } from "./cash-request-helpers";
 
 /**
@@ -54,6 +58,11 @@ interface CashRequestBranchClient {
     payload: UpdateCashRequestRequest,
     options?: RequestInit
   ): Promise<Envelope>;
+  status(
+    cashRequest: string,
+    payload: UpdateCashRequestStatusRequest,
+    options?: RequestInit
+  ): Promise<Envelope>;
   destroy(cashRequest: string, options?: RequestInit): Promise<Envelope>;
 }
 
@@ -73,6 +82,7 @@ export const CASH_REQUEST_BRANCHES: Record<CashRequestBranch, CashRequestBranchC
       show: paymentsPettyCashRequestsShow,
       store: paymentsPettyCashRequestsStore,
       update: paymentsPettyCashRequestsUpdate,
+      status: paymentsPettyCashRequestsStatus,
       destroy: paymentsPettyCashRequestsDestroy,
     },
   },
@@ -84,6 +94,7 @@ export const CASH_REQUEST_BRANCHES: Record<CashRequestBranch, CashRequestBranchC
       show: paymentsAdvanceRequestsShow,
       store: paymentsAdvanceRequestsStore,
       update: paymentsAdvanceRequestsUpdate,
+      status: paymentsAdvanceRequestsStatus,
       destroy: paymentsAdvanceRequestsDestroy,
     },
   },
@@ -95,6 +106,7 @@ export const CASH_REQUEST_BRANCHES: Record<CashRequestBranch, CashRequestBranchC
       show: paymentsCashRequestsShow,
       store: paymentsCashRequestsStore,
       update: paymentsCashRequestsUpdate,
+      status: paymentsCashRequestsStatus,
       destroy: paymentsCashRequestsDestroy,
     },
   },

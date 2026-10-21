@@ -29,6 +29,7 @@ import type {
   PaymentsPettyCashRequestsDestroy200,
   PaymentsPettyCashRequestsIndex200,
   PaymentsPettyCashRequestsIndexParams,
+  PaymentsPettyCashRequestsPrint200,
   PaymentsPettyCashRequestsShow200,
   PaymentsPettyCashRequestsStatus200,
   PaymentsPettyCashRequestsStore201,
@@ -982,6 +983,188 @@ export function usePaymentsPettyCashRequestsStatus<TData = Awaited<ReturnType<ty
   const queryOptions = getPaymentsPettyCashRequestsStatusQueryOptions(cashRequest,updateCashRequestStatusRequest,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type paymentsPettyCashRequestsPrintResponse200 = {
+  data: PaymentsPettyCashRequestsPrint200
+  status: 200
+}
+
+export type paymentsPettyCashRequestsPrintResponse401 = {
+  data: AuthenticationExceptionResponse
+  status: 401
+}
+
+export type paymentsPettyCashRequestsPrintResponse403 = {
+  data: AuthorizationExceptionResponse
+  status: 403
+}
+
+export type paymentsPettyCashRequestsPrintResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
+export type paymentsPettyCashRequestsPrintResponseSuccess = (paymentsPettyCashRequestsPrintResponse200) & {
+  headers: Headers;
+};
+export type paymentsPettyCashRequestsPrintResponseError = (paymentsPettyCashRequestsPrintResponse401 | paymentsPettyCashRequestsPrintResponse403 | paymentsPettyCashRequestsPrintResponse404) & {
+  headers: Headers;
+};
+
+export type paymentsPettyCashRequestsPrintResponse = (paymentsPettyCashRequestsPrintResponseSuccess | paymentsPettyCashRequestsPrintResponseError)
+
+export const getPaymentsPettyCashRequestsPrintUrl = (cashRequest: string,) => {
+
+
+
+
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/payments/petty-cash-requests/${cashRequest}/print`
+}
+
+export const paymentsPettyCashRequestsPrint = async (cashRequest: string, options?: RequestInit): Promise<paymentsPettyCashRequestsPrintResponse> => {
+
+  const res = await fetch(getPaymentsPettyCashRequestsPrintUrl(cashRequest),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: paymentsPettyCashRequestsPrintResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as paymentsPettyCashRequestsPrintResponse
+}
+
+
+
+
+
+export const getPaymentsPettyCashRequestsPrintQueryKey = (cashRequest: string,) => {
+    return [
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/payments/petty-cash-requests/${cashRequest}/print`
+    ] as const;
+    }
+
+
+export const getPaymentsPettyCashRequestsPrintQueryOptions = <TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(cashRequest: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPaymentsPettyCashRequestsPrintQueryKey(cashRequest);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>> = ({ signal }) => paymentsPettyCashRequestsPrint(cashRequest, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: cashRequest !== null && cashRequest !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PaymentsPettyCashRequestsPrintQueryResult = NonNullable<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>>
+export type PaymentsPettyCashRequestsPrintQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
+
+
+export function usePaymentsPettyCashRequestsPrint<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>,
+          TError,
+          Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsPettyCashRequestsPrint<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>,
+          TError,
+          Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsPettyCashRequestsPrint<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function usePaymentsPettyCashRequestsPrint<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPaymentsPettyCashRequestsPrintQueryOptions(cashRequest,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getPaymentsPettyCashRequestsPrintSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(cashRequest: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPaymentsPettyCashRequestsPrintQueryKey(cashRequest);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>> = ({ signal }) => paymentsPettyCashRequestsPrint(cashRequest, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PaymentsPettyCashRequestsPrintSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>>
+export type PaymentsPettyCashRequestsPrintSuspenseQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
+
+
+export function usePaymentsPettyCashRequestsPrintSuspense<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsPettyCashRequestsPrintSuspense<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsPettyCashRequestsPrintSuspense<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function usePaymentsPettyCashRequestsPrintSuspense<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPaymentsPettyCashRequestsPrintSuspenseQueryOptions(cashRequest,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }

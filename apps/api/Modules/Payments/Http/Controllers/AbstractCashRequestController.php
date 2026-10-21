@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Modules\Payments\Http\Requests\IndexCashRequestsRequest;
 use Modules\Payments\Http\Requests\StoreCashRequestRequest;
@@ -15,6 +16,8 @@ use Modules\Payments\Http\Resources\CashRequestResource;
 use Modules\Payments\Models\CashRequest;
 use Modules\Payments\Repositories\CashRequestRepositoryInterface;
 use Modules\Payments\Services\CashRequestService;
+use Modules\Payments\Services\PaymentPrintService;
+use Spatie\LaravelPdf\PdfBuilder;
 
 /**
  * Shared HTTP layer for the three cash request branches (petty cash, advance,
@@ -27,6 +30,7 @@ abstract class AbstractCashRequestController extends Controller
     public function __construct(
         private readonly CashRequestRepositoryInterface $repo,
         private readonly CashRequestService $service,
+        private readonly PaymentPrintService $print,
     ) {}
 
     /**
@@ -79,6 +83,17 @@ abstract class AbstractCashRequestController extends Controller
         $this->authorize('view', $cashRequest);
 
         return new CashRequestResource($cashRequest->load(['lines', 'creator']));
+    }
+
+    public function print(Request $request, CashRequest $cashRequest): PdfBuilder
+    {
+        $this->ensureOwned($cashRequest);
+        $this->authorize('view', $cashRequest);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        return $this->print->forCashRequest($cashRequest, $user);
     }
 
     public function update(UpdateCashRequestRequest $request, CashRequest $cashRequest): CashRequestResource

@@ -10,4 +10,6 @@ Route::prefix('v1/purchase-orders')
         Route::apiResource('evaluations', EvaluationController::class);
         Route::post('evaluations/{evaluation}/duplicate', [EvaluationController::class, 'duplicate'])
             ->name('evaluations.duplicate');
+        Route::get('evaluations/{evaluation}/print', [EvaluationController::class, 'print'])
+            ->name('evaluations.print');
     });

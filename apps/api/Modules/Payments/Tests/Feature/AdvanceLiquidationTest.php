@@ -195,6 +195,25 @@ it('updates a draft by replacing the whole line list and recomputing totals', fu
         ->and((float) $liquidation->remaining_cash_usd)->toBe(550.0);
 });
 
+it('re-runs the approved-source guard on update', function () {
+    $source = advanceSource(['total_usd' => 600]);
+    $draftSource = CashRequest::factory()->advance()->create([
+        'entity_id' => $this->entity->getKey(),
+        'created_by' => $this->admin->getKey(),
+        'total_usd' => 600,
+    ]);
+
+    $id = storeAdvanceLiquidation($source->getKey())->json('data.id');
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/payments/advance-liquidations/{$id}", liquidationPayload($draftSource->getKey()))
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors' => ['cash_request_id']]);
+
+    expect(AdvanceLiquidation::query()->findOrFail($id)->cash_request_id)->toBe($source->getKey());
+});
+
 it('cancels a draft and blocks deleting it afterwards', function () {
     $source = advanceSource();
     $id = storeAdvanceLiquidation($source->getKey())->json('data.id');

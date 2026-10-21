@@ -67,7 +67,11 @@ class ApprovalService
                     'showOnPrint' => $step->show_on_print,
                     'candidates' => $step->isDecide()
                         ? $this->subjects->candidates($subjectType, $amount, $step->key)
-                            ->map(fn (User $user): array => ['id' => $user->getKey(), 'name' => $user->name])
+                            ->map(fn (User $user): array => [
+                                'id' => $user->getKey(),
+                                'name' => $user->name,
+                                'position' => $user->position,
+                            ])
                             ->values()
                             ->all()
                         : null,

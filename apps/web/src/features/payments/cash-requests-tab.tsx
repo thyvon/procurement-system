@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
-import { Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { Ban, Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import type { CashRequestResource } from "@/lib/api/model/cashRequestResource";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import type { PaymentsCashRequestsIndexStatus } from "@/lib/api/model/paymentsCashRequestsIndexStatus";
@@ -35,6 +35,7 @@ import { formatDate, formatMoney } from "@/lib/utils";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
 import { useMe } from "@/hooks/use-me";
 import { CashRequestStatusBadge } from "./components/cash-request-status-badge";
+import { CancelDocumentDialog } from "./components/cancel-document-dialog";
 import { CASH_REQUEST_BRANCHES, type CashRequestBranch } from "./cash-request-branches";
 
 type CashRequestRow = {
@@ -77,12 +78,14 @@ function useCashRequestColumns({
   currentUserId,
   onViewRequest,
   onEditRequest,
+  onCancelRequest,
   onDeleteRequest,
 }: {
   canManage: boolean;
   currentUserId: number | null;
   onViewRequest: (cashRequest: CashRequestRow) => void;
   onEditRequest: (cashRequest: CashRequestRow) => void;
+  onCancelRequest: (cashRequest: CashRequestRow) => void;
   onDeleteRequest: (cashRequest: CashRequestRow) => void;
 }): ColumnDef<DataTableFeatures, CashRequestRow>[] {
   const tc = useTranslations("payments.columns");
@@ -157,6 +160,7 @@ function useCashRequestColumns({
           Number(cashRequest.createdById) === currentUserId;
         const canAct = canManage && isOwner;
         const canEdit = canAct && ["draft", "returned"].includes(cashRequest.status);
+        const canCancel = canAct && cashRequest.status === "draft";
         const canDelete = canAct && cashRequest.status === "draft";
         return (
           <DropdownMenu>
@@ -174,6 +178,12 @@ function useCashRequestColumns({
                   <DropdownMenuItem onClick={() => onEditRequest(cashRequest)}>
                     <Pencil className="mr-2 size-4" />
                     {tt("edit")}
+                  </DropdownMenuItem>
+                ) : null}
+                {canCancel ? (
+                  <DropdownMenuItem onClick={() => onCancelRequest(cashRequest)}>
+                    <Ban className="mr-2 size-4" />
+                    {tt("cancelDocument")}
                   </DropdownMenuItem>
                 ) : null}
                 {canDelete ? (
@@ -212,6 +222,7 @@ export function CashRequestsTab({ branch }: CashRequestsTabProps) {
   const canManage = permissions.includes("payments.manage");
   const currentUserId = meQuery.data?.id ?? null;
   const [deleteTarget, setDeleteTarget] = useState<CashRequestRow | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<CashRequestRow | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(0);
@@ -226,6 +237,18 @@ export function CashRequestsTab({ branch }: CashRequestsTabProps) {
       qc.invalidateQueries({ queryKey: [branch] });
       setDeleteTarget(null);
       toast.success(t("deleted"));
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async (id: string) =>
+      unwrap(
+        await client.status(id, { status: "cancelled" }, withAuth())
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [branch] });
+      setCancelTarget(null);
+      toast.success(t("cancelled"));
     },
   });
 
@@ -264,6 +287,7 @@ export function CashRequestsTab({ branch }: CashRequestsTabProps) {
       router.push(`/payments/${branch}/${cashRequest.id}`),
     onEditRequest: (cashRequest) =>
       router.push(`/payments/${branch}/${cashRequest.id}/edit`),
+    onCancelRequest: setCancelTarget,
     onDeleteRequest: setDeleteTarget,
   });
 
@@ -360,6 +384,15 @@ export function CashRequestsTab({ branch }: CashRequestsTabProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CancelDocumentDialog
+        open={!!cancelTarget}
+        code={cancelTarget?.code ?? null}
+        title={t("cancelDocumentTitle")}
+        pending={cancelMutation.isPending}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        onConfirm={() => cancelTarget && cancelMutation.mutate(cancelTarget.id)}
+      />
     </div>
   );
 }

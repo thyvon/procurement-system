@@ -43,11 +43,7 @@ class AdvanceLiquidationService
         return DB::transaction(function () use ($data, $user): AdvanceLiquidation {
             $source = $this->resolveSource($data);
 
-            if ($source->status !== CashRequest::STATUS_APPROVED) {
-                throw ValidationException::withMessages([
-                    'cash_request_id' => "Only an approved cash request can be liquidated, this one is '{$source->status}'.",
-                ]);
-            }
+            $this->ensureApprovedSource($source);
 
             $advanceLiquidation = AdvanceLiquidation::create([
                 'entity_id' => $user->entity_id,
@@ -88,6 +84,10 @@ class AdvanceLiquidationService
         return DB::transaction(function () use ($advanceLiquidation, $data, $user): AdvanceLiquidation {
             $source = $this->resolveSource($data);
 
+            // Updates repoint the liquidation like a create does, so the
+            // approved-source guard runs again.
+            $this->ensureApprovedSource($source);
+
             $advanceLiquidation->update([
                 'cash_request_id' => $source->getKey(),
                 'liquidation_date' => $data['liquidation_date'],
@@ -114,7 +114,7 @@ class AdvanceLiquidationService
 
         if (! in_array($status, $allowed, true)) {
             throw ValidationException::withMessages([
-                'status' => "A advance liquidation with status '{$advanceLiquidation->status}' cannot move to '{$status}'.",
+                'status' => "An advance liquidation with status '{$advanceLiquidation->status}' cannot move to '{$status}'.",
             ]);
         }
 
@@ -135,7 +135,7 @@ class AdvanceLiquidationService
     {
         if (! in_array($advanceLiquidation->status, [AdvanceLiquidation::STATUS_DRAFT, AdvanceLiquidation::STATUS_RETURNED], true)) {
             throw ValidationException::withMessages([
-                'status' => "A advance liquidation with status '{$advanceLiquidation->status}' cannot be modified.",
+                'status' => "An advance liquidation with status '{$advanceLiquidation->status}' cannot be modified.",
             ]);
         }
     }
@@ -152,9 +152,8 @@ class AdvanceLiquidationService
     /**
      * The referenced cash request must exist and be an advance request: a
      * liquidation settles the AD branch only (petty cash is cleared, cash
-     * requests settle themselves). The approved-source guard belongs to
-     * create(): it is the entry gate, while updates only keep the money
-     * columns in step with the source.
+     * requests settle themselves). The approved-source guard lives in
+     * ensureApprovedSource() and runs on create and update alike.
      *
      * @param  array<string, mixed>  $data
      */
@@ -175,6 +174,15 @@ class AdvanceLiquidationService
         }
 
         return $source;
+    }
+
+    private function ensureApprovedSource(CashRequest $source): void
+    {
+        if ($source->status !== CashRequest::STATUS_APPROVED) {
+            throw ValidationException::withMessages([
+                'cash_request_id' => "Only an approved cash request can be liquidated, this one is '{$source->status}'.",
+            ]);
+        }
     }
 
     /**

@@ -30,6 +30,7 @@ import type {
   PurchaseOrdersEvaluationsDuplicate201,
   PurchaseOrdersEvaluationsIndex200,
   PurchaseOrdersEvaluationsIndexParams,
+  PurchaseOrdersEvaluationsPrint200,
   PurchaseOrdersEvaluationsShow200,
   PurchaseOrdersEvaluationsStore201,
   PurchaseOrdersEvaluationsUpdate200,
@@ -963,6 +964,188 @@ export function usePurchaseOrdersEvaluationsDuplicate<TData = Awaited<ReturnType
   const queryOptions = getPurchaseOrdersEvaluationsDuplicateQueryOptions(evaluation,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type purchaseOrdersEvaluationsPrintResponse200 = {
+  data: PurchaseOrdersEvaluationsPrint200
+  status: 200
+}
+
+export type purchaseOrdersEvaluationsPrintResponse401 = {
+  data: AuthenticationExceptionResponse
+  status: 401
+}
+
+export type purchaseOrdersEvaluationsPrintResponse403 = {
+  data: AuthorizationExceptionResponse
+  status: 403
+}
+
+export type purchaseOrdersEvaluationsPrintResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
+export type purchaseOrdersEvaluationsPrintResponseSuccess = (purchaseOrdersEvaluationsPrintResponse200) & {
+  headers: Headers;
+};
+export type purchaseOrdersEvaluationsPrintResponseError = (purchaseOrdersEvaluationsPrintResponse401 | purchaseOrdersEvaluationsPrintResponse403 | purchaseOrdersEvaluationsPrintResponse404) & {
+  headers: Headers;
+};
+
+export type purchaseOrdersEvaluationsPrintResponse = (purchaseOrdersEvaluationsPrintResponseSuccess | purchaseOrdersEvaluationsPrintResponseError)
+
+export const getPurchaseOrdersEvaluationsPrintUrl = (evaluation: string,) => {
+
+
+
+
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/purchase-orders/evaluations/${evaluation}/print`
+}
+
+export const purchaseOrdersEvaluationsPrint = async (evaluation: string, options?: RequestInit): Promise<purchaseOrdersEvaluationsPrintResponse> => {
+
+  const res = await fetch(getPurchaseOrdersEvaluationsPrintUrl(evaluation),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: purchaseOrdersEvaluationsPrintResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as purchaseOrdersEvaluationsPrintResponse
+}
+
+
+
+
+
+export const getPurchaseOrdersEvaluationsPrintQueryKey = (evaluation: string,) => {
+    return [
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/purchase-orders/evaluations/${evaluation}/print`
+    ] as const;
+    }
+
+
+export const getPurchaseOrdersEvaluationsPrintQueryOptions = <TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(evaluation: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPurchaseOrdersEvaluationsPrintQueryKey(evaluation);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>> = ({ signal }) => purchaseOrdersEvaluationsPrint(evaluation, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: evaluation !== null && evaluation !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PurchaseOrdersEvaluationsPrintQueryResult = NonNullable<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>>
+export type PurchaseOrdersEvaluationsPrintQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
+
+
+export function usePurchaseOrdersEvaluationsPrint<TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ evaluation: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>,
+          TError,
+          Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePurchaseOrdersEvaluationsPrint<TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ evaluation: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>,
+          TError,
+          Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePurchaseOrdersEvaluationsPrint<TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ evaluation: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function usePurchaseOrdersEvaluationsPrint<TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ evaluation: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPurchaseOrdersEvaluationsPrintQueryOptions(evaluation,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getPurchaseOrdersEvaluationsPrintSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(evaluation: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPurchaseOrdersEvaluationsPrintQueryKey(evaluation);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>> = ({ signal }) => purchaseOrdersEvaluationsPrint(evaluation, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseSuspenseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PurchaseOrdersEvaluationsPrintSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>>
+export type PurchaseOrdersEvaluationsPrintSuspenseQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
+
+
+export function usePurchaseOrdersEvaluationsPrintSuspense<TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ evaluation: string, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePurchaseOrdersEvaluationsPrintSuspense<TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ evaluation: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePurchaseOrdersEvaluationsPrintSuspense<TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ evaluation: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function usePurchaseOrdersEvaluationsPrintSuspense<TData = Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ evaluation: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof purchaseOrdersEvaluationsPrint>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPurchaseOrdersEvaluationsPrintSuspenseQueryOptions(evaluation,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return withQueryKey(query, queryOptions.queryKey);
 }

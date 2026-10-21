@@ -17,9 +17,11 @@
         "laravel/tinker": "^3.0",
         "meilisearch/meilisearch-php": "^1.17",
         "nwidart/laravel-modules": "^13.0",
+        "spatie/browsershot": "^5.4",
         "spatie/laravel-data": "^4.0",
         "spatie/laravel-health": "^1.40",
         "spatie/laravel-model-states": "^2.0",
+        "spatie/laravel-pdf": "^2.14",
         "spatie/laravel-permission": "^7.0"
     },
     "require-dev": {
