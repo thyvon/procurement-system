@@ -122,9 +122,13 @@ it('prints the approval round signature columns with the stacked Khmer title', f
     Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
         $html = $pdf->getHtml();
 
+        // The block prints the stacked bilingual title, the signer's name
+        // value without its label, and a single English Date line per column.
         return str_contains($html, 'Prepared By')
             && str_contains($html, 'រៀបចំដោយ')
-            && str_contains($html, 'Kuy Leng');
+            && str_contains($html, 'Kuy Leng')
+            && str_contains($html, 'shrink-0">Date:</span>')
+            && ! str_contains($html, 'ឈ្មោះ');
     });
 });
 
@@ -172,21 +176,81 @@ it('prints one column per co-signer with each own decision', function () {
 
     Pdf::fake();
 
-    $adminName = $this->admin->name;
+    $this->actingAs($this->admin, 'sanctum')
+        ->get("/api/v1/payments/cash-requests/{$request->getKey()}/print")
+        ->assertOk();
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) use ($coSigner) {
+        $html = $pdf->getHtml();
+
+        // One column per co-signer: the title repeats twice, each column
+        // carries that signer's name value and its own Date line (the
+        // pending one ruled blank).
+        return substr_count($html, 'Reviewed By') === 2
+            && str_contains($html, 'ពិនិត្យឡើងវិញ')
+            && str_contains($html, $coSigner->name)
+            && substr_count($html, 'shrink-0">Date:</span>') === 2
+            && substr_count($html, 'Oct 20, 2026') === 1
+            && substr_count($html, 'data:image/png;base64,') === 1;
+    });
+});
+
+it('wraps signature columns into centered rows of at most four', function () {
+    $request = printableCashRequest();
+    $signers = User::factory()->count(4)->create(['entity_id' => $this->entity->getKey()]);
+
+    ApprovalRequest::factory()->create([
+        'entity_id' => $this->entity->getKey(),
+        'subject_type' => 'cash_request',
+        'subject_id' => $request->getKey(),
+        'snapshot' => [
+            'steps' => [
+                [
+                    'position' => 1,
+                    'key' => 'prepared',
+                    'label' => 'Prepared By',
+                    'labelKh' => 'រៀបចំដោយ',
+                    'actionMode' => 'record',
+                    'showOnPrint' => true,
+                    'assigneeName' => 'Kuy Leng',
+                    'assigneePosition' => 'Accountant',
+                ],
+                [
+                    'position' => 2,
+                    'key' => 'reviewed',
+                    'label' => 'Reviewed By',
+                    'labelKh' => 'ពិនិត្យឡើងវិញ',
+                    'actionMode' => 'decide',
+                    'showOnPrint' => true,
+                    'assigneeId' => $signers[0]->getKey(),
+                    'assignees' => $signers->map(fn (User $signer) => [
+                        'id' => $signer->getKey(),
+                        'name' => $signer->name,
+                        'position' => 'Officer',
+                        'signature' => null,
+                    ])->all(),
+                    'assigneeName' => $signers[0]->name,
+                    'assigneePosition' => 'Officer',
+                ],
+            ],
+        ],
+    ]);
+
+    Pdf::fake();
 
     $this->actingAs($this->admin, 'sanctum')
         ->get("/api/v1/payments/cash-requests/{$request->getKey()}/print")
         ->assertOk();
 
-    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) use ($adminName, $coSigner) {
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
         $html = $pdf->getHtml();
 
-        return substr_count($html, 'Reviewed By') === 2
-            && str_contains($html, 'ពិនិត្យឡើងវិញ')
-            && str_contains($html, $adminName)
-            && str_contains($html, $coSigner->name)
-            && substr_count($html, 'Oct 20, 2026') === 1
-            && substr_count($html, 'data:image/png;base64,') === 1;
+        // Five print columns (record + four co-signers) chunk into one full
+        // row of four plus a centered row of one, each with its Date line.
+        return substr_count($html, 'class="flex justify-center gap-8"') === 2
+            && str_contains($html, 'flex: 0 1 calc((100% - 3 * 2rem) / 4)')
+            && substr_count($html, 'shrink-0">Date:</span>') === 5
+            && str_contains($html, 'Kuy Leng');
     });
 });
 
@@ -258,7 +322,8 @@ it('prints the petty cash branch sheet with its own view and no payment block', 
         $html = $pdf->getHtml();
 
         return str_contains($html, 'Petty Cash Request Form')
-            && str_contains($html, 'Total in USD')
+            && str_contains($html, 'សរុបជាដុល្លារ')
+            && str_contains($html, 'TOTAL IN USD')
             && ! str_contains($html, 'Mode of payment')
             && ! str_contains($html, 'Adv. request for')
             // No petty cash flow configured → empty signature block.
@@ -363,4 +428,43 @@ it('prints an advance liquidation sheet with its bilingual labels', function () 
             && str_contains($html, '$'."\u{00A0}".'80.00')
             && str_contains($html, 'ចំណាយពិតសរុប / Total actual expense:');
     });
+});
+
+it('watermarks every status that is not finally approved', function () {
+    $request = printableCashRequest(['status' => CashRequest::STATUS_REJECTED]);
+
+    Pdf::fake();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->get("/api/v1/payments/cash-requests/{$request->getKey()}/print")
+        ->assertOk();
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        $html = $pdf->getHtml();
+
+        return str_contains($html, 'print-watermark')
+            && str_contains($html, 'REJECTED')
+            && str_contains($html, 'NOT OFFICIAL');
+    });
+});
+
+it('omits the watermark once the document is finally approved or cleared', function () {
+    $approved = printableCashRequest(['status' => CashRequest::STATUS_APPROVED]);
+    $cleared = printableCashRequest(['status' => CashRequest::STATUS_CLEARED]);
+
+    Pdf::fake();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->get("/api/v1/payments/cash-requests/{$approved->getKey()}/print")
+        ->assertOk();
+
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => ! str_contains($pdf->getHtml(), 'class="print-watermark"'));
+
+    Pdf::fake();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->get("/api/v1/payments/cash-requests/{$cleared->getKey()}/print")
+        ->assertOk();
+
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => ! str_contains($pdf->getHtml(), 'class="print-watermark"'));
 });

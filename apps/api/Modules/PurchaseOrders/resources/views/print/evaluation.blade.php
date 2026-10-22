@@ -8,7 +8,7 @@
 @php
     $head = 'border border-border bg-muted/60 px-2 py-1.5 text-center text-sm font-medium align-middle';
     $cell = 'border border-border p-1 align-middle text-sm';
-    $criteriaCell = 'border-y border-border bg-muted/40 px-2 py-1 text-left text-xs font-bold align-middle';
+    $criteriaCell = 'border-y border-border bg-muted/40 px-2 py-1 text-left text-sm font-bold align-middle';
     $printCols = count($quotations) <= 2
         ? ['brand' => 'print:w-[140px]', 'unit' => 'print:w-[70px]', 'total' => 'print:w-[80px]']
         : ['brand' => 'print:w-[95px]', 'unit' => 'print:w-[70px]', 'total' => 'print:w-[75px]'];
@@ -30,7 +30,7 @@
     ];
 @endphp
 
-<div class="flex min-h-[186mm] flex-col gap-3 text-xs text-foreground">
+<div class="flex min-h-[186mm] flex-col gap-3 text-sm text-foreground">
     <div class="grid grid-cols-[1fr_auto_1fr] items-start gap-4">
         @if($logo)
             <img src="{{ $logo }}" alt="" class="h-14 w-28 shrink-0 object-contain">
@@ -46,7 +46,7 @@
 
     <div class="min-w-0 space-y-3">
         <div class="w-full max-w-full overflow-x-auto border border-border">
-            <table class="w-full border-collapse text-xs table-fixed" style="width: 100%; min-width: {{ $tableWidth }}px">
+            <table class="w-full border-collapse text-sm table-fixed" style="width: 100%; min-width: {{ $tableWidth }}px">
                 <colgroup>
                     <col class="w-8">
                     <col class="w-[90px] print:w-[80px]">
@@ -73,7 +73,7 @@
                     <tr>
                         @foreach($quotations as $panel)
                             <th class="{{ $cell }}" colspan="3">
-                                <div class="space-y-0.5 text-left text-xs">
+                                <div class="space-y-0.5 text-left text-sm">
                                     <p class="flex whitespace-pre-wrap">
                                         <span class="min-w-9 shrink-0 font-semibold">Name</span>
                                         <span class="min-w-0 flex-1 break-words font-normal">: {{ PrintFormatter::orDash($panel['supplierName']) }}</span>
@@ -101,7 +101,7 @@
                 <tbody>
                     @foreach($items as $itemIndex => $item)
                         <tr class="border-b border-border hover:bg-muted/30">
-                            <td class="{{ $cell }} text-center text-xs text-muted-foreground">
+                            <td class="{{ $cell }} text-center text-sm text-muted-foreground">
                                 <div class="flex h-7 items-center justify-center">{{ $itemIndex + 1 }}</div>
                             </td>
                             <td class="{{ $cell }}">
@@ -138,13 +138,13 @@
                     @foreach($totalLabels as $totalKey => $totalLabel)
                         <tr @class(['border-t-2 border-border' => $totalKey === 'grandTotal'])>
                             <td class="{{ $cell }} bg-muted/20" colspan="5">
-                                <div class="flex items-center justify-end gap-2 pr-2 text-xs font-bold">
+                                <div class="flex items-center justify-end gap-2 pr-2 text-sm font-bold">
                                     <span>{{ $totalLabel }}</span>
                                 </div>
                             </td>
                             @foreach($quotations as $panel)
                                 <td class="{{ $cell }}" colspan="3">
-                                    <div class="flex h-7 items-center justify-end text-xs tabular-nums{{ $totalKey === 'grandTotal' ? ' font-bold' : '' }}">
+                                    <div class="flex h-7 items-center justify-end text-sm tabular-nums{{ $totalKey === 'grandTotal' ? ' font-bold' : '' }}">
                                         @if($totalKey === 'subTotal')
                                             {{ PrintFormatter::money($panel['subTotal'], $currency) }}
                                         @elseif($totalKey === 'grandTotal')
@@ -194,9 +194,6 @@
         {{ PrintFormatter::orDash($evaluation['recommendationBasis']) }}
     </div>
 
-    <x-print.signatures
-        :columns="$columns"
-        :labels="['name' => 'Name', 'position' => 'Position', 'date' => 'Date']"
-    />
+    <x-print.signatures :columns="$columns" />
 </div>
 @endsection

@@ -5,6 +5,7 @@ namespace Modules\PurchaseOrders\Services;
 use App\Models\User;
 use App\Support\PrintFormatter;
 use App\Support\PrintStylesheet;
+use App\Support\PrintWatermark;
 use Modules\Approvals\Services\PrintSignatureService;
 use Modules\Organization\Services\LogoService;
 use Modules\PurchaseOrders\Models\Evaluation;
@@ -109,6 +110,7 @@ class EvaluationPrintService
         return Pdf::view('purchase-orders::print.evaluation', [
             'css' => PrintStylesheet::load(),
             'logo' => $this->logos->forUser($user),
+            'watermark' => PrintWatermark::for($evaluation->status),
             'evaluation' => [
                 'code' => $evaluation->code,
                 'currency' => (string) $evaluation->currency,

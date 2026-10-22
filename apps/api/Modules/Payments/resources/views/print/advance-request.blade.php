@@ -5,7 +5,7 @@
 @section('title', 'Advance Request · '.$cashRequest['code'])
 
 @section('content')
-<div class="flex min-h-[186mm] flex-col gap-3 text-xs text-foreground">
+<div class="flex min-h-[186mm] flex-col gap-3 text-sm text-foreground">
     <div class="grid grid-cols-[1fr_auto_1fr] items-start gap-4">
         @if($logo)
             <img src="{{ $logo }}" alt="" class="h-14 w-28 shrink-0 object-contain">
@@ -40,7 +40,7 @@
         <x-print.info-row label="Remark · ចំណាំ" :value="$cashRequest['remark']" />
     </div>
 
-    <table class="w-full border-collapse text-xs table-fixed">
+    <table class="w-full border-collapse text-sm table-fixed">
         <colgroup>
             <col>
             <col class="w-24">
@@ -73,9 +73,6 @@
         </tfoot>
     </table>
 
-    <x-print.signatures
-        :columns="$columns"
-        :labels="['name' => 'Name · ឈ្មោះ', 'position' => 'Position · តួនាទី', 'date' => 'Date · កាលបរិច្ឆេទ']"
-    />
+    <x-print.signatures :columns="$columns" />
 </div>
 @endsection

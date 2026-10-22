@@ -4,6 +4,7 @@ namespace Modules\Payments\Services;
 
 use App\Models\User;
 use App\Support\PrintStylesheet;
+use App\Support\PrintWatermark;
 use Modules\Approvals\Services\PrintSignatureService;
 use Modules\Organization\Services\LogoService;
 use Modules\Payments\Models\AdvanceLiquidation;
@@ -44,6 +45,7 @@ class PaymentPrintService
         $pdf = Pdf::view($view, [
             'css' => PrintStylesheet::load(),
             'logo' => $this->logos->forUser($user),
+            'watermark' => PrintWatermark::for($cashRequest->status),
             'cashRequest' => [
                 'code' => $cashRequest->code,
                 'status' => $cashRequest->status,
@@ -89,6 +91,7 @@ class PaymentPrintService
         return Pdf::view('payments::print.cash-clearance', [
             'css' => PrintStylesheet::load(),
             'logo' => $this->logos->forUser($user),
+            'watermark' => PrintWatermark::for($cashClearance->status),
             'clearance' => [
                 'code' => $cashClearance->code,
                 'clearanceDate' => $cashClearance->clearance_date?->format('Y-m-d'),
@@ -130,6 +133,7 @@ class PaymentPrintService
         return Pdf::view('payments::print.advance-liquidation', [
             'css' => PrintStylesheet::load(),
             'logo' => $this->logos->forUser($user),
+            'watermark' => PrintWatermark::for($liquidation->status),
             'liquidation' => [
                 'code' => $liquidation->code,
                 'liquidationDate' => $liquidation->liquidation_date?->format('Y-m-d'),

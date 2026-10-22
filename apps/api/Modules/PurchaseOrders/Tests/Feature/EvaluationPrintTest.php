@@ -240,3 +240,35 @@ it('returns 404 for an evaluation of another entity', function () {
         ->get("/api/v1/purchase-orders/evaluations/{$foreignResponse->json('data.id')}/print")
         ->assertNotFound();
 });
+
+it('watermarks an evaluation that is not finally approved', function () {
+    $evaluation = printableEvaluation();
+    $evaluation->update(['status' => 'rejected']);
+
+    Pdf::fake();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->get("/api/v1/purchase-orders/evaluations/{$evaluation->getKey()}/print")
+        ->assertOk();
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        $html = $pdf->getHtml();
+
+        return str_contains($html, 'print-watermark')
+            && str_contains($html, 'REJECTED')
+            && str_contains($html, 'NOT OFFICIAL');
+    });
+});
+
+it('omits the watermark on an approved evaluation', function () {
+    $evaluation = printableEvaluation();
+    $evaluation->update(['status' => 'approved']);
+
+    Pdf::fake();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->get("/api/v1/purchase-orders/evaluations/{$evaluation->getKey()}/print")
+        ->assertOk();
+
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => ! str_contains($pdf->getHtml(), 'class="print-watermark"'));
+});

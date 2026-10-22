@@ -310,7 +310,8 @@
       "submitted": "Submitted for approval.",
       "loadFailed": "Could not load the approval flow for this document.",
       "saveFirst": "Save your changes before submitting — the approval runs on the saved document.",
-      "addCoSigner": "Add co-signer…",
+      "addCoApproval": "Add Co-Approval",
+      "coStepName": "Co-{name}",
       "allSelected": "Every eligible user is already selected.",
       "removeAssignee": "Remove {name}"
     },

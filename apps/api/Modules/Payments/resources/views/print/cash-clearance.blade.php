@@ -11,7 +11,7 @@
     $td = 'border border-border px-1 py-1';
 @endphp
 
-<div class="flex min-h-[186mm] flex-col gap-3 text-xs text-foreground">
+<div class="flex min-h-[186mm] flex-col gap-3 text-sm text-foreground">
     <div class="grid grid-cols-[1fr_auto_1fr] items-start gap-4">
         @if($logo)
             <img src="{{ $logo }}" alt="" class="h-14 w-28 shrink-0 object-contain">
@@ -36,7 +36,7 @@
         <x-print.meta-cell label-km="សមតុល្យ" label-en="Balance" :value="PrintFormatter::money($clearance['balanceUsd'], 'USD')" />
     </div>
 
-    <table class="w-full border-collapse text-[10px]">
+    <table class="w-full border-collapse text-sm">
         <thead>
             <tr>
                 <th class="{{ $head }}">#</th>
@@ -85,9 +85,6 @@
         </tbody>
     </table>
 
-    <x-print.signatures
-        :columns="$columns"
-        :labels="['name' => 'ឈ្មោះ / Name', 'position' => 'តួនាទី / Position', 'date' => 'កាលបរិច្ឆេទ / Date']"
-    />
+    <x-print.signatures :columns="$columns" />
 </div>
 @endsection

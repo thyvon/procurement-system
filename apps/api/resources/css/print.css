@@ -17,16 +17,35 @@
 
 @font-face {
     font-family: 'Tw Cen MT';
-    src: url('../fonts/tw-cen-mt.ttf') format('truetype');
+    src: url('../fonts/tw-cen-mt-regular.ttf') format('truetype');
     font-weight: 400;
+    font-style: normal;
+    font-display: block;
+}
+
+/* Real bold face (Tw Cen MT Std Bold) — bold text must render in this
+ * weight instead of Chrome's synthetic bold from the regular face. */
+@font-face {
+    font-family: 'Tw Cen MT';
+    src: url('../fonts/tw-cen-mt-std-bold.otf') format('opentype');
+    font-weight: 700;
     font-style: normal;
     font-display: block;
 }
 
 @font-face {
     font-family: 'Battambang';
-    src: url('../fonts/Battambang-Variable.ttf') format('truetype');
-    font-weight: 100 900;
+    src: url('../fonts/khmer-os-battambang-regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: block;
+}
+
+/* Khmer display face for the form title line only (Khmer OS Muol Light). */
+@font-face {
+    font-family: 'Khmer OS Muol Light';
+    src: url('../fonts/khmer-os-muol-light-regular.ttf') format('truetype');
+    font-weight: 400;
     font-style: normal;
     font-display: block;
 }
@@ -39,15 +58,17 @@
     --color-destructive: var(--destructive);
     --color-border: var(--border);
     --font-sans: 'Tw Cen MT', 'Battambang', ui-sans-serif, system-ui, sans-serif;
+    --font-muol: 'Khmer OS Muol Light', 'Battambang', ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-/* Same tokens as apps/web globals.css:root — the sheet is a light document. */
+/* Same tokens as apps/web globals.css:root — the sheet is a light document,
+ * but print text must be pure black (#000), not the web's bluish foreground. */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.32 0.01 250);
+    --background: #fff;
+    --foreground: #000;
     --muted: oklch(0.97 0.005 250);
-    --muted-foreground: oklch(0.45 0.04 250);
+    --muted-foreground: #000;
     --destructive: oklch(0.577 0.245 27.325);
     --border: oklch(0.91 0.01 250);
     --radius: 0.25rem;
@@ -59,6 +80,48 @@
         color: var(--foreground);
         font-family: var(--font-sans);
     }
+}
+
+/* Not-finally-approved documents: a big light-gray diagonal stamp behind the
+ * sheet (the sheet is lifted with z-index so content stays on top; without
+ * it the fixed watermark would paint over the static content). Fixed means
+ * the renderer repeats it on every printed page. */
+.print-watermark {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3mm;
+    transform: rotate(-30deg);
+    pointer-events: none;
+    user-select: none;
+    text-align: center;
+    font-family: var(--font-sans);
+    color: rgba(0, 0, 0, 0.12);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.print-watermark__status {
+    font-size: 64pt;
+    font-weight: 700;
+    line-height: 1.05;
+    text-transform: uppercase;
+}
+
+.print-watermark__flag {
+    font-size: 18pt;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.print-area {
+    position: relative;
+    z-index: 1;
 }
 
 /* Mirrors apps/web globals.css: A4 landscape, 8mm — also passed to the
@@ -85,14 +148,15 @@
         border-color: #000 !important;
     }
 
-    .print-area table,
-    .print-area table * {
-        font-size: 8pt !important;
-    }
-
     .print-area td,
     .print-area th {
-        padding: 1px 2px !important;
+        padding: 3px 6px !important;
+    }
+
+    /* Stacked bilingual headers need breathing room: the compact cell
+     * padding above clips Khmer superscripts into the top border. */
+    .print-area thead th {
+        padding: 4px 6px !important;
     }
 
     .print-area th {

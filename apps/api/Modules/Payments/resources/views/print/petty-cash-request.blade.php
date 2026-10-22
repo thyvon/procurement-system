@@ -25,76 +25,93 @@
     $blankRows = max(0, 8 - count($cashRequest['lines']));
 @endphp
 <div class="flex min-h-[262mm] flex-col gap-3 text-xs text-foreground">
-    <div class="flex items-start justify-between gap-4">
+    <div class="flex items-end gap-4">
         @if($logo)
             <img src="{{ $logo }}" alt="" class="h-14 w-32 shrink-0 object-contain">
         @else
             <div aria-hidden class="h-14 w-32 shrink-0"></div>
         @endif
-        <h1 class="grow place-self-center text-center">
-            <span class="block">ពាក្យសុំប្រាក់ជំនួយការចាយវាយ</span>
+        {{-- Bottom edge sits on the logo's underline: Logo ____ Title. --}}
+        <h1 class="grow text-center">
+            <span class="block font-muol">ពាក្យស្នើសុំសាច់ប្រាក់បន្ទាប់បន្សំ</span>
             <span class="block text-base font-bold">Petty Cash Request Form</span>
         </h1>
-        <div class="shrink-0 self-start border border-border">
-            <div class="flex items-center gap-3 border-b border-border px-2 py-0.5">
-                <span class="shrink-0">លេខយោង / Ref:</span>
-                <span class="font-mono font-medium">{{ $cashRequest['code'] }}</span>
-            </div>
-            <div class="flex items-center gap-3 px-2 py-0.5">
-                <span class="shrink-0">ថ្ងៃទី / Date:</span>
-                <span class="font-medium">{{ PrintFormatter::dateOnly($cashRequest['requestDate']) }}</span>
-            </div>
+        {{-- Same footprint as the logo so the title stays optically centered
+             across the whole form header. --}}
+        <div aria-hidden class="h-14 w-32 shrink-0"></div>
+    </div>
+
+    <div class="flex justify-end">
+        {{-- Grid: label left, ruled value in the next column — both values
+             share one starting edge, labels stay side by side with them. --}}
+        <div class="self-start grid grid-cols-[auto_auto] items-end gap-x-3 gap-y-0.5">
+            <span>លេខយោង / Ref:</span>
+            <span class="w-40 border-b border-border font-mono font-medium">{{ $cashRequest['code'] }}</span>
+            <span>កាលបរិច្ឆេទ / Date:</span>
+            <span class="w-40 border-b border-border font-medium">{{ PrintFormatter::dateOnly($cashRequest['requestDate']) }}</span>
         </div>
     </div>
 
-    <div class="flex flex-wrap items-end gap-x-10 gap-y-1">
+    <div class="flex items-end gap-x-6">
         <div class="flex items-end gap-1.5">
-            <span class="shrink-0">អ្នកសុំច្បាប់ / Receiver:</span>
-            <span class="w-40 border-b border-border font-medium">{{ PrintFormatter::orDash($cashRequest['createdBy']) }}</span>
+            <span class="shrink-0">អ្នកទទួល / Receiver:</span>
+            <span class="w-48 border-b border-border font-bold">{{ PrintFormatter::orDash($cashRequest['createdBy']) }}</span>
         </div>
         <div class="flex items-end gap-1.5">
             <span class="shrink-0">តួនាទី / Position:</span>
-            <span class="w-48 border-b border-border font-medium">{{ PrintFormatter::orDash($cashRequest['createdByPosition']) }}</span>
+            <span class="w-48 border-b border-border font-bold">{{ PrintFormatter::orDash($cashRequest['createdByPosition']) }}</span>
         </div>
         <div class="flex items-end gap-1.5">
             <span class="shrink-0">អត្តលេខ / ID:</span>
-            <span class="w-24 border-b border-border font-medium">{{ PrintFormatter::orDash($cashRequest['createdById'] !== null ? (string) $cashRequest['createdById'] : null) }}</span>
+            <span class="w-12 border-b border-border font-bold">{{ PrintFormatter::orDash($cashRequest['createdById'] !== null ? (string) $cashRequest['createdById'] : null) }}</span>
         </div>
     </div>
 
     <div class="space-y-1.5">
         <div class="flex items-end gap-2">
-            <span class="w-44 shrink-0">ថ្នាក់ / Campus:</span>
-            <span class="w-56 border-b border-border font-medium">{{ PrintFormatter::orDash($cashRequest['campus']) }}</span>
+            <span class="w-44 shrink-0">សាខា / Campus:</span>
+            <span class="w-56 border-b border-border font-bold">{{ PrintFormatter::orDash($cashRequest['campus']) }}</span>
         </div>
         <div class="flex items-end gap-2">
-            <span class="w-44 shrink-0">នាយកដ្ឋាន / Division:</span>
-            <span class="w-56 border-b border-border font-medium">{{ PrintFormatter::orDash($cashRequest['division']) }}</span>
+            <span class="w-44 shrink-0">អាជីវកម្ម / Division:</span>
+            <span class="w-56 border-b border-border font-bold">{{ PrintFormatter::orDash($cashRequest['division']) }}</span>
         </div>
         <div class="flex items-end gap-2">
             <span class="w-44 shrink-0">ផ្នែក / Department:</span>
-            <span class="w-56 border-b border-border font-medium">{{ PrintFormatter::orDash($cashRequest['department']) }}</span>
+            <span class="w-56 border-b border-border font-bold">{{ PrintFormatter::orDash($cashRequest['department']) }}</span>
         </div>
         <div class="flex items-end gap-2">
-            <span class="w-44 shrink-0">អត្រាប្តូរប្រាក់ / Ex. Rate($):</span>
-            <span class="w-56 border-b border-border font-medium">{{ PrintFormatter::numeric($cashRequest['exchangeRate']) }}</span>
+            <span class="w-44 shrink-0">អត្រាប្តូរប្រាក់ / Ex. Rate:</span>
+            <span class="w-56 border-b border-border font-bold">{{ PrintFormatter::numeric($cashRequest['exchangeRate']) }}</span>
         </div>
     </div>
 
-    <table class="w-full table-fixed border-collapse text-xs">
+    <table class="w-full table-fixed border-collapse text-sm">
         <colgroup>
-            <col class="w-10">
+            <col class="w-14">
             <col>
             <col class="w-24">
             <col class="w-10">
             <col class="w-28">
         </colgroup>
-        <thead>
+        <thead class="text-xs">
             <tr>
-                <th class="border border-border bg-muted/60 px-2 py-1 text-left font-medium">ល.រ / №</th>
-                <th class="border border-border bg-muted/60 px-2 py-1 text-left font-medium">ពិពណ៌នា / Description</th>
-                <th class="border border-border bg-muted/60 px-2 py-1 text-left font-medium">រូបិយប័ណ្ណ / Currency</th>
-                <th class="border border-border bg-muted/60 px-2 py-1 text-right font-medium" colspan="2">ចំនួនទឹកប្រាក់ / Amount</th>
+                <th class="border border-border bg-muted/60 px-2 py-1 text-center font-medium">
+                    <span class="block">ល.រ</span>
+                    <span class="block">№</span>
+                </th>
+                <th class="border border-border bg-muted/60 px-2 py-1 text-center font-medium">
+                    <span class="block">ពិពណ៌នា</span>
+                    <span class="block">Description</span>
+                </th>
+                <th class="border border-border bg-muted/60 px-2 py-1 text-center font-medium">
+                    <span class="block">រូបិយប័ណ្ណ</span>
+                    <span class="block">Currency</span>
+                </th>
+                <th class="border border-border bg-muted/60 px-2 py-1 text-center font-medium" colspan="2">
+                    <span class="block">ចំនួនទឹកប្រាក់</span>
+                    <span class="block">Amount</span>
+                </th>
             </tr>
         </thead>
         <tbody>
@@ -102,26 +119,31 @@
                 <tr>
                     <td class="border border-border px-2 text-center align-top">{{ $index + 1 }}</td>
                     <td class="border border-border px-2 align-top">{{ $line['description'] }}</td>
-                    <td class="border border-border px-2 align-top">{{ $line['currency'] }}</td>
-                    <td class="border border-border px-2 text-center align-top">{{ $symbol((string) $line['currency']) }}</td>
-                    <td class="border border-border px-2 text-right align-top tabular-nums">{{ $amount((float) $line['amount'], (string) $line['currency']) }}</td>
+                    <td class="border border-border px-2 align-top text-center">{{ $line['currency'] }}</td>
+                    <td class="border-r-0 border border-border px-2 text-center align-top">{{ $symbol((string) $line['currency']) }}</td>
+                    <td class="border-l-0 border border-border px-2 text-right align-top tabular-nums">{{ $amount((float) $line['amount'], (string) $line['currency']) }}</td>
                 </tr>
             @endforeach
-            @for($row = 0; $row < $blankRows; $row++)
+            {{-- One tall ruled blank area instead of a stack of rows: same
+                 total height the multiple h-5 rows used to occupy. --}}
+            @if($blankRows > 0)
                 <tr>
-                    <td class="h-6 border border-border px-2"></td>
-                    <td class="h-6 border border-border px-2"></td>
-                    <td class="h-6 border border-border px-2"></td>
-                    <td class="h-6 border border-border px-2"></td>
-                    <td class="h-6 border border-border px-2"></td>
+                    <td class="border border-border px-2" style="height: {{ $blankRows * 20 }}px"></td>
+                    <td class="border border-border px-2"></td>
+                    <td class="border border-border px-2"></td>
+                    <td class="border-r-0 border border-border px-2"></td>
+                    <td class="border-l-0 border border-border px-2"></td>
                 </tr>
-            @endfor
+            @endif
         </tbody>
-        <tfoot>
+        <tfoot class="text-xs font-bold">
             <tr>
-                <td class="border border-border bg-muted/60 px-2 py-1 text-right font-medium" colspan="3">Total in USD</td>
-                <td class="border border-border bg-muted/60 px-2 py-1 text-center font-medium">{{ $symbol('USD') }}</td>
-                <td class="border border-border bg-muted/60 px-2 py-1 text-right font-medium tabular-nums">{{ number_format((float) $cashRequest['totalUsd'], 2, '.', ',') }}</td>
+                <td class="border border-border bg-muted/60 px-2 py-1 text-right" colspan="3">
+                    <span class="block">សរុបជាដុល្លារ</span>
+                    <span class="block">TOTAL IN USD</span>
+                </td>
+                <td class="border-r-0 border border-border bg-muted/60 px-2 py-1 text-center">{{ $symbol('USD') }}</td>
+                <td class="border-l-0 border border-border bg-muted/60 px-2 py-1 text-right tabular-nums text-base">{{ number_format((float) $cashRequest['totalUsd'], 2, '.', ',') }}</td>
             </tr>
         </tfoot>
     </table>
@@ -131,10 +153,6 @@
         <div class="border-b border-border">{{ ($cashRequest['remark'] ?? '') !== '' ? $cashRequest['remark'] : 'N/A' }}</div>
     </div>
 
-    <x-print.signatures
-        :columns="$columns"
-        :labels="['name' => 'ឈ្មោះ / Name', 'position' => 'តួនាទី / Position']"
-        :fields="['name', 'position']"
-    />
+    <x-print.signatures :columns="$columns" />
 </div>
 @endsection

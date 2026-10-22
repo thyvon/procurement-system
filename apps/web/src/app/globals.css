@@ -333,11 +333,6 @@
     border-color: #000 !important;
   }
 
-  .print-area table,
-  .print-area table * {
-    font-size: 8pt !important;
-  }
-
   .print-area td,
   .print-area th {
     padding: 1px 2px !important;
