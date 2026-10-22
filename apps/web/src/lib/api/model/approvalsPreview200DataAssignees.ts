@@ -8,4 +8,4 @@
 /**
  * @nullable
  */
-export type ApprovalsPreview200DataAssignees = {[key: string]: number} | null;
+export type ApprovalsPreview200DataAssignees = {[key: string]: number[]} | null;

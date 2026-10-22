@@ -3,6 +3,7 @@
 namespace Modules\Approvals\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreApprovalDraftRequest extends FormRequest
 {
@@ -14,6 +15,7 @@ class StoreApprovalDraftRequest extends FormRequest
     /**
      * Positions are not validated against the resolved flow here — the draft
      * is preparation data; submit still validates every assignee authoritatively.
+     * Each position accepts one user id or several (co-signed steps).
      *
      * @return array<string, array<int, mixed>>
      */
@@ -23,7 +25,8 @@ class StoreApprovalDraftRequest extends FormRequest
             'subject_type' => ['required', 'string', 'max:64'],
             'subject_id' => ['required', 'string', 'max:26'],
             'assignees' => ['required', 'array'],
-            'assignees.*' => ['integer', 'min:1'],
+            'assignees.*' => ['required', Rule::anyOf(['integer', 'array'])],
+            'assignees.*.*' => ['integer', 'min:1'],
         ];
     }
 }

@@ -59,7 +59,7 @@ export function useApprovalSubmit({
   const pendingSaveRef = useRef("");
   const skipNavRef = useRef(false);
   const [approvalAssignees, setApprovalAssignees] = useState<
-    Record<number, string>
+    Record<number, string[]>
   >({});
 
   // Persists the approver selection with "Save" — no approval request is
@@ -72,9 +72,9 @@ export function useApprovalSubmit({
             subject_type: subjectType,
             subject_id: subjectId,
             assignees: Object.fromEntries(
-              Object.entries(approvalAssignees).map(([position, userId]) => [
+              Object.entries(approvalAssignees).map(([position, userIds]) => [
                 position,
-                Number(userId),
+                userIds.map(Number),
               ])
             ),
           } as unknown as StoreApprovalDraftRequest,

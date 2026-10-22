@@ -2,9 +2,9 @@
 
 /*
  * Official print-sheet styles for the server-rendered PDFs
- * (Modules/*/Resources/views/print/*): a faithful twin of the browser print
- * rules in apps/web/src/app/globals.css, minus the Next.js fonts — the two
- * sheet fonts are bundled from resources/fonts and inlined into the built
+ * (the modules' resources/views/print blades): a faithful twin of the browser
+ * print rules in apps/web/src/app/globals.css, minus the Next.js fonts — the
+ * two sheet fonts are bundled from resources/fonts and inlined into the built
  * CSS (Vite assetsInlineLimit) so the renderer never needs a network fetch.
  *
  * Built via `npm run build` (entry resources/css/print.css); the print

@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'position',
     'key',
     'label',
+    'label_kh',
     'action_mode',
     'allowed_actions',
     'show_on_print',

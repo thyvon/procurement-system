@@ -12,7 +12,7 @@ export interface StoreApprovalRequest {
   subject_id: string;
   /**
      * @minItems 1
-     * @items.minimum 1
+     * @items.items.minimum 1
      */
-  assignees: number[];
+  assignees: number[][];
 }

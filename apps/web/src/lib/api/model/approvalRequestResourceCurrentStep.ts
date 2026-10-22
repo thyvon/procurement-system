@@ -4,6 +4,7 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
+import type { ApprovalRequestResourceCurrentStepSigners } from './approvalRequestResourceCurrentStepSigners';
 
 /**
  * @nullable
@@ -20,4 +21,5 @@ export type ApprovalRequestResourceCurrentStep = {
   assigneePosition: string | null;
   /** @nullable */
   assigneeSignature: string | null;
+  signers: ApprovalRequestResourceCurrentStepSigners;
 } | null;

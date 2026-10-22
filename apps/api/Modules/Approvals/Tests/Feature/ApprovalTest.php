@@ -7,6 +7,7 @@ use Illuminate\Testing\TestResponse;
 use Modules\Approvals\Models\ApprovalDraft;
 use Modules\Approvals\Models\ApprovalFlow;
 use Modules\Approvals\Models\ApprovalRequest;
+use Modules\Approvals\Models\ApprovalRequestStepAssignee;
 use Modules\Approvals\Models\ApprovalSetting;
 use Modules\Approvals\Models\ApprovalStep;
 use Modules\Approvals\Models\TocaEntry;
@@ -56,16 +57,17 @@ beforeEach(function () {
 
     // The checked step ships hidden from the official print sheet.
     foreach ([
-        [1, 'prepared', 'Prepared By', ApprovalStep::MODE_RECORD, null, true],
-        [2, 'checked', 'Checked By', ApprovalStep::MODE_DECIDE, ['approve', 'reject', 'return'], false],
-        [3, 'approved', 'Approved By', ApprovalStep::MODE_DECIDE, ['approve', 'reject', 'return'], true],
-    ] as [$position, $key, $label, $mode, $actions, $showOnPrint]) {
+        [1, 'prepared', 'Prepared By', 'រៀបចំដោយ', ApprovalStep::MODE_RECORD, null, true],
+        [2, 'checked', 'Checked By', 'ត្រួតពិនិត្យ', ApprovalStep::MODE_DECIDE, ['approve', 'reject', 'return'], false],
+        [3, 'approved', 'Approved By', 'យល់ព្រម', ApprovalStep::MODE_DECIDE, ['approve', 'reject', 'return'], true],
+    ] as [$position, $key, $label, $labelKh, $mode, $actions, $showOnPrint]) {
         ApprovalStep::create([
             'entity_id' => $this->entity->getKey(),
             'approval_flow_id' => $this->flow->getKey(),
             'position' => $position,
             'key' => $key,
             'label' => $label,
+            'label_kh' => $labelKh,
             'action_mode' => $mode,
             'allowed_actions' => $actions,
             'show_on_print' => $showOnPrint,
@@ -216,6 +218,7 @@ it('previews the workflow with ordered steps and TOCA-filtered candidates', func
         ->assertJsonCount(3, 'data.steps')
         ->assertJsonPath('data.steps.0.key', 'prepared')
         ->assertJsonPath('data.steps.0.actionMode', 'record')
+        ->assertJsonPath('data.steps.0.labelKh', 'រៀបចំដោយ')
         ->assertJsonPath('data.steps.1.actionMode', 'decide')
         ->assertJsonPath('data.steps.1.allowedActions.0', 'approve')
         ->assertJsonPath('data.steps.0.showOnPrint', true)
@@ -326,14 +329,14 @@ it('stores an assignee draft and restores it in preview', function () {
         ])
         ->assertOk()
         ->assertJsonPath('data.subjectType', 'evaluation')
-        ->assertJsonPath('data.assignees.2', $this->firstApprover->getKey())
-        ->assertJsonPath('data.assignees.3', $this->secondApprover->getKey());
+        ->assertJsonPath('data.assignees.2.0', $this->firstApprover->getKey())
+        ->assertJsonPath('data.assignees.3.0', $this->secondApprover->getKey());
 
     $this->actingAs($this->admin, 'sanctum')
         ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$evaluation->getKey()}")
         ->assertOk()
-        ->assertJsonPath('data.assignees.2', $this->firstApprover->getKey())
-        ->assertJsonPath('data.assignees.3', $this->secondApprover->getKey());
+        ->assertJsonPath('data.assignees.2.0', $this->firstApprover->getKey())
+        ->assertJsonPath('data.assignees.3.0', $this->secondApprover->getKey());
 
     // The draft exists but no approval request was created yet.
     expect(ApprovalRequest::query()->count())->toBe(0)
@@ -364,7 +367,7 @@ it('replaces the stored draft for the same document', function () {
     $this->actingAs($this->admin, 'sanctum')
         ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$evaluation->getKey()}")
         ->assertOk()
-        ->assertJsonPath('data.assignees.2', $this->secondApprover->getKey())
+        ->assertJsonPath('data.assignees.2.0', $this->secondApprover->getKey())
         ->assertJsonPath('data.assignees.3', null);
 });
 
@@ -556,6 +559,7 @@ it('submits an evaluation, stamps the record step and parks on the first decide 
         ->and($request->snapshot['steps'][0]['assigneeName'])->toBe($this->admin->name)
         ->and($request->snapshot['steps'][0]['assigneePosition'])->toBe('Procurement Manager')
         ->and($request->snapshot['steps'][0]['assigneeSignature'])->toBe('signatures/sso_admin.png')
+        ->and($request->snapshot['steps'][0]['labelKh'])->toBe('រៀបចំដោយ')
         ->and($request->snapshot['steps'][0]['showOnPrint'])->toBeTrue()
         ->and($request->snapshot['steps'][1]['assigneeName'])->toBe($this->firstApprover->name)
         ->and($request->snapshot['steps'][1]['assigneePosition'])->toBe('Finance Manager')
@@ -1072,17 +1076,29 @@ it('shows a request with its action timeline', function () {
 
     approvalsAct($request, 'approve', null, $this->firstApprover)->assertOk();
 
-    $this->actingAs($this->admin, 'sanctum')
+    $response = $this->actingAs($this->admin, 'sanctum')
         ->getJson("/api/v1/approvals/requests/{$request->getKey()}")
         ->assertOk()
         ->assertJsonPath('data.id', $request->getKey())
-        ->assertJsonPath('data.steps', $request->fresh()->snapshot['steps'])
         ->assertJsonCount(2, 'data.actions')
         ->assertJsonPath('data.actions.0.action', 'record')
         ->assertJsonPath('data.actions.0.stepKey', 'prepared')
         ->assertJsonPath('data.actions.0.actor.name', $this->admin->name)
         ->assertJsonPath('data.actions.1.action', 'approve')
         ->assertJsonPath('data.actions.1.actor.name', $this->firstApprover->name);
+
+    // Every frozen step comes back verbatim, plus its signer state.
+    $steps = $response->json('data.steps');
+
+    expect(collect($steps)
+        ->map(fn (array $step): array => collect($step)->except('signers')->all())
+        ->all())
+        ->toEqual($request->fresh()->snapshot['steps'])
+        ->and($steps[0]['signers'][0]['name'])->toBe($this->admin->name)
+        ->and($steps[1]['signers'][0]['name'])->toBe($this->firstApprover->name)
+        ->and($steps[1]['signers'][0]['actedAt'])->not->toBeNull()
+        ->and($steps[2]['signers'][0]['name'])->toBe($this->secondApprover->name)
+        ->and($steps[2]['signers'][0]['actedAt'])->toBeNull();
 });
 
 it('never returns another entity approval request', function () {
@@ -1334,4 +1350,108 @@ it('lists a document once in the outbox and the full list across rounds', functi
     $this->actingAs($this->admin, 'sanctum')
         ->getJson("/api/v1/approvals/requests?subject_type=evaluation&subject_id={$evaluation->getKey()}")
         ->assertOk()->assertJsonPath('meta.total', 2);
+});
+
+it('advances a co-signed step only after every responsible user approves', function () {
+    $evaluation = approvalsEvaluation();
+    $round = approvalsPending($evaluation, [
+        2 => [(int) $this->firstApprover->getKey(), (int) $this->secondApprover->getKey()],
+        3 => (int) $this->secondApprover->getKey(),
+    ]);
+
+    expect($round->snapshot['steps'][1]['assignees'])->toHaveCount(2)
+        ->and($round->snapshot['steps'][1]['assigneeId'])->toBe((int) $this->firstApprover->getKey());
+
+    // Both co-signers owe the decision and see the round in their tray.
+    $this->actingAs($this->firstApprover, 'sanctum')->getJson('/api/v1/approvals/inbox/count')
+        ->assertOk()->assertJsonPath('data.count', 1);
+    $this->actingAs($this->secondApprover, 'sanctum')->getJson('/api/v1/approvals/inbox/count')
+        ->assertOk()->assertJsonPath('data.count', 1);
+
+    // The first approval parks the round on the co-signer who still owes it.
+    approvalsAct($round, 'approve', null, $this->firstApprover)->assertOk()
+        ->assertJsonPath('data.status', 'pending')
+        ->assertJsonPath('data.currentStep.position', 2);
+
+    expect($round->fresh()->current_assignee_id)->toBe((int) $this->secondApprover->getKey());
+
+    $this->actingAs($this->firstApprover, 'sanctum')->getJson('/api/v1/approvals/inbox/count')
+        ->assertOk()->assertJsonPath('data.count', 0);
+    $this->actingAs($this->secondApprover, 'sanctum')->getJson('/api/v1/approvals/inbox/count')
+        ->assertOk()->assertJsonPath('data.count', 1);
+
+    // The last approval moves the round to the next step.
+    approvalsAct($round->fresh(), 'approve', null, $this->secondApprover)->assertOk()
+        ->assertJsonPath('data.status', 'pending')
+        ->assertJsonPath('data.currentStep.position', 3);
+
+    approvalsAct($round->fresh(), 'approve', null, $this->secondApprover)->assertOk()
+        ->assertJsonPath('data.status', 'approved');
+});
+
+it('closes the whole round when a co-signer rejects after another approved', function () {
+    $evaluation = approvalsEvaluation();
+    $round = approvalsPending($evaluation, [
+        2 => [(int) $this->firstApprover->getKey(), (int) $this->secondApprover->getKey()],
+        3 => (int) $this->secondApprover->getKey(),
+    ]);
+
+    approvalsAct($round, 'approve', null, $this->firstApprover)->assertOk()
+        ->assertJsonPath('data.status', 'pending');
+
+    approvalsAct($round->fresh(), 'reject', 'Not this vendor.', $this->secondApprover)->assertOk()
+        ->assertJsonPath('data.status', 'rejected');
+
+    // No co-signer keeps an open task once the round is closed.
+    expect(ApprovalRequestStepAssignee::query()->whereNull('acted_at')->count())->toBe(0);
+
+    $this->actingAs($this->firstApprover, 'sanctum')->getJson('/api/v1/approvals/inbox/count')
+        ->assertOk()->assertJsonPath('data.count', 0);
+    $this->actingAs($this->secondApprover, 'sanctum')->getJson('/api/v1/approvals/inbox/count')
+        ->assertOk()->assertJsonPath('data.count', 0);
+});
+
+it('validates every co-signer against the authority band', function () {
+    $response = approvalsSubmit(
+        approvalsEvaluation(5000),
+        [
+            2 => [(int) $this->firstApprover->getKey(), (int) $this->secondApprover->getKey()],
+            3 => (int) $this->secondApprover->getKey(),
+        ],
+    )->assertStatus(422);
+
+    expect($response->json('errors'))->toHaveKey('assignees.2')
+        ->and(ApprovalRequest::query()->count())->toBe(0);
+});
+
+it('requires at least one responsible user per decide step', function () {
+    $response = approvalsSubmit(
+        approvalsEvaluation(),
+        [2 => [], 3 => (int) $this->secondApprover->getKey()],
+    )->assertStatus(422)
+        ->assertJsonPath('statusCode', 422);
+
+    expect($response->json('errors'))->toHaveKey('assignees.2')
+        ->and(ApprovalRequest::query()->count())->toBe(0);
+});
+
+it('stores and restores a draft with several responsible users per step', function () {
+    $evaluation = approvalsEvaluation();
+
+    $this->actingAs($this->admin, 'sanctum')->putJson('/api/v1/approvals/drafts', [
+        'subject_type' => 'evaluation',
+        'subject_id' => (string) $evaluation->getKey(),
+        'assignees' => [
+            2 => [(int) $this->firstApprover->getKey(), (int) $this->secondApprover->getKey()],
+            3 => (int) $this->secondApprover->getKey(),
+        ],
+    ])->assertOk()
+        ->assertJsonPath('data.assignees.2.0', (int) $this->firstApprover->getKey())
+        ->assertJsonPath('data.assignees.2.1', (int) $this->secondApprover->getKey());
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$evaluation->getKey()}")
+        ->assertOk()
+        ->assertJsonPath('data.assignees.2.0', (int) $this->firstApprover->getKey())
+        ->assertJsonPath('data.assignees.2.1', (int) $this->secondApprover->getKey());
 });

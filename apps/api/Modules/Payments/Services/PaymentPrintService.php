@@ -4,7 +4,6 @@ namespace Modules\Payments\Services;
 
 use App\Models\User;
 use App\Support\PrintStylesheet;
-use Modules\Approvals\Repositories\ApprovalRequestRepositoryInterface;
 use Modules\Approvals\Services\PrintSignatureService;
 use Modules\Organization\Services\LogoService;
 use Modules\Payments\Models\AdvanceLiquidation;
@@ -14,16 +13,15 @@ use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
 
 /**
- * Context and response for the payment print sheets — the server-side twin
- * of the web components in apps/web/src/features/payments (*-print.tsx).
- * Each method mirrors its component's props: the document plus the
- * signature block of its newest approval round; the sheet itself (labels,
- * conditionals, money) stays in the Blade view.
+ * Context and response for the payment print sheets — the official A4
+ * documents previewed by the web's shared print dialog (`usePrintPreview`
+ * in apps/web). Each method passes the document; the signature block comes
+ * whole from the approvals module (`PrintSignatureService::forSubject`) and
+ * the sheet itself (labels, conditionals, money) stays in the Blade view.
  */
 class PaymentPrintService
 {
     public function __construct(
-        private readonly ApprovalRequestRepositoryInterface $approvals,
         private readonly PrintSignatureService $signatures,
         private readonly LogoService $logos,
     ) {}
@@ -32,12 +30,22 @@ class PaymentPrintService
     {
         $cashRequest->load(['lines', 'creator']);
 
-        return Pdf::view('payments::print.cash-request', [
+        [$view, $sheet] = match ($cashRequest->type) {
+            CashRequest::TYPE_PETTY_CASH => ['payments::print.petty-cash-request', 'petty-cash-request'],
+            CashRequest::TYPE_ADVANCE => ['payments::print.advance-request', 'advance-request'],
+            default => ['payments::print.cash-request', 'cash-request'],
+        };
+
+        $isPettyCash = $cashRequest->type === CashRequest::TYPE_PETTY_CASH;
+        // The petty cash sheet is the official portrait A4 form; the other
+        // branches keep the landscape working sheets.
+        $margin = $isPettyCash ? 12 : 8;
+
+        $pdf = Pdf::view($view, [
             'css' => PrintStylesheet::load(),
             'logo' => $this->logos->forUser($user),
             'cashRequest' => [
                 'code' => $cashRequest->code,
-                'type' => $cashRequest->type,
                 'status' => $cashRequest->status,
                 'campus' => $cashRequest->campus,
                 'division' => $cashRequest->division,
@@ -53,6 +61,7 @@ class PaymentPrintService
                 'remark' => $cashRequest->remark,
                 'createdBy' => $cashRequest->creator?->name,
                 'createdByPosition' => $cashRequest->creator?->position,
+                'createdById' => $cashRequest->created_by,
                 'lines' => $cashRequest->lines->map(fn ($line): array => [
                     'id' => $line->getKey(),
                     'description' => $line->description,
@@ -61,19 +70,16 @@ class PaymentPrintService
                     'amountUsd' => (float) $line->amount_usd,
                 ])->all(),
             ],
-            'columns' => $this->signatures->columns(
-                $this->approvals->latestForSubject($this->subjectType($cashRequest), (string) $cashRequest->getKey()),
-                [
-                    ['key' => 'prepared', 'title' => 'Prepared by · រៀបចំដោយ'],
-                    ['key' => 'reviewed', 'title' => 'Reviewed by · ពិនិត្យដោយ'],
-                    ['key' => 'approved', 'title' => 'Approved by · យល់ព្រមដោយ'],
-                ],
+            'columns' => $this->signatures->forSubject(
+                $this->subjectType($cashRequest),
+                (string) $cashRequest->getKey(),
             ),
         ])
             ->format('a4')
-            ->landscape()
-            ->margins(8, 8, 8, 8, 'mm')
-            ->name($cashRequest->code.'-cash-request.pdf');
+            ->margins($margin, $margin, $margin, $margin, 'mm');
+
+        return ($isPettyCash ? $pdf->portrait() : $pdf->landscape())
+            ->name($cashRequest->code.'-'.$sheet.'.pdf');
     }
 
     public function forCashClearance(CashClearance $cashClearance, User $user): PdfBuilder
@@ -109,14 +115,7 @@ class PaymentPrintService
                     'amountUsd' => (float) $line->amount_usd,
                 ])->all(),
             ],
-            'columns' => $this->signatures->columns(
-                $this->approvals->latestForSubject('cash_clearance', (string) $cashClearance->getKey()),
-                [
-                    ['key' => 'prepared', 'title' => 'អ្នករៀបចំ / Prepared by'],
-                    ['key' => 'reviewed', 'title' => 'អ្នកត្រួតពិនិត្យ / Reviewed by'],
-                    ['key' => 'approved', 'title' => 'អ្នកយល់ព្រម / Approved by'],
-                ],
-            ),
+            'columns' => $this->signatures->forSubject('cash_clearance', (string) $cashClearance->getKey()),
         ])
             ->format('a4')
             ->landscape()
@@ -150,14 +149,7 @@ class PaymentPrintService
                     'amountUsd' => (float) $line->amount_usd,
                 ])->all(),
             ],
-            'columns' => $this->signatures->columns(
-                $this->approvals->latestForSubject('advance_liquidation', (string) $liquidation->getKey()),
-                [
-                    ['key' => 'prepared', 'title' => 'អ្នករៀបចំ / Prepared by'],
-                    ['key' => 'reviewed', 'title' => 'អ្នកត្រួតពិនិត្យ / Reviewed by'],
-                    ['key' => 'approved', 'title' => 'អ្នកយល់ព្រម / Approved by'],
-                ],
-            ),
+            'columns' => $this->signatures->forSubject('advance_liquidation', (string) $liquidation->getKey()),
         ])
             ->format('a4')
             ->landscape()

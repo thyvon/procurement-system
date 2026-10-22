@@ -10,6 +10,7 @@ import { ArrowLeft, Ban, Pencil, Printer, Trash2 } from "lucide-react";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { formatDate, formatMoney } from "@/lib/utils";
 import {
+  getPaymentsCashClearancesPrintUrl,
   paymentsCashClearancesDestroy,
   paymentsCashClearancesShow,
   paymentsCashClearancesStatus,
@@ -39,10 +40,10 @@ import {
 } from "@/features/approvals/approval-types";
 import { ApprovalTimeline } from "@/features/approvals/components/approval-timeline";
 import { useMe } from "@/hooks/use-me";
+import { usePrintPreview } from "@/hooks/use-print-preview";
 import { CashClearanceStatusBadge } from "./components/cash-clearance-status-badge";
 import { CancelDocumentDialog } from "../components/cancel-document-dialog";
 import { CashClearanceDetailSkeleton } from "./components/cash-clearance-detail-skeleton";
-import { CashClearancePrint } from "./components/cash-clearance-print";
 
 const CASH_CLEARANCE_SUBJECT = "cash_clearance";
 
@@ -59,7 +60,7 @@ function MetaRow({ label, value }: { label: string; value: ReactNode }) {
 
 interface CashClearanceDetailProps {
   clearanceId: string;
-  /** Approval page embed: no page chrome, just the document + print sheet. */
+  /** Approval page embed: no page chrome, just the document. */
   embedded?: boolean;
 }
 
@@ -123,6 +124,10 @@ export function CashClearanceDetail({
     },
   });
 
+  // The backend renders the official sheet (Blade → PDF); the dialog only
+  // fetches and previews it.
+  const print = usePrintPreview();
+
   const clearance = showQuery.data ?? null;
   const rounds = roundsQuery.data ?? [];
   const approvalRequest = rounds[0] ?? null;
@@ -176,19 +181,9 @@ export function CashClearanceDetail({
   const canCancel = canAct && clearance.status === "draft";
   const canDelete = canAct && clearance.status === "draft";
 
-  const handlePrint = () => {
-    const originalTitle = document.title;
-    document.title = `${clearance.code}-cash-clearance`;
-    try {
-      window.print();
-    } finally {
-      document.title = originalTitle;
-    }
-  };
-
   return (
     <>
-      <div className="mt-1 min-w-0 space-y-6 print:hidden">
+      <div className="mt-1 min-w-0 space-y-6">
         {embedded ? null : (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -213,7 +208,16 @@ export function CashClearanceDetail({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={handlePrint}>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  print.open(
+                    getPaymentsCashClearancesPrintUrl(clearance.id),
+                    clearance.code,
+                  )
+                }
+                disabled={print.isPending}
+              >
                 <Printer />
                 {tad("print")}
               </Button>
@@ -528,10 +532,7 @@ export function CashClearanceDetail({
         />
       </div>
 
-      <CashClearancePrint
-        clearance={clearance}
-        approvalRequest={approvalRequest}
-      />
+      {print.dialog}
     </>
   );
 }

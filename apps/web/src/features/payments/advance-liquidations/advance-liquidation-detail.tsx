@@ -10,6 +10,7 @@ import { ArrowLeft, Ban, Pencil, Printer, Trash2 } from "lucide-react";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { formatDate, formatMoney } from "@/lib/utils";
 import {
+  getPaymentsAdvanceLiquidationsPrintUrl,
   paymentsAdvanceLiquidationsDestroy,
   paymentsAdvanceLiquidationsShow,
   paymentsAdvanceLiquidationsStatus,
@@ -39,10 +40,10 @@ import {
 } from "@/features/approvals/approval-types";
 import { ApprovalTimeline } from "@/features/approvals/components/approval-timeline";
 import { useMe } from "@/hooks/use-me";
+import { usePrintPreview } from "@/hooks/use-print-preview";
 import { AdvanceLiquidationStatusBadge } from "./components/advance-liquidation-status-badge";
 import { CancelDocumentDialog } from "../components/cancel-document-dialog";
 import { AdvanceLiquidationDetailSkeleton } from "./components/advance-liquidation-detail-skeleton";
-import { AdvanceLiquidationPrint } from "./components/advance-liquidation-print";
 
 const ADVANCE_LIQUIDATION_SUBJECT = "advance_liquidation";
 
@@ -59,7 +60,7 @@ function MetaRow({ label, value }: { label: string; value: ReactNode }) {
 
 interface AdvanceLiquidationDetailProps {
   liquidationId: string;
-  /** Approval page embed: no page chrome, just the document + print sheet. */
+  /** Approval page embed: no page chrome, just the document. */
   embedded?: boolean;
 }
 
@@ -129,6 +130,10 @@ export function AdvanceLiquidationDetail({
     },
   });
 
+  // The backend renders the official sheet (Blade → PDF); the dialog only
+  // fetches and previews it.
+  const print = usePrintPreview();
+
   const liquidation = showQuery.data ?? null;
   const rounds = roundsQuery.data ?? [];
   const approvalRequest = rounds[0] ?? null;
@@ -182,19 +187,9 @@ export function AdvanceLiquidationDetail({
   const canCancel = canAct && liquidation.status === "draft";
   const canDelete = canAct && liquidation.status === "draft";
 
-  const handlePrint = () => {
-    const originalTitle = document.title;
-    document.title = `${liquidation.code}-advance-liquidation`;
-    try {
-      window.print();
-    } finally {
-      document.title = originalTitle;
-    }
-  };
-
   return (
     <>
-      <div className="mt-1 min-w-0 space-y-6 print:hidden">
+      <div className="mt-1 min-w-0 space-y-6">
         {embedded ? null : (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -219,7 +214,16 @@ export function AdvanceLiquidationDetail({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={handlePrint}>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  print.open(
+                    getPaymentsAdvanceLiquidationsPrintUrl(liquidation.id),
+                    liquidation.code,
+                  )
+                }
+                disabled={print.isPending}
+              >
                 <Printer />
                 {tad("print")}
               </Button>
@@ -463,10 +467,7 @@ export function AdvanceLiquidationDetail({
         />
       </div>
 
-      <AdvanceLiquidationPrint
-        liquidation={liquidation}
-        approvalRequest={approvalRequest}
-      />
+      {print.dialog}
     </>
   );
 }

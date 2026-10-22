@@ -24,7 +24,7 @@ class ApprovalRequestRepository extends BaseRepository implements ApprovalReques
      */
     public function filtered(array $filters, int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
-        $query = $this->query()->with(['creator', 'actions.actor']);
+        $query = $this->query()->with(['creator', 'actions.actor', 'stepAssignees']);
 
         $this->whereSubjectStillExists($query);
 
@@ -54,7 +54,7 @@ class ApprovalRequestRepository extends BaseRepository implements ApprovalReques
      */
     public function inbox(int $userId, array $filters = [], int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
-        $query = $this->inboxQuery($userId)->with(['creator']);
+        $query = $this->inboxQuery($userId)->with(['creator', 'stepAssignees']);
 
         $this->applyFilters($query, $filters);
 
@@ -66,7 +66,7 @@ class ApprovalRequestRepository extends BaseRepository implements ApprovalReques
     public function outbox(int $userId, array $filters = [], int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
         $query = $this->query()
-            ->with(['creator'])
+            ->with(['creator', 'stepAssignees'])
             ->where('created_by', $userId);
 
         $this->whereSubjectStillExists($query);
@@ -87,7 +87,7 @@ class ApprovalRequestRepository extends BaseRepository implements ApprovalReques
     public function latestForSubject(string $subjectType, string $subjectId): ?ApprovalRequest
     {
         return $this->query()
-            ->with(['actions.actor'])
+            ->with(['actions.actor', 'stepAssignees'])
             ->where('subject_type', $subjectType)
             ->where('subject_id', $subjectId)
             ->orderByDesc('created_at')
@@ -106,8 +106,20 @@ class ApprovalRequestRepository extends BaseRepository implements ApprovalReques
         $query = $this->query()
             ->where(function (Builder $q) use ($userId): void {
                 $q->where(function (Builder $pending) use ($userId): void {
+                    // A round parks on the primary assignee (legacy single
+                    // pick) and on the unacted co-signers of the step it is
+                    // parked on — rows for steps not yet reached never count.
                     $pending->where('status', ApprovalRequest::STATUS_PENDING)
-                        ->where('current_assignee_id', $userId);
+                        ->where(function (Builder $responsible) use ($userId): void {
+                            $responsible->where('current_assignee_id', $userId)
+                                ->orWhereHas(
+                                    'stepAssignees',
+                                    fn (Builder $rows): Builder => $rows
+                                        ->where('user_id', $userId)
+                                        ->whereNull('acted_at')
+                                        ->whereColumn('step_position', 'approval_requests.current_position'),
+                                );
+                        });
                 })->orWhere(function (Builder $returned) use ($userId): void {
                     $returned->where('status', ApprovalRequest::STATUS_RETURNED)
                         ->where('created_by', $userId);

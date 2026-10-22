@@ -4,9 +4,10 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
+import type { ApprovalsDraftsStore200DataAssignees } from './approvalsDraftsStore200DataAssignees';
 
 export type ApprovalsDraftsStore200Data = {
   subjectType: string;
   subjectId: string;
-  assignees: string;
+  assignees: ApprovalsDraftsStore200DataAssignees;
 };

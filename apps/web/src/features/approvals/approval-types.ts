@@ -31,9 +31,17 @@ export type ApprovalPreview = {
   documentCode: string | null;
   amount: string;
   flow: ApprovalFlowView;
-  /** Step position => user id, restored from the saved approval draft. */
-  assignees?: Record<string, number> | null;
+  /** Step position => user id list, restored from the saved approval draft. */
+  assignees?: Record<string, number[]> | null;
   steps: ApprovalPreviewStep[];
+};
+
+export type ApprovalSigner = {
+  id: number | null;
+  name: string | null;
+  position?: string | null;
+  /** Set once the signer has decided the step; null while pending. */
+  actedAt: string | null;
 };
 
 export type ApprovalStepSnapshot = {
@@ -48,6 +56,7 @@ export type ApprovalStepSnapshot = {
   assigneeName: string | null;
   assigneePosition?: string | null;
   assigneeSignature?: string | null;
+  signers?: ApprovalSigner[];
 };
 
 export type ApprovalCurrentStep = {
@@ -58,6 +67,7 @@ export type ApprovalCurrentStep = {
   assigneeName: string | null;
   assigneePosition?: string | null;
   assigneeSignature?: string | null;
+  signers?: ApprovalSigner[];
 };
 
 export type ApprovalActionView = {
@@ -252,6 +262,56 @@ function parseDocument(raw: unknown): ApprovalDocumentSnapshot | null {
   return snapshot;
 }
 
+function parseSigners(raw: unknown): ApprovalSigner[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((entry) => {
+    const signer = (entry ?? {}) as Record<string, unknown>;
+    return {
+      id: toNullableNumber(signer.id),
+      name: (signer.name as string | null) ?? null,
+      position: (signer.position as string | null) ?? null,
+      actedAt: (signer.actedAt as string | null) ?? null,
+    };
+  });
+}
+
+/**
+ * Whether the given user still owes a decision on this step: one of its
+ * unacted signers. Co-signed steps list several; snapshots predating
+ * signers fall back to the single frozen assigneeId.
+ */
+export function isPendingAssignee(
+  step: ApprovalCurrentStep | null | undefined,
+  userId: number | null
+): boolean {
+  if (!step || userId == null) return false;
+  const signers = step.signers ?? [];
+  if (signers.length > 0) {
+    return signers.some(
+      (signer) => signer.id === userId && signer.actedAt == null
+    );
+  }
+  return step.assigneeId != null && step.assigneeId === userId;
+}
+
+/**
+ * All responsible users of a step, comma-joined — co-signed steps list
+ * several; snapshots predating signers fall back to the single frozen name.
+ */
+export function stepSignerNames(
+  step:
+    | Pick<ApprovalStepSnapshot, "signers" | "assigneeName">
+    | null
+    | undefined
+): string | null {
+  if (!step) return null;
+  const names = (step.signers ?? [])
+    .map((signer) => signer.name)
+    .filter((name): name is string => Boolean(name));
+  if (names.length > 0) return names.join(", ");
+  return step.assigneeName;
+}
+
 export function parseApprovalRequest(raw: unknown): ApprovalRequestView {
   const record = (raw ?? {}) as Record<string, unknown>;
   const steps = Array.isArray(record.steps) ? record.steps : [];
@@ -277,6 +337,7 @@ export function parseApprovalRequest(raw: unknown): ApprovalRequestView {
             (currentStep.assigneePosition as string | null) ?? null,
           assigneeSignature:
             (currentStep.assigneeSignature as string | null) ?? null,
+          signers: parseSigners(currentStep.signers),
         }
       : null,
     steps: steps.map((step) => {
@@ -299,6 +360,7 @@ export function parseApprovalRequest(raw: unknown): ApprovalRequestView {
           (snapshot.assigneePosition as string | null) ?? null,
         assigneeSignature:
           (snapshot.assigneeSignature as string | null) ?? null,
+        signers: parseSigners(snapshot.signers),
       };
     }),
     submittedBy: (record.submittedBy as string | null) ?? null,

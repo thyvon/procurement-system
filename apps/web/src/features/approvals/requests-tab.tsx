@@ -32,6 +32,7 @@ import { type DataTableFeatures } from "@/components/ui/data-table-features";
 import { useMe } from "@/hooks/use-me";
 import {
   parseApprovalRequest,
+  stepSignerNames,
   subjectLabel,
   type ApprovalRequestView,
   type ApprovalStatus,
@@ -75,7 +76,7 @@ function toRow(request: ApprovalRequestView, subjectLabel: string): RequestRow {
     subjectType: request.subjectType,
     subjectId: request.subjectId,
     step: request.currentStep?.label ?? "—",
-    assignee: request.currentStep?.assigneeName ?? "—",
+    assignee: stepSignerNames(request.currentStep) ?? "—",
     amount: money.format(Number(request.amountSnapshot)),
     status: request.status,
     submittedBy: request.submittedBy,

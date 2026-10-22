@@ -39,6 +39,7 @@ import { useMe } from "@/hooks/use-me";
 import {
   EVALUATION_SUBJECT,
   fetchApprovalRounds,
+  isPendingAssignee,
   type ApprovalAction,
   type ApprovalRequestView,
 } from "@/features/approvals/approval-types";
@@ -246,8 +247,7 @@ export function EvaluationForm({ onBack, evaluationId }: EvaluationFormProps) {
   const currentStep = approvalRequest?.currentStep ?? null;
   const isAssignee =
     approvalRequest?.status === "pending" &&
-    currentStep?.assigneeId != null &&
-    me.data?.id === currentStep.assigneeId;
+    isPendingAssignee(currentStep, me.data?.id ?? null);
   const allowedActions =
     approvalRequest?.steps.find((step) => step.position === currentStep?.position)
       ?.allowedActions ?? [];

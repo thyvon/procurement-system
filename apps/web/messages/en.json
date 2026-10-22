@@ -171,6 +171,13 @@
     "dark": "Dark",
     "system": "System"
   },
+  "printPreview": {
+    "title": "Print preview",
+    "description": "Server-generated PDF of this document.",
+    "close": "Close",
+    "download": "Download",
+    "print": "Print"
+  },
   "approvals": {
     "title": "Approvals",
     "description": "Your document tray for every approval request.",
@@ -302,7 +309,10 @@
       "submitting": "Submitting…",
       "submitted": "Submitted for approval.",
       "loadFailed": "Could not load the approval flow for this document.",
-      "saveFirst": "Save your changes before submitting — the approval runs on the saved document."
+      "saveFirst": "Save your changes before submitting — the approval runs on the saved document.",
+      "addCoSigner": "Add co-signer…",
+      "allSelected": "Every eligible user is already selected.",
+      "removeAssignee": "Remove {name}"
     },
     "form": {
       "submitForApproval": "Submit for approval",
@@ -363,19 +373,24 @@
         "maxAmountPlaceholder": "No upper limit",
         "active": "Active",
         "steps": "Steps",
-        "stepsHint": "Steps run in order. Add at least one step.",
+        "stepsHint": "Steps run in order. Add at least one step. The Khmer name stacks under the English one on the print sheet.",
         "addStep": "Add step",
         "stepKey": "Step key",
         "stepKeyPlaceholder": "key",
         "stepLabel": "Step label",
         "stepLabelPlaceholder": "Label",
+        "stepLabelKh": "Step label (Khmer)",
+        "stepLabelKhPlaceholder": "ខ្មែរ",
+        "mode": "Mode",
         "modeDecide": "Decide",
         "modeRecord": "Record",
         "actionApprove": "Approve",
         "actionReject": "Reject",
         "actionReturn": "Return",
+        "allowedActions": "Allowed actions",
         "showOnPrint": "Show on print",
         "showOnPrintHint": "Hidden steps still decide; they only disappear from the official print sheet.",
+        "print": "Print",
         "moveUp": "Move up",
         "moveDown": "Move down",
         "removeStep": "Remove step",
@@ -683,17 +698,6 @@
     "detail": {
       "subtitle": "Price evaluation",
       "print": "Print"
-    },
-    "print": {
-      "code": "Code",
-      "version": "Version 4.1",
-      "formCode": "MJQE0055",
-      "name": "Name",
-      "position": "Position",
-      "date": "Date",
-      "prepared": "Prepared by",
-      "reviewed": "Reviewed by",
-      "approved": "Approved by"
     }
   },
   "invoices": {
@@ -923,8 +927,7 @@
     "cashClearances": {
       "newTitle": "New cash clearance",
       "editTitle": "Edit cash clearance",
-      "newDescription":
-        "Enter the clearance against the cash request and its lines.",
+      "newDescription": "Enter the clearance against the cash request and its lines.",
       "editDescription": "Update the clearance details, lines and totals.",
       "loadFailed": "We couldn't load this cash clearance.",
       "deleteTitle": "Delete cash clearance",
@@ -937,10 +940,8 @@
     "advanceLiquidations": {
       "newTitle": "New advance liquidation",
       "editTitle": "Edit advance liquidation",
-      "newDescription":
-        "Enter the liquidation against the cash advance and its lines.",
-      "editDescription":
-        "Update the liquidation details, lines and totals.",
+      "newDescription": "Enter the liquidation against the cash advance and its lines.",
+      "editDescription": "Update the liquidation details, lines and totals.",
       "loadFailed": "We couldn't load this advance liquidation.",
       "deleteTitle": "Delete advance liquidation",
       "created": "Advance liquidation created.",

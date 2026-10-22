@@ -15,6 +15,11 @@ export type UpdateApprovalFlowRequestStepsItem = {
   key: string;
   /** @maxLength 255 */
   label: string;
+  /**
+     * @maxLength 255
+     * @nullable
+     */
+  label_kh?: string | null;
   action_mode: UpdateApprovalFlowRequestStepsItemActionMode;
   /** @nullable */
   allowed_actions?: UpdateApprovalFlowRequestStepsItemAllowedActionsItem[] | null;

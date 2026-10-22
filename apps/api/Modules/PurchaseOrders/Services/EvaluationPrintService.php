@@ -5,7 +5,6 @@ namespace Modules\PurchaseOrders\Services;
 use App\Models\User;
 use App\Support\PrintFormatter;
 use App\Support\PrintStylesheet;
-use Modules\Approvals\Repositories\ApprovalRequestRepositoryInterface;
 use Modules\Approvals\Services\PrintSignatureService;
 use Modules\Organization\Services\LogoService;
 use Modules\PurchaseOrders\Models\Evaluation;
@@ -13,16 +12,14 @@ use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
 
 /**
- * Context and response for the price evaluation print sheet — the server-side
- * twin of apps/web/src/features/purchase-orders/components/evaluation-print.tsx.
- * The matrix math mirrors the web's fromEvaluation()/lineTotal()/subTotal()/
- * grandTotal() helpers (first selected line wins per item; totals are
- * re-derived from the cells, never read from the stored subtotal columns).
+ * Context and response for the price evaluation print sheet. The matrix
+ * math derives totals from the cells (first selected line wins per item;
+ * totals are re-derived from the cells, never read from the stored subtotal
+ * columns). The signature block comes whole from the approvals module.
  */
 class EvaluationPrintService
 {
     public function __construct(
-        private readonly ApprovalRequestRepositoryInterface $approvals,
         private readonly PrintSignatureService $signatures,
         private readonly LogoService $logos,
     ) {}
@@ -119,14 +116,7 @@ class EvaluationPrintService
             ],
             'items' => $items,
             'quotations' => $panels,
-            'columns' => $this->signatures->columns(
-                $this->approvals->latestForSubject('evaluation', (string) $evaluation->getKey()),
-                [
-                    ['key' => 'prepared', 'title' => 'Prepared by'],
-                    ['key' => 'reviewed', 'title' => 'Reviewed by'],
-                    ['key' => 'approved', 'title' => 'Approved by'],
-                ],
-            ),
+            'columns' => $this->signatures->forSubject('evaluation', (string) $evaluation->getKey()),
         ])
             ->format('a4')
             ->landscape()

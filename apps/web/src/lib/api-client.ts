@@ -50,3 +50,28 @@ export function unwrapWithMeta<T, M = unknown>(response: {
 export function withAuth(options?: RequestInit): RequestInit {
   return { ...options, headers: { ...authHeaders(), ...options?.headers } };
 }
+
+/**
+ * Fetches a server-rendered PDF (`GET …/print`) as a blob for the in-app
+ * print-preview dialog (see `usePrintPreview`). The generated orval client
+ * parses these responses as JSON, so the binary fetch lives here next to the
+ * other envelope plumbing. Failures throw `ApiError` with the API's `message`
+ * — the global MutationCache toasts it like any other mutation.
+ */
+export async function fetchPrintPdf(url: string): Promise<Blob> {
+  const response = await fetch(url, withAuth());
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+      error?: string;
+    } | null;
+    throw new ApiError(
+      response.status,
+      body?.message ?? `Request failed (${response.status})`,
+      body?.error,
+    );
+  }
+
+  return response.blob();
+}

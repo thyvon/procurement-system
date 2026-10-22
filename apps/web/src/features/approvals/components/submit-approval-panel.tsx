@@ -5,7 +5,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, X } from "lucide-react";
 import { Combobox as ComboboxNS } from "@base-ui/react/combobox";
 import {
   approvalsPreview,
@@ -63,8 +63,8 @@ type Props = {
   disabled?: boolean;
   /** Create mode: saves the document and returns its id so submit can chain. */
   prepareDocument?: () => Promise<string | null>;
-  /** Reports the current pick per decide step so Save can persist a draft. */
-  onAssigneesChange?: (assignees: Record<number, string>) => void;
+  /** Reports the current picks per decide step so Save can persist a draft. */
+  onAssigneesChange?: (assignees: Record<number, string[]>) => void;
   actions?: ReactNode;
 };
 
@@ -82,7 +82,7 @@ export function SubmitApprovalPanel({
   const qc = useQueryClient();
   const router = useRouter();
   const me = useMe();
-  const [assignees, setAssignees] = useState<Record<number, string>>({});
+  const [assignees, setAssignees] = useState<Record<number, string[]>>({});
   const [preparing, setPreparing] = useState(false);
 
   const previewQuery = useQuery({
@@ -116,9 +116,9 @@ export function SubmitApprovalPanel({
     if (saved && Object.keys(assignees).length === 0) {
       setAssignees(
         Object.fromEntries(
-          Object.entries(saved).map(([position, id]) => [
+          Object.entries(saved).map(([position, ids]) => [
             Number(position),
-            String(id),
+            (Array.isArray(ids) ? ids : [ids]).map(String),
           ])
         )
       );
@@ -129,18 +129,17 @@ export function SubmitApprovalPanel({
     onAssigneesChange?.(assignees);
   }, [assignees, onAssigneesChange]);
 
-  // Explicit pick wins when it is still a valid candidate; a stale draft pick
-  // (authority/band changed) falls through so the user re-selects.
-  const resolveAssignee = (step: ApprovalPreviewStep): string | null => {
+  // Explicit picks win while they are still valid candidates; a stale draft
+  // pick (authority/band changed) falls away so the user re-selects. With no
+  // picks and a single candidate the pick is implicit.
+  const resolveAssignees = (step: ApprovalPreviewStep): string[] => {
     const candidates = step.candidates ?? [];
-    const explicit = assignees[step.position];
-    if (
-      explicit !== undefined &&
-      candidates.some((candidate) => String(candidate.id) === explicit)
-    ) {
-      return explicit;
-    }
-    return candidates.length === 1 ? String(candidates[0].id) : null;
+    const explicit = assignees[step.position] ?? [];
+    const valid = explicit.filter((id) =>
+      candidates.some((candidate) => String(candidate.id) === id)
+    );
+    if (valid.length > 0) return valid;
+    return candidates.length === 1 ? [String(candidates[0].id)] : [];
   };
 
   const decideSteps = (preview?.steps ?? []).filter(
@@ -148,7 +147,7 @@ export function SubmitApprovalPanel({
   );
 
   const missingSteps = decideSteps.filter(
-    (step) => resolveAssignee(step) === null
+    (step) => resolveAssignees(step).length === 0
   );
 
   const missingAssignee = missingSteps.length > 0;
@@ -164,7 +163,7 @@ export function SubmitApprovalPanel({
         assignees: Object.fromEntries(
           decideSteps.map((step) => [
             step.position,
-            Number(resolveAssignee(step)),
+            resolveAssignees(step).map(Number),
           ])
         ),
       } as unknown as StoreApprovalRequest;
@@ -277,8 +276,20 @@ export function SubmitApprovalPanel({
                 {(preview.steps ?? []).map((step, index) => {
                   const candidates =
                     step.actionMode === "decide" ? step.candidates ?? [] : [];
-                  const items = ComboboxNS.createItems(
-                    candidates.map((candidate) => ({
+                  const selectedIds =
+                    step.actionMode === "decide" ? resolveAssignees(step) : [];
+                  const selectedCandidates = selectedIds
+                    .map((id) =>
+                      candidates.find(
+                        (candidate) => String(candidate.id) === id
+                      )
+                    )
+                    .filter((candidate) => candidate !== undefined);
+                  const remainingCandidates = candidates.filter(
+                    (candidate) => !selectedIds.includes(String(candidate.id))
+                  );
+                  const remainingItems = ComboboxNS.createItems(
+                    remainingCandidates.map((candidate) => ({
                       value: String(candidate.id),
                       label: candidate.name,
                     })),
@@ -287,17 +298,13 @@ export function SubmitApprovalPanel({
                       getLabel: (candidate) => candidate.label,
                     }
                   );
-                  const selectedCandidate =
-                    step.actionMode === "decide"
-                      ? candidates.find(
-                          (candidate) =>
-                            String(candidate.id) === resolveAssignee(step)
-                        )
-                      : undefined;
                   const positionText =
                     step.actionMode === "record"
                       ? (me.data ?? null)?.position ?? null
-                      : selectedCandidate?.position ?? null;
+                      : selectedCandidates
+                          .map((candidate) => candidate.position)
+                          .filter((position) => position)
+                          .join(", ") || null;
 
                   return (
                     <TableRow key={step.position}>
@@ -329,16 +336,48 @@ export function SubmitApprovalPanel({
                             {(me.data ?? null)?.name ?? t("autoRecorded")}
                           </span>
                         ) : (
-                          <div className="min-w-0">
+                          <div className="min-w-0 space-y-1">
+                            {selectedCandidates.map((candidate) => (
+                              <span
+                                key={candidate.id}
+                                className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs"
+                              >
+                                {candidate.name}
+                                <button
+                                  type="button"
+                                  aria-label={t("removeAssignee", {
+                                    name: candidate.name,
+                                  })}
+                                  className="text-muted-foreground hover:text-foreground"
+                                  onClick={() =>
+                                    setAssignees((previous) => ({
+                                      ...previous,
+                                      [step.position]: (
+                                        previous[step.position] ?? []
+                                      ).filter(
+                                        (id) => id !== String(candidate.id)
+                                      ),
+                                    }))
+                                  }
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
                             <Combobox
-                              items={items}
-                              value={resolveAssignee(step)}
+                              items={remainingItems}
+                              value={null}
                               onValueChange={(next) => {
                                 if (next === null || next === undefined)
                                   return;
                                 setAssignees((previous) => ({
                                   ...previous,
-                                  [step.position]: String(next),
+                                  [step.position]: [
+                                    ...(previous[step.position] ?? []).filter(
+                                      (id) => id !== String(next)
+                                    ),
+                                    String(next),
+                                  ],
                                 }));
                               }}
                             >
@@ -347,13 +386,15 @@ export function SubmitApprovalPanel({
                                 placeholder={
                                   candidates.length === 0
                                     ? t("noCandidates")
-                                    : t("selectAssignee")
+                                    : selectedCandidates.length === 0
+                                      ? t("selectAssignee")
+                                      : t("addCoSigner")
                                 }
                               />
                               <ComboboxContent>
                                 <ComboboxEmpty className="text-xs">
-                                  {candidates.length === 0
-                                    ? t("noCandidates")
+                                  {remainingCandidates.length === 0
+                                    ? t("allSelected")
                                     : t("noMatch")}
                                 </ComboboxEmpty>
                                 <ComboboxList>

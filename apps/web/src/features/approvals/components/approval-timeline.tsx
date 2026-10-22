@@ -8,6 +8,7 @@ import type {
   ApprovalRequestView,
   ApprovalStatus,
 } from "../approval-types";
+import { stepSignerNames } from "../approval-types";
 
 const STATUS_VARIANT: Record<
   ApprovalStatus,
@@ -174,7 +175,7 @@ export function ApprovalTimeline({
                     {step.label}
                   </span>
                   <Badge variant="outline" className="text-[10px] font-normal">
-                    {step.assigneeName ??
+                    {stepSignerNames(step) ??
                       (step.actionMode === "record"
                         ? t("autoRecorded")
                         : t("assignedTo"))}

@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/approval-request/approval-request";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { useMe } from "@/hooks/use-me";
+import { usePrintPreview } from "@/hooks/use-print-preview";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   fetchApprovalRounds,
+  isPendingAssignee,
   parseApprovalRequest,
   subjectLabel,
   type ApprovalAction,
@@ -77,6 +79,11 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
     },
   });
 
+  // The backend renders the subject's official sheet (Blade → PDF); the
+  // dialog only fetches and previews it. The button stays disabled for
+  // subjects without a print sheet.
+  const print = usePrintPreview();
+
   if (query.isPending) {
     return null;
   }
@@ -97,8 +104,7 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
   const currentStep = request.currentStep;
   const isAssignee =
     request.status === "pending" &&
-    currentStep?.assigneeId != null &&
-    me.data?.id === currentStep.assigneeId;
+    isPendingAssignee(currentStep, me.data?.id ?? null);
   const allowedActions =
     request.steps.find((step) => step.position === currentStep?.position)
       ?.allowedActions ?? [];
@@ -114,19 +120,9 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
   const canResubmit =
     request.status === "returned" && isOwner && subjectConfig !== undefined;
 
-  const handlePrint = () => {
-    const originalTitle = document.title;
-    document.title = `${request.documentCode ?? t("document")}-approval`;
-    try {
-      window.print();
-    } finally {
-      document.title = originalTitle;
-    }
-  };
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
@@ -152,8 +148,15 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
-            onClick={handlePrint}
-            disabled={roundsQuery.isPending}
+            onClick={() => {
+              if (subjectConfig) {
+                print.open(
+                  subjectConfig.printUrl(request.subjectId),
+                  request.documentCode ?? undefined,
+                );
+              }
+            }}
+            disabled={!subjectConfig || print.isPending}
           >
             <Printer />
             {t("print")}
@@ -205,7 +208,7 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
       </div>
 
       {request.status === "pending" ? (
-        <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm print:hidden">
+        <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
           {ta("inReview")}
         </div>
       ) : null}
@@ -215,7 +218,7 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
         subjectId={request.subjectId}
       />
 
-      <div className="print:hidden">
+      <div>
         <ApprovalTimeline request={request} rounds={roundsQuery.data} />
       </div>
 
@@ -255,6 +258,8 @@ export function ApprovalDetail({ requestId }: { requestId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {print.dialog}
     </div>
   );
 }

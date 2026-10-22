@@ -53,7 +53,7 @@ it('requires authentication for the print sheets', function () {
     $this->getJson("/api/v1/payments/advance-liquidations/{$liquidation->getKey()}/print")->assertStatus(401);
 });
 
-it('prints a cash request sheet with its lines and fallback signature columns', function () {
+it('prints a cash request sheet with its lines and no signature block without a flow', function () {
     $request = printableCashRequest();
     CashRequestLine::factory()->create([
         'entity_id' => $this->entity->getKey(),
@@ -77,15 +77,18 @@ it('prints a cash request sheet with its lines and fallback signature columns', 
     Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) use ($code) {
         $html = $pdf->getHtml();
 
+        // No approval flow is configured for cash requests here, so the
+        // approvals module owns an empty signature block — nothing hardcoded.
         return str_contains($html, 'Cash Request')
+            && str_contains($html, 'Cash · សាច់ប្រាក់')
             && str_contains($html, $code)
             && str_contains($html, 'A4 Paper')
             && str_contains($html, '$'."\u{00A0}".'125.50')
-            && str_contains($html, 'Prepared by · រៀបចំដោយ');
+            && ! str_contains($html, 'Prepared by');
     });
 });
 
-it('prints the approval round signature columns when a round exists', function () {
+it('prints the approval round signature columns with the stacked Khmer title', function () {
     $request = printableCashRequest();
 
     ApprovalRequest::factory()->create([
@@ -98,6 +101,7 @@ it('prints the approval round signature columns when a round exists', function (
                     'position' => 1,
                     'key' => 'prepared',
                     'label' => 'Prepared By',
+                    'labelKh' => 'រៀបចំដោយ',
                     'actionMode' => 'record',
                     'showOnPrint' => true,
                     'assigneeId' => null,
@@ -119,8 +123,70 @@ it('prints the approval round signature columns when a round exists', function (
         $html = $pdf->getHtml();
 
         return str_contains($html, 'Prepared By')
-            && str_contains($html, 'Kuy Leng')
-            && ! str_contains($html, 'Prepared by · រៀបចំដោយ');
+            && str_contains($html, 'រៀបចំដោយ')
+            && str_contains($html, 'Kuy Leng');
+    });
+});
+
+it('prints one column per co-signer with each own decision', function () {
+    $request = printableCashRequest();
+    $coSigner = User::factory()->create(['entity_id' => $this->entity->getKey()]);
+    $png = 'data:image/png;base64,'.base64_encode("\x89PNG\r\n\x1a\n");
+
+    $round = ApprovalRequest::factory()->create([
+        'entity_id' => $this->entity->getKey(),
+        'subject_type' => 'cash_request',
+        'subject_id' => $request->getKey(),
+        'snapshot' => [
+            'steps' => [
+                [
+                    'position' => 1,
+                    'key' => 'reviewed',
+                    'label' => 'Reviewed By',
+                    'labelKh' => 'ពិនិត្យឡើងវិញ',
+                    'actionMode' => 'decide',
+                    'showOnPrint' => true,
+                    'assigneeId' => $this->admin->getKey(),
+                    'assignees' => [
+                        ['id' => $this->admin->getKey(), 'name' => $this->admin->name, 'position' => 'Manager', 'signature' => $png],
+                        ['id' => $coSigner->getKey(), 'name' => $coSigner->name, 'position' => 'Director', 'signature' => null],
+                    ],
+                    'assigneeName' => $this->admin->name,
+                    'assigneePosition' => 'Manager',
+                    'assigneeSignature' => $png,
+                ],
+            ],
+        ],
+    ]);
+
+    // Only the first co-signer has approved so far — the pending one keeps
+    // an empty date and no signature, but still prints as its own column.
+    $round->actions()->create([
+        'entity_id' => $this->entity->getKey(),
+        'step_position' => 1,
+        'step_key' => 'reviewed',
+        'action' => 'approve',
+        'acted_by' => $this->admin->getKey(),
+        'acted_at' => '2026-10-20 09:00:00',
+    ]);
+
+    Pdf::fake();
+
+    $adminName = $this->admin->name;
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->get("/api/v1/payments/cash-requests/{$request->getKey()}/print")
+        ->assertOk();
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) use ($adminName, $coSigner) {
+        $html = $pdf->getHtml();
+
+        return substr_count($html, 'Reviewed By') === 2
+            && str_contains($html, 'ពិនិត្យឡើងវិញ')
+            && str_contains($html, $adminName)
+            && str_contains($html, $coSigner->name)
+            && substr_count($html, 'Oct 20, 2026') === 1
+            && substr_count($html, 'data:image/png;base64,') === 1;
     });
 });
 
@@ -169,6 +235,63 @@ it('returns 404 on a branch route the branch does not own', function () {
         ->assertNotFound();
 });
 
+it('prints the petty cash branch sheet with its own view and no payment block', function () {
+    $request = CashRequest::factory()->create([
+        'entity_id' => $this->entity->getKey(),
+        'created_by' => $this->admin->getKey(),
+        'total_usd' => 125.5,
+    ]);
+
+    Pdf::fake();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->get("/api/v1/payments/petty-cash-requests/{$request->getKey()}/print")
+        ->assertOk();
+
+    $code = $request->code;
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->viewName === 'payments::print.petty-cash-request');
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->downloadName === $code.'-petty-cash-request.pdf');
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->format === 'a4'
+        && $pdf->orientation === 'Portrait'
+        && $pdf->margins == ['top' => 12, 'right' => 12, 'bottom' => 12, 'left' => 12, 'unit' => 'mm']);
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        $html = $pdf->getHtml();
+
+        return str_contains($html, 'Petty Cash Request Form')
+            && str_contains($html, 'Total in USD')
+            && ! str_contains($html, 'Mode of payment')
+            && ! str_contains($html, 'Adv. request for')
+            // No petty cash flow configured → empty signature block.
+            && ! str_contains($html, 'Received by');
+    });
+});
+
+it('prints the advance branch sheet with the payment and purpose fields', function () {
+    $request = CashRequest::factory()->advance()->create([
+        'entity_id' => $this->entity->getKey(),
+        'created_by' => $this->admin->getKey(),
+        'mode_of_payment' => 'Bank transfer',
+        'advance_request_for' => 'Office supplies',
+    ]);
+
+    Pdf::fake();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->get("/api/v1/payments/advance-requests/{$request->getKey()}/print")
+        ->assertOk();
+
+    $code = $request->code;
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->viewName === 'payments::print.advance-request');
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->downloadName === $code.'-advance-request.pdf');
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        $html = $pdf->getHtml();
+
+        return str_contains($html, 'Advance · លុយទុកមុន')
+            && str_contains($html, 'Mode of payment')
+            && str_contains($html, 'Office supplies');
+    });
+});
+
 it('prints a cash clearance sheet with its bilingual labels', function () {
     $clearance = CashClearance::factory()->create([
         'entity_id' => $this->entity->getKey(),
@@ -201,7 +324,8 @@ it('prints a cash clearance sheet with its bilingual labels', function () {
             && str_contains($html, $code)
             && str_contains($html, 'A4 Paper')
             && str_contains($html, '$'."\u{00A0}".'150.00')
-            && str_contains($html, 'អ្នករៀបចំ / Prepared by');
+            // No clearance flow configured → empty signature block.
+            && ! str_contains($html, 'Prepared by');
     });
 });
 

@@ -165,7 +165,7 @@ it('formats a KHR evaluation with the riel symbol and no decimals', function () 
     });
 });
 
-it('prints the approval round signature columns when a round exists', function () {
+it('prints the approval round signature columns with the stacked Khmer title', function () {
     $evaluation = printableEvaluation();
 
     ApprovalRequest::factory()->create([
@@ -178,6 +178,7 @@ it('prints the approval round signature columns when a round exists', function (
                     'position' => 1,
                     'key' => 'prepared',
                     'label' => 'Prepared By',
+                    'labelKh' => 'រៀបចំដោយ',
                     'actionMode' => 'record',
                     'showOnPrint' => true,
                     'assigneeId' => null,
@@ -199,8 +200,8 @@ it('prints the approval round signature columns when a round exists', function (
         $html = $pdf->getHtml();
 
         return str_contains($html, 'Prepared By')
-            && str_contains($html, 'Kuy Leng')
-            && ! str_contains($html, '>Prepared by<');
+            && str_contains($html, 'រៀបចំដោយ')
+            && str_contains($html, 'Kuy Leng');
     });
 });
 

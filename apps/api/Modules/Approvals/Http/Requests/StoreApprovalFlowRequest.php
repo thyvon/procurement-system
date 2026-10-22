@@ -31,6 +31,7 @@ class StoreApprovalFlowRequest extends FormRequest
             'steps' => ['required', 'array', 'min:1'],
             'steps.*.key' => ['required', 'string', 'max:32', 'regex:/^[a-z0-9][a-z0-9_-]*$/'],
             'steps.*.label' => ['required', 'string', 'max:255'],
+            'steps.*.label_kh' => ['nullable', 'string', 'max:255'],
             'steps.*.action_mode' => ['required', 'string', Rule::in([ApprovalStep::MODE_RECORD, ApprovalStep::MODE_DECIDE])],
             'steps.*.allowed_actions' => ['nullable', 'array'],
             'steps.*.allowed_actions.*' => ['string', Rule::in(['approve', 'reject', 'return'])],

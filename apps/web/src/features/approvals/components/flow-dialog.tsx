@@ -26,6 +26,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { unwrap, withAuth } from "@/lib/api-client";
 import {
   approvalsFlowsStore,
@@ -55,6 +63,7 @@ type StepRow = {
   uid: string;
   key: string;
   label: string;
+  labelKh: string;
   actionMode: "decide" | "record";
   allowedActions: StepAction[];
   showOnPrint: boolean;
@@ -77,6 +86,7 @@ function newRow(): StepRow {
     uid: `row-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     key: "",
     label: "",
+    labelKh: "",
     actionMode: "decide",
     allowedActions: [...ALL_ACTIONS],
     showOnPrint: true,
@@ -99,6 +109,7 @@ function toSteps(editing?: ApprovalFlowRow | null): StepRow[] {
       ...newRow(),
       key: step.key,
       label: step.label,
+      labelKh: step.labelKh ?? "",
       actionMode: (step.actionMode === "record" ? "record" : "decide") as StepRow["actionMode"],
       allowedActions: (step.allowedActions ?? []) as StepAction[],
       showOnPrint: step.showOnPrint ?? true,
@@ -193,6 +204,7 @@ export function FlowDialog({
       const steps = form.steps.map((row) => ({
         key: row.key.trim(),
         label: row.label.trim(),
+        label_kh: row.labelKh.trim() === "" ? null : row.labelKh.trim(),
         action_mode: row.actionMode,
         allowed_actions: row.actionMode === "decide" ? row.allowedActions : null,
         show_on_print: row.showOnPrint,
@@ -232,7 +244,7 @@ export function FlowDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-6xl">
         <DialogHeader>
           <DialogTitle>{editing ? t("editTitle") : t("newTitle")}</DialogTitle>
           <DialogDescription>
@@ -283,7 +295,7 @@ export function FlowDialog({
               </Select>
             </div>
           )}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Label
               htmlFor="flow-name"
               className="w-28 shrink-0 text-left after:ml-1 after:content-[':']"
@@ -295,13 +307,11 @@ export function FlowDialog({
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder={t("namePlaceholder")}
-              className="flex-1"
+              className="min-w-48 flex-1"
             />
-          </div>
-          <div className="flex items-center gap-3">
             <Label
               htmlFor="flow-min"
-              className="w-28 shrink-0 text-left after:ml-1 after:content-[':']"
+              className="shrink-0 text-left after:ml-1 after:content-[':']"
             >
               {t("minAmount")} <RequiredMark />
             </Label>
@@ -313,13 +323,11 @@ export function FlowDialog({
               onChange={(e) =>
                 setForm((f) => ({ ...f, minAmount: e.target.value }))
               }
-              className="flex-1"
+              className="w-36"
             />
-          </div>
-          <div className="flex items-center gap-3">
             <Label
               htmlFor="flow-max"
-              className="w-28 shrink-0 text-left after:ml-1 after:content-[':']"
+              className="shrink-0 text-left after:ml-1 after:content-[':']"
             >
               {t("maxAmount")}
             </Label>
@@ -332,7 +340,7 @@ export function FlowDialog({
                 setForm((f) => ({ ...f, maxAmount: e.target.value }))
               }
               placeholder={t("maxAmountPlaceholder")}
-              className="flex-1"
+              className="w-36"
             />
           </div>
           <div className="flex items-center gap-3">
@@ -376,128 +384,168 @@ export function FlowDialog({
                 {t("addStep")}
               </Button>
             </div>
-            <div className="space-y-2">
-              {form.steps.map((row, index) => (
-                <div key={row.uid} className="space-y-2 rounded-md border p-2">
-                  <div className="grid grid-cols-[1.5rem_7rem_9rem_1fr_auto] items-center gap-2">
-                    <span className="text-center font-mono text-xs text-muted-foreground">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="h-8 w-8 text-center">#</TableHead>
+                  <TableHead className="h-8 w-28">{t("mode")}</TableHead>
+                  <TableHead className="h-8 w-24">{t("stepKey")}</TableHead>
+                  <TableHead className="h-8">{t("stepLabel")}</TableHead>
+                  <TableHead className="h-8">{t("stepLabelKh")}</TableHead>
+                  <TableHead className="h-8 w-44">
+                    {t("allowedActions")}
+                  </TableHead>
+                  <TableHead className="h-8 w-14">{t("print")}</TableHead>
+                  <TableHead className="h-8 w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {form.steps.map((row, index) => (
+                  <TableRow key={row.uid}>
+                    <TableCell className="text-center font-mono text-xs tabular-nums text-muted-foreground">
                       {index + 1}
-                    </span>
-                    <Select
-                      value={row.actionMode}
-                      items={[
-                        { value: "decide", label: t("modeDecide") },
-                        { value: "record", label: t("modeRecord") },
-                      ]}
-                      onValueChange={(value) =>
-                        updateStep(index, {
-                          actionMode: value as StepRow["actionMode"],
-                        })
-                      }
-                    >
-                      <SelectTrigger className="h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="decide">{t("modeDecide")}</SelectItem>
-                        <SelectItem value="record">{t("modeRecord")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      value={row.key}
-                      onChange={(e) =>
-                        updateStep(index, { key: e.target.value })
-                      }
-                      placeholder={t("stepKeyPlaceholder")}
-                      className="h-8 font-mono"
-                      aria-label={t("stepKey")}
-                    />
-                    <Input
-                      value={row.label}
-                      onChange={(e) =>
-                        updateStep(index, { label: e.target.value })
-                      }
-                      placeholder={t("stepLabelPlaceholder")}
-                      className="h-8"
-                      aria-label={t("stepLabel")}
-                    />
-                    <div className="flex items-center">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-8"
-                        disabled={index === 0}
-                        aria-label={t("moveUp")}
-                        onClick={() => moveStep(index, -1)}
-                      >
-                        <ChevronUp className="size-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-8"
-                        disabled={index === form.steps.length - 1}
-                        aria-label={t("moveDown")}
-                        onClick={() => moveStep(index, 1)}
-                      >
-                        <ChevronDown className="size-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 text-destructive disabled:opacity-40"
-                        disabled={form.steps.length <= 1}
-                        aria-label={t("removeStep")}
-                        onClick={() =>
-                          setForm((f) => ({
-                            ...f,
-                            steps: f.steps.filter((_, i) => i !== index),
-                          }))
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={row.actionMode}
+                        items={[
+                          { value: "decide", label: t("modeDecide") },
+                          { value: "record", label: t("modeRecord") },
+                        ]}
+                        onValueChange={(value) =>
+                          updateStep(index, {
+                            actionMode: value as StepRow["actionMode"],
+                          })
                         }
                       >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-4 pl-9">
-                    {row.actionMode === "decide" &&
-                      ALL_ACTIONS.map((action) => (
-                        <label
-                          key={action}
-                          className="flex items-center gap-1.5 text-xs text-muted-foreground"
-                        >
-                          <Checkbox
-                            checked={row.allowedActions.includes(action)}
-                            onCheckedChange={(checked) =>
-                              toggleAction(index, action, checked === true)
-                            }
-                          />
-                          {action === "approve"
-                            ? t("actionApprove")
-                            : action === "reject"
-                              ? t("actionReject")
-                              : t("actionReturn")}
-                        </label>
-                      ))}
-                    <label
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground"
-                      title={t("showOnPrintHint")}
-                    >
+                        <SelectTrigger className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="decide">
+                            {t("modeDecide")}
+                          </SelectItem>
+                          <SelectItem value="record">
+                            {t("modeRecord")}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={row.key}
+                        onChange={(e) =>
+                          updateStep(index, { key: e.target.value })
+                        }
+                        placeholder={t("stepKeyPlaceholder")}
+                        className="h-8 w-24 font-mono"
+                        aria-label={t("stepKey")}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={row.label}
+                        onChange={(e) =>
+                          updateStep(index, { label: e.target.value })
+                        }
+                        placeholder={t("stepLabelPlaceholder")}
+                        className="h-8 w-full"
+                        aria-label={t("stepLabel")}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={row.labelKh}
+                        onChange={(e) =>
+                          updateStep(index, { labelKh: e.target.value })
+                        }
+                        placeholder={t("stepLabelKhPlaceholder")}
+                        className="h-8 w-full"
+                        aria-label={t("stepLabelKh")}
+                      />
+                    </TableCell>
+                    <TableCell className="whitespace-normal">
+                      {row.actionMode === "decide" ? (
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          {ALL_ACTIONS.map((action) => (
+                            <label
+                              key={action}
+                              className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                            >
+                              <Checkbox
+                                checked={row.allowedActions.includes(action)}
+                                onCheckedChange={(checked) =>
+                                  toggleAction(index, action, checked === true)
+                                }
+                              />
+                              {action === "approve"
+                                ? t("actionApprove")
+                                : action === "reject"
+                                  ? t("actionReject")
+                                  : t("actionReturn")}
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <Checkbox
                         checked={row.showOnPrint}
                         onCheckedChange={(checked) =>
                           updateStep(index, { showOnPrint: checked === true })
                         }
+                        aria-label={t("showOnPrint")}
+                        title={t("showOnPrintHint")}
                       />
-                      {t("showOnPrint")}
-                    </label>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          disabled={index === 0}
+                          aria-label={t("moveUp")}
+                          onClick={() => moveStep(index, -1)}
+                        >
+                          <ChevronUp className="size-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          disabled={index === form.steps.length - 1}
+                          aria-label={t("moveDown")}
+                          onClick={() => moveStep(index, 1)}
+                        >
+                          <ChevronDown className="size-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-destructive disabled:opacity-40"
+                          disabled={form.steps.length <= 1}
+                          aria-label={t("removeStep")}
+                          onClick={() =>
+                            setForm((f) => ({
+                              ...f,
+                              steps: f.steps.filter((_, i) => i !== index),
+                            }))
+                          }
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </div>
         <DialogFooter>

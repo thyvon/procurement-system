@@ -34,15 +34,16 @@ beforeEach(function () {
     ]);
 
     foreach ([
-        [1, 'prepared', 'Prepared By', ApprovalStep::MODE_RECORD, null],
-        [2, 'approved', 'Approved By', ApprovalStep::MODE_DECIDE, ['approve', 'reject', 'return']],
-    ] as [$position, $key, $label, $mode, $actions]) {
+        [1, 'prepared', 'Prepared By', 'រៀបចំដោយ', ApprovalStep::MODE_RECORD, null],
+        [2, 'approved', 'Approved By', 'យល់ព្រម', ApprovalStep::MODE_DECIDE, ['approve', 'reject', 'return']],
+    ] as [$position, $key, $label, $labelKh, $mode, $actions]) {
         ApprovalStep::create([
             'entity_id' => $this->entity->getKey(),
             'approval_flow_id' => $this->flow->getKey(),
             'position' => $position,
             'key' => $key,
             'label' => $label,
+            'label_kh' => $labelKh,
             'action_mode' => $mode,
             'allowed_actions' => $actions,
         ]);
@@ -58,8 +59,8 @@ function approvalFlowPayload(array $overrides = []): array
         'max_amount' => null,
         'is_active' => false,
         'steps' => [
-            ['key' => 'prepared', 'label' => 'Prepared By', 'action_mode' => 'record'],
-            ['key' => 'approved', 'label' => 'Approved By', 'action_mode' => 'decide', 'allowed_actions' => ['approve', 'reject', 'return']],
+            ['key' => 'prepared', 'label' => 'Prepared By', 'label_kh' => 'រៀបចំដោយ', 'action_mode' => 'record'],
+            ['key' => 'approved', 'label' => 'Approved By', 'label_kh' => 'យល់ព្រម', 'action_mode' => 'decide', 'allowed_actions' => ['approve', 'reject', 'return']],
         ],
     ], $overrides);
 }
@@ -93,7 +94,7 @@ it('lists flows with their settings and ordered steps', function () {
     expect($flow['code'])->toBe('test-flow');
     expect($flow['setting']['subjectType'])->toBe('evaluation');
     expect($flow['steps'])->toHaveCount(2);
-    expect($flow['steps'][0])->toMatchArray(['position' => 1, 'key' => 'prepared', 'actionMode' => 'record']);
+    expect($flow['steps'][0])->toMatchArray(['position' => 1, 'key' => 'prepared', 'actionMode' => 'record', 'labelKh' => 'រៀបចំដោយ']);
     expect($flow['steps'][0]['allowedActions'])->toBeNull();
     expect($flow['steps'][1]['allowedActions'])->toBe(['approve', 'reject', 'return']);
 });
@@ -126,6 +127,8 @@ it('creates a flow with a server-generated code and normalized steps', function 
 
     expect($created['code'])->toBe('high-value');
     expect($created['steps'])->toHaveCount(2);
+    expect($created['steps'][0]['labelKh'])->toBe('រៀបចំដោយ');
+    expect($created['steps'][1]['labelKh'])->toBe('យល់ព្រម');
     expect($created['steps'][1]['allowedActions'])->toBe(['approve', 'reject', 'return']);
 
     $stored = ApprovalFlow::query()->find($created['id']);
@@ -269,8 +272,9 @@ it('updates a flow and replaces its steps wholesale', function () {
         ->putJson(approvalFlowUrl($this->flow), [
             'name' => 'Renamed flow',
             'steps' => [
-                ['key' => 'checked', 'label' => 'Checked By', 'action_mode' => 'decide', 'allowed_actions' => ['approve', 'reject']],
-                ['key' => 'approved', 'label' => 'Approved By', 'action_mode' => 'decide', 'allowed_actions' => ['approve']],
+                ['key' => 'checked', 'label' => 'Checked By', 'label_kh' => 'ត្រួតពិនិត្យ', 'action_mode' => 'decide', 'allowed_actions' => ['approve', 'reject']],
+                // An empty Khmer name normalizes to null, not "".
+                ['key' => 'approved', 'label' => 'Approved By', 'label_kh' => '', 'action_mode' => 'decide', 'allowed_actions' => ['approve']],
             ],
         ])
         ->assertOk()
@@ -280,8 +284,9 @@ it('updates a flow and replaces its steps wholesale', function () {
     $steps = $response->json('data.steps');
 
     expect($steps)->toHaveCount(2);
-    expect($steps[0])->toMatchArray(['position' => 1, 'key' => 'checked', 'actionMode' => 'decide']);
+    expect($steps[0])->toMatchArray(['position' => 1, 'key' => 'checked', 'actionMode' => 'decide', 'labelKh' => 'ត្រួតពិនិត្យ']);
     expect($steps[1])->toMatchArray(['position' => 2, 'key' => 'approved']);
+    expect($steps[1]['labelKh'])->toBeNull();
 
     expect(
         ApprovalStep::query()->where('approval_flow_id', $this->flow->getKey())->count()

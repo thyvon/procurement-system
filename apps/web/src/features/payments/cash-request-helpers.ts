@@ -56,18 +56,6 @@ export function approvalSubjectType(type: string | null | undefined): string {
   }
 }
 
-/** The payment block (mode, payee, bank trio) belongs to advance/cash only. */
-export function showsPaymentFields(type: string | null | undefined): boolean {
-  return type === "advance" || type === "cash";
-}
-
-/** "Adv. request for" is an advance-only field (the API's required_if). */
-export function showsAdvanceRequestFor(
-  type: string | null | undefined
-): boolean {
-  return type === "advance";
-}
-
 /**
  * Draft preview mirror of the server-side USD conversion
  * (App\Support\Currency::toUsd) — the API recomputes the authoritative

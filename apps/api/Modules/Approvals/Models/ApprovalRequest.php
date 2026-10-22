@@ -81,6 +81,14 @@ class ApprovalRequest extends Model
     }
 
     /**
+     * @return HasMany<ApprovalRequestStepAssignee, $this>
+     */
+    public function stepAssignees(): HasMany
+    {
+        return $this->hasMany(ApprovalRequestStepAssignee::class)->orderBy('step_position');
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function creator(): BelongsTo

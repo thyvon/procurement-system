@@ -21,6 +21,7 @@ class ApprovalStepResource extends JsonResource
             'position' => $this->position,
             'key' => $this->key,
             'label' => $this->label,
+            'labelKh' => $this->label_kh,
             'actionMode' => $this->action_mode,
             'allowedActions' => $this->allowed_actions,
             'showOnPrint' => $this->show_on_print,

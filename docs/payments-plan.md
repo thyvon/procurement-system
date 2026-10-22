@@ -156,10 +156,9 @@ Baseline seeder: one setting + one flow (`0 → null`) + steps + placeholder TOC
 - `src/features/payments/` — `*-tab.tsx`, `*-detail.tsx`, `*-form.tsx`, `*-form-page.tsx`,
   `components/*-status-badge.tsx`, `*-skeleton.tsx`. Cash-request form renders the AD/CR payment
   block and AD-only "Adv. request for" conditionally on `type` — one route, one model.
-- **3 print components** (`cash-request-print.tsx`, `cash-clearance-print.tsx`,
-  `advance-liquidation-print.tsx`) mirroring `evaluation-print.tsx`: `.print-area hidden print:block`,
-  logo via `useEntity()`, literal hardcoded Khmer+English labels, signature columns from
-  `approvalSteps.filter(s => s.showOnPrint)`, `window.print()` button with temporary `document.title`.
+- Print: backend-rendered PDFs (`PaymentPrintService` + Blade views in
+  `Modules/Payments/resources/views/print/`), opened from the web through the shared
+  `usePrintPreview()` dialog (native iframe viewer) — no client-side print components.
 - Approvals frontend: 3 entries in `SUBJECT_DETAILS`, subject filters in `requests-tab.tsx`.
 - Orval: `npm run generate-client` + diff (expect 3 new tag folders + models).
 

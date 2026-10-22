@@ -36,9 +36,11 @@ class ApprovalRequestResource extends JsonResource
                 'assigneeName' => $currentStep['assigneeName'] ?? null,
                 'assigneePosition' => $currentStep['assigneePosition'] ?? null,
                 'assigneeSignature' => $this->decidedSignature($currentStep),
+                'signers' => $this->stepSigners($currentStep),
             ],
             'steps' => array_map(function (array $step): array {
                 $step['assigneeSignature'] = $this->decidedSignature($step);
+                $step['signers'] = $this->stepSigners($step);
 
                 return $step;
             }, $steps),
@@ -49,6 +51,57 @@ class ApprovalRequestResource extends JsonResource
             'document' => $this->snapshot['document'] ?? null,
             'actions' => ApprovalActionResource::collection($this->whenLoaded('actions')),
         ];
+    }
+
+    /**
+     * Every responsible user of a step (co-signed steps list several), with
+     * `actedAt` marking who has decided — read from the pivot when it is
+     * eager-loaded, null otherwise. Steps frozen before co-signing expose
+     * their single legacy assignee as a one-entry list.
+     *
+     * @param  array<string, mixed>  $step
+     * @return array<int, array{id: int|null, name: string|null, position: string|null, actedAt: string|null}>
+     */
+    private function stepSigners(array $step): array
+    {
+        $signers = collect($step['assignees'] ?? [])
+            ->map(fn (array $signer): array => [
+                'id' => isset($signer['id']) ? (int) $signer['id'] : null,
+                'name' => $signer['name'] ?? null,
+                'position' => $signer['position'] ?? null,
+                'actedAt' => null,
+            ]);
+
+        if ($signers->isEmpty() && ($step['assigneeName'] ?? null) !== null) {
+            $signers = collect([
+                [
+                    'id' => isset($step['assigneeId']) ? (int) $step['assigneeId'] : null,
+                    'name' => $step['assigneeName'],
+                    'position' => $step['assigneePosition'] ?? null,
+                    'actedAt' => null,
+                ],
+            ]);
+        }
+
+        if ($signers->isEmpty() || ! $this->relationLoaded('stepAssignees')) {
+            return $signers->values()->all();
+        }
+
+        $position = (int) ($step['position'] ?? 0);
+        $actedByUser = $this->stepAssignees
+            ->where('step_position', $position)
+            ->whereNotNull('acted_at')
+            ->keyBy('user_id');
+
+        return $signers
+            ->map(function (array $signer) use ($actedByUser): array {
+                $row = $signer['id'] !== null ? $actedByUser->get($signer['id']) : null;
+                $signer['actedAt'] = $row?->acted_at?->format('Y-m-d H:i');
+
+                return $signer;
+            })
+            ->values()
+            ->all();
     }
 
     /**

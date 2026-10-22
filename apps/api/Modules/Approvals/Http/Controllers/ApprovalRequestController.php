@@ -83,7 +83,7 @@ class ApprovalRequestController extends Controller
             $user,
         );
 
-        return ApiResponse::success(new ApprovalRequestResource($approval->load(['actions.actor', 'creator'])), 201);
+        return ApiResponse::success(new ApprovalRequestResource($approval->load(['actions.actor', 'stepAssignees', 'creator'])), 201);
     }
 
     public function cancel(Request $request, ApprovalRequest $approval): JsonResponse
@@ -95,14 +95,14 @@ class ApprovalRequestController extends Controller
 
         $approval = $this->service->cancel($approval, $user);
 
-        return ApiResponse::success(new ApprovalRequestResource($approval->load(['actions.actor', 'creator'])));
+        return ApiResponse::success(new ApprovalRequestResource($approval->load(['actions.actor', 'stepAssignees', 'creator'])));
     }
 
     public function show(ApprovalRequest $request): ApprovalRequestResource
     {
         $this->authorize('view', $request);
 
-        return new ApprovalRequestResource($request->load(['actions.actor', 'creator']));
+        return new ApprovalRequestResource($request->load(['actions.actor', 'stepAssignees', 'creator']));
     }
 
     public function actions(StoreApprovalActionRequest $request, ApprovalRequest $approval): JsonResponse
@@ -119,7 +119,7 @@ class ApprovalRequestController extends Controller
             $user,
         );
 
-        return ApiResponse::success(new ApprovalRequestResource($approval->load(['actions.actor', 'creator'])));
+        return ApiResponse::success(new ApprovalRequestResource($approval->load(['actions.actor', 'stepAssignees', 'creator'])));
     }
 
     public function inbox(IndexApprovalRequestsRequest $request): JsonResponse

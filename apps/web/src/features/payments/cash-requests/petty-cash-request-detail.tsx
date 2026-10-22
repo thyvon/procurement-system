@@ -10,6 +10,7 @@ import { unwrap, withAuth } from "@/lib/api-client";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/utils";
 import type { CashRequestResource } from "@/lib/api/model/cashRequestResource";
 import {
+  getPaymentsPettyCashRequestsPrintUrl,
   paymentsPettyCashRequestsDestroy,
   paymentsPettyCashRequestsShow,
 } from "@/lib/api/petty-cash-request/petty-cash-request";
@@ -37,9 +38,9 @@ import {
 import { ApprovalTimeline } from "@/features/approvals/components/approval-timeline";
 import { CashRequestStatusBadge } from "../components/cash-request-status-badge";
 import { CashRequestDetailSkeleton } from "../components/cash-request-detail-skeleton";
-import { CashRequestPrint } from "../components/cash-request-print";
 import { approvalSubjectType, typeLabel } from "../cash-request-helpers";
 import { useMe } from "@/hooks/use-me";
+import { usePrintPreview } from "@/hooks/use-print-preview";
 
 function MetaRow({ label, value }: { label: string; value: ReactNode }) {
   return (
@@ -54,7 +55,7 @@ function MetaRow({ label, value }: { label: string; value: ReactNode }) {
 
 interface PettyCashRequestDetailProps {
   pettyCashRequestId: string;
-  /** Approval page embed: no page chrome, just the document + print sheet. */
+  /** Approval page embed: no page chrome, just the document. */
   embedded?: boolean;
 }
 
@@ -84,7 +85,7 @@ export function PettyCashRequestDetail({
   });
 
   // Shared key/queryFn with approval-detail: every approval round for this
-  // document, newest first — the print sheet signs off on the newest one.
+  // document, newest first.
   const subjectType = approvalSubjectType(showQuery.data?.type ?? "");
   const roundsQuery = useQuery({
     queryKey: [
@@ -119,6 +120,10 @@ export function PettyCashRequestDetail({
       router.push("/payments/petty-cash-requests");
     },
   });
+
+  // The backend renders the official sheet (Blade → PDF); the dialog only
+  // fetches and previews it.
+  const print = usePrintPreview();
 
   if (showQuery.isPending) {
     return <CashRequestDetailSkeleton />;
@@ -156,16 +161,6 @@ export function PettyCashRequestDetail({
   const canEdit = canAct && ["draft", "returned"].includes(status);
   const canDelete = canAct && status === "draft";
 
-  const handlePrint = () => {
-    const originalTitle = document.title;
-    document.title = `${cashRequest.code}-cash-request`;
-    try {
-      window.print();
-    } finally {
-      document.title = originalTitle;
-    }
-  };
-
   const banner =
     status === "in_review" ? (
       <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
@@ -183,7 +178,7 @@ export function PettyCashRequestDetail({
 
   return (
     <>
-      <div className="mt-1 min-w-0 space-y-6 print:hidden">
+      <div className="mt-1 min-w-0 space-y-6">
         {embedded ? null : (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -210,8 +205,13 @@ export function PettyCashRequestDetail({
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
-                onClick={handlePrint}
-                disabled={roundsQuery.isPending}
+                onClick={() =>
+                  print.open(
+                    getPaymentsPettyCashRequestsPrintUrl(cashRequest.id),
+                    cashRequest.code,
+                  )
+                }
+                disabled={print.isPending}
               >
                 <Printer />
                 {tpo("detail.print")}
@@ -387,8 +387,6 @@ export function PettyCashRequestDetail({
         ) : null}
       </div>
 
-      <CashRequestPrint cashRequest={cashRequest} approvalRequest={latestRound} />
-
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
@@ -418,6 +416,8 @@ export function PettyCashRequestDetail({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {print.dialog}
     </>
   );
 }

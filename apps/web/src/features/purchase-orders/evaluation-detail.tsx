@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Copy, Pencil, Printer } from "lucide-react";
 import { unwrap, withAuth } from "@/lib/api-client";
 import {
+  getPurchaseOrdersEvaluationsPrintUrl,
   purchaseOrdersEvaluationsDuplicate,
   purchaseOrdersEvaluationsShow,
 } from "@/lib/api/evaluation/evaluation";
@@ -27,10 +28,10 @@ import {
 } from "@/features/approvals/approval-types";
 import { ApprovalTimeline } from "@/features/approvals/components/approval-timeline";
 import { EvaluationMatrixReadOnly } from "./components/evaluation-matrix-readonly";
-import { EvaluationPrint } from "./components/evaluation-print";
 import { EvaluationStatusBadge } from "./components/evaluation-status-badge";
 import { fromEvaluation } from "./components/evaluation-matrix";
 import { useMe } from "@/hooks/use-me";
+import { usePrintPreview } from "@/hooks/use-print-preview";
 
 interface EvaluationDetailProps {
   evaluationId: string;
@@ -67,6 +68,10 @@ export function EvaluationDetail({
       router.push(`/purchase-orders/evaluations/${evaluation.id}`);
     },
   });
+
+  // The backend renders the official sheet (Blade → PDF); the dialog only
+  // fetches and previews it.
+  const print = usePrintPreview();
 
   // Shared key/queryFn with evaluation-form and approval-detail: every
   // approval round for this evaluation, newest first.
@@ -119,16 +124,6 @@ export function EvaluationDetail({
     (status === "draft" || status === "returned");
   // Rejected is terminal — the only way forward is a copy as a new draft.
   const canDuplicate = canManage && isOwner && status === "rejected";
-
-  const handlePrint = () => {
-    const originalTitle = document.title;
-    document.title = `${evaluation.code}-price-evaluation`;
-    try {
-      window.print();
-    } finally {
-      document.title = originalTitle;
-    }
-  };
 
   const banner =
     status === "in_review" ? (
@@ -197,27 +192,19 @@ export function EvaluationDetail({
 
   if (embedded) {
     // The approval page shows the in-review notice from its own pending
-    // state; keep only document-specific banners here. The official sheet
-    // is the only part of the embedded view that prints.
+    // state; keep only document-specific banners here. Printing this view
+    // happens through the approval page's backend PDF.
     return (
-      <>
-        <div className="min-w-0 space-y-4 print:hidden">
-          {status === "in_review" ? null : banner}
-          {matrixCard}
-        </div>
-
-        <EvaluationPrint
-          evaluation={evaluation}
-          value={value}
-          approvalRequest={approvalRequest}
-        />
-      </>
+      <div className="min-w-0 space-y-4">
+        {status === "in_review" ? null : banner}
+        {matrixCard}
+      </div>
     );
   }
 
   return (
     <>
-      <div className="mt-1 min-w-0 space-y-6 print:hidden">
+      <div className="mt-1 min-w-0 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Button
@@ -241,8 +228,13 @@ export function EvaluationDetail({
           <div className="flex items-center gap-2">
             <Button
             variant="outline"
-            onClick={handlePrint}
-            disabled={roundsQuery.isPending}
+            onClick={() =>
+              print.open(
+                getPurchaseOrdersEvaluationsPrintUrl(evaluation.id),
+                evaluation.code,
+              )
+            }
+            disabled={print.isPending}
           >
               <Printer />
               {td("print")}
@@ -291,11 +283,7 @@ export function EvaluationDetail({
         ) : null}
       </div>
 
-      <EvaluationPrint
-        evaluation={evaluation}
-        value={value}
-        approvalRequest={approvalRequest}
-      />
+      {print.dialog}
     </>
   );
 }

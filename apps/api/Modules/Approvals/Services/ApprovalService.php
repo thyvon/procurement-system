@@ -11,6 +11,7 @@ use Modules\Approvals\Models\ApprovalAction;
 use Modules\Approvals\Models\ApprovalDraft;
 use Modules\Approvals\Models\ApprovalFlow;
 use Modules\Approvals\Models\ApprovalRequest;
+use Modules\Approvals\Models\ApprovalRequestStepAssignee;
 use Modules\Approvals\Models\ApprovalSetting;
 use Modules\Approvals\Models\ApprovalStep;
 use Modules\Approvals\Notifications\ActionRequiredNotification;
@@ -62,6 +63,7 @@ class ApprovalService
                     'position' => $step->position,
                     'key' => $step->key,
                     'label' => $step->label,
+                    'labelKh' => $step->label_kh,
                     'actionMode' => $step->action_mode,
                     'allowedActions' => $step->isDecide() ? ($step->allowed_actions ?? []) : [],
                     'showOnPrint' => $step->show_on_print,
@@ -81,23 +83,18 @@ class ApprovalService
     }
 
     /**
-     * @param  array<int|string, int|string>  $assignees  step position => user id
-     */
-    /**
      * Persists the approver selection a user made in the submit panel without
      * creating the approval request — "Save" stores it, "Submit" consumes it.
+     * Each position may hold several users (co-signed steps).
      *
-     * @param  array<int|string, int|string>  $assignees  step position => user id
+     * @param  array<int|string, mixed>  $assignees  step position => user id or list of user ids
      * @return array<string, mixed>
      */
     public function saveDraft(string $subjectType, string $subjectId, array $assignees, User $user): array
     {
         $subject = $this->subjects->find($subjectType, $subjectId);
 
-        $normalized = [];
-        foreach ($assignees as $position => $userId) {
-            $normalized[(string) $position] = (int) $userId;
-        }
+        $normalized = $this->normalizeAssignees($assignees);
 
         $draft = ApprovalDraft::query()->firstOrNew([
             'entity_id' => $user->entity_id,
@@ -141,19 +138,27 @@ class ApprovalService
             [$setting, $flow] = $this->resolveFlow($subjectType, $amount);
 
             $steps = $flow->steps()->get();
+            $assigneesByPosition = $this->normalizeAssignees($assignees);
             $snapshotSteps = [];
             $errors = [];
+            $stepAssigneeIds = [];
 
             foreach ($steps as $step) {
-                $assignedTo = $step->isDecide()
-                    ? (int) ($assignees[$step->position] ?? $assignees[(string) $step->position] ?? 0)
-                    : 0;
+                $ids = $step->isDecide()
+                    ? ($assigneesByPosition[$step->position] ?? $assigneesByPosition[(string) $step->position] ?? [])
+                    : [];
+                $stepAssigneeIds[$step->position] = $ids;
 
                 if ($step->isDecide()) {
-                    if ($assignedTo <= 0) {
+                    if ($ids === []) {
                         $errors["assignees.{$step->position}"] = "A responsible user is required for the {$step->label} step.";
-                    } elseif (! $this->subjects->canAct($subjectType, $assignedTo, $amount, $step->key)) {
-                        $errors["assignees.{$step->position}"] = "The selected user's commitment authority does not allow the {$step->label} step.";
+                    } else {
+                        foreach ($ids as $userId) {
+                            if (! $this->subjects->canAct($subjectType, $userId, $amount, $step->key)) {
+                                $errors["assignees.{$step->position}"] = "The selected user's commitment authority does not allow the {$step->label} step.";
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -161,10 +166,12 @@ class ApprovalService
                     'position' => $step->position,
                     'key' => $step->key,
                     'label' => $step->label,
+                    'labelKh' => $step->label_kh,
                     'actionMode' => $step->action_mode,
                     'allowedActions' => $step->isDecide() ? ($step->allowed_actions ?? []) : [],
                     'showOnPrint' => $step->show_on_print,
-                    'assigneeId' => $assignedTo > 0 ? $assignedTo : null,
+                    'assigneeId' => $ids[0] ?? null,
+                    'assignees' => [],
                     'assigneeName' => null,
                     'assigneePosition' => null,
                     'assigneeSignature' => null,
@@ -175,7 +182,7 @@ class ApprovalService
                 throw ValidationException::withMessages($errors);
             }
 
-            $assigneeIds = array_values(array_filter(array_column($snapshotSteps, 'assigneeId')));
+            $assigneeIds = collect($stepAssigneeIds)->flatten()->unique()->values()->all();
 
             $assignees = collect();
 
@@ -193,11 +200,27 @@ class ApprovalService
                 ->findOrFail($user->getKey());
 
             foreach ($snapshotSteps as $index => $step) {
-                if ($step['assigneeId'] !== null) {
-                    $assignee = $assignees->get($step['assigneeId']);
-                    $snapshotSteps[$index]['assigneeName'] = $assignee?->name;
-                    $snapshotSteps[$index]['assigneePosition'] = $assignee?->position;
-                    $snapshotSteps[$index]['assigneeSignature'] = $assignee?->signature_path;
+                $ids = $stepAssigneeIds[$step['position']] ?? [];
+
+                if ($ids !== []) {
+                    $signers = collect($ids)
+                        ->map(fn (int $assigneeId): ?User => $assignees->get($assigneeId))
+                        ->filter()
+                        ->map(fn (User $assignee): array => [
+                            'id' => $assignee->getKey(),
+                            'name' => $assignee->name,
+                            'position' => $assignee->position,
+                            'signature' => $assignee->signature_path,
+                        ])
+                        ->values()
+                        ->all();
+
+                    $snapshotSteps[$index]['assignees'] = $signers;
+
+                    $firstSigner = $signers[0] ?? null;
+                    $snapshotSteps[$index]['assigneeName'] = $firstSigner['name'] ?? null;
+                    $snapshotSteps[$index]['assigneePosition'] = $firstSigner['position'] ?? null;
+                    $snapshotSteps[$index]['assigneeSignature'] = $firstSigner['signature'] ?? null;
                 } elseif ($step['actionMode'] === ApprovalStep::MODE_RECORD) {
                     $snapshotSteps[$index]['assigneeName'] = $submitter->name;
                     $snapshotSteps[$index]['assigneePosition'] = $submitter->position;
@@ -228,6 +251,17 @@ class ApprovalService
                 ->where('subject_type', $subjectType)
                 ->where('subject_id', (string) $subject->getKey())
                 ->delete();
+
+            foreach ($stepAssigneeIds as $position => $ids) {
+                foreach ($ids as $assigneeId) {
+                    ApprovalRequestStepAssignee::query()->create([
+                        'entity_id' => $user->entity_id,
+                        'approval_request_id' => $request->getKey(),
+                        'step_position' => (int) $position,
+                        'user_id' => $assigneeId,
+                    ]);
+                }
+            }
 
             $this->parkOnNextStep($request, $snapshotSteps, -1, $user);
             $request->refresh();
@@ -275,6 +309,12 @@ class ApprovalService
             // Read the assignee before the update clears the step.
             $this->notifyCancelled($request);
 
+            // The withdraw releases every co-signer who never acted.
+            ApprovalRequestStepAssignee::query()
+                ->where('approval_request_id', $request->getKey())
+                ->whereNull('acted_at')
+                ->update(['acted_at' => now()]);
+
             $request->update([
                 'status' => ApprovalRequest::STATUS_CANCELLED,
                 'current_position' => null,
@@ -303,7 +343,17 @@ class ApprovalService
                 ]);
             }
 
-            if ((int) $request->current_assignee_id !== (int) $user->getKey()) {
+            $assigneeRow = ApprovalRequestStepAssignee::query()
+                ->where('approval_request_id', $request->getKey())
+                ->where('step_position', $request->current_position)
+                ->where('user_id', $user->getKey())
+                ->whereNull('acted_at')
+                ->first();
+
+            // Co-signed steps authorize any responsible user who still owes the
+            // decision; rounds opened before co-signing existed fall back to the
+            // single frozen assignee.
+            if ($assigneeRow === null && (int) $request->current_assignee_id !== (int) $user->getKey()) {
                 abort(403, 'You are not the responsible user for the current step.');
             }
 
@@ -325,6 +375,21 @@ class ApprovalService
             $this->recordAction($request, $current, $action, $user, $comment);
 
             if ($action === 'approve') {
+                $assigneeRow?->update(['acted_at' => now()]);
+
+                $remaining = $this->pendingAssigneeIds($request, $current);
+
+                if ($remaining !== []) {
+                    // Every co-signer must approve — the round stays on this
+                    // step, parked on the next one who still owes a decision.
+                    $request->update([
+                        'current_assignee_id' => $remaining[0],
+                        'updated_by' => $user->getKey(),
+                    ]);
+
+                    return $request->refresh();
+                }
+
                 $this->parkOnNextStep(
                     $request,
                     $request->snapshot['steps'],
@@ -334,6 +399,13 @@ class ApprovalService
 
                 return $request->refresh();
             }
+
+            // A single reject/return closes the round for everyone — release
+            // every co-signer who never acted, on this and any later step.
+            ApprovalRequestStepAssignee::query()
+                ->where('approval_request_id', $request->getKey())
+                ->whereNull('acted_at')
+                ->update(['acted_at' => now()]);
 
             $status = $action === 'reject' ? ApprovalRequest::STATUS_REJECTED : ApprovalRequest::STATUS_RETURNED;
 
@@ -353,17 +425,10 @@ class ApprovalService
     }
 
     /**
-     * Stamps any record steps at or before $afterPosition, then parks the
-     * request on the next decide step (notifying its assignee) — or completes
-     * the request when no decide step remains.
-     *
-     * @param  array<int, array<string, mixed>>  $steps
-     */
-    /**
      * The approver selection saved by "Save" for this document, if any —
-     * string-keyed step position => user id.
+     * string-keyed step position => list of user ids.
      *
-     * @return array<string, int>|null
+     * @return array<string, array<int, int>>|null
      */
     private function draftAssignees(string $subjectType, Model $subject): ?array
     {
@@ -377,16 +442,27 @@ class ApprovalService
         }
 
         $assignees = [];
-        foreach ((array) $draft->assignees as $position => $userId) {
-            $assignees[(string) $position] = (int) $userId;
+        foreach ((array) $draft->assignees as $position => $value) {
+            $ids = array_values(array_unique(array_filter(array_map('intval', is_array($value) ? $value : [$value]))));
+
+            if ($ids !== []) {
+                $assignees[(string) $position] = $ids;
+            }
         }
 
         return $assignees;
     }
 
+    /**
+     * Stamps any record steps at or before $afterPosition, then parks the
+     * request on the next decide step (notifying every co-signer who still
+     * owes the decision) — or completes the request when no decide step remains.
+     *
+     * @param  array<int, array<string, mixed>>  $steps
+     */
     private function parkOnNextStep(ApprovalRequest $request, array $steps, int $afterPosition, User $actor): void
     {
-        foreach ($steps as $index => $step) {
+        foreach ($steps as $step) {
             if ($step['position'] <= $afterPosition) {
                 continue;
             }
@@ -397,22 +473,35 @@ class ApprovalService
                 continue;
             }
 
+            $assigneeIds = $this->pendingAssigneeIds($request, $step);
+
+            if ($assigneeIds === []) {
+                $hasRows = ApprovalRequestStepAssignee::query()
+                    ->where('approval_request_id', $request->getKey())
+                    ->where('step_position', $step['position'])
+                    ->exists();
+
+                if ($hasRows) {
+                    // Every co-signer of this step already acted — move on.
+                    continue;
+                }
+
+                // Rounds opened before co-signing existed carry no rows —
+                // park on the frozen snapshot assignees.
+                $assigneeIds = $this->snapshotAssigneeIds($step);
+            }
+
+            if ($assigneeIds === []) {
+                continue;
+            }
+
             $request->update([
                 'current_position' => $step['position'],
-                'current_assignee_id' => $step['assigneeId'],
+                'current_assignee_id' => $assigneeIds[0],
                 'updated_by' => $actor->getKey(),
             ]);
 
-            $assignee = User::query()->find($step['assigneeId']);
-
-            $assignee?->notify(new ActionRequiredNotification([
-                'requestId' => $request->getKey(),
-                'subjectType' => $request->subject_type,
-                'subjectId' => $request->subject_id,
-                'documentCode' => $request->snapshot['documentCode'] ?? null,
-                'stepLabel' => $step['label'],
-                'amount' => number_format((float) $request->amount_snapshot, 2, '.', ''),
-            ]));
+            $this->notifyAssignees($request, $step, $assigneeIds);
 
             return;
         }
@@ -427,6 +516,94 @@ class ApprovalService
 
         $this->notifySubmitter($request, ApprovalRequest::STATUS_APPROVED);
         $this->dispatchStatusChanged($request, (int) $actor->getKey());
+    }
+
+    /**
+     * Users at the snapshot step who still owe a decision. Co-signed rounds
+     * track this in the pivot; rounds predating it have no rows, so callers
+     * fall back to the frozen snapshot.
+     *
+     * @param  array<string, mixed>  $step
+     * @return array<int, int>
+     */
+    private function pendingAssigneeIds(ApprovalRequest $request, array $step): array
+    {
+        return ApprovalRequestStepAssignee::query()
+            ->where('approval_request_id', $request->getKey())
+            ->where('step_position', (int) $step['position'])
+            ->whereNotNull('user_id')
+            ->whereNull('acted_at')
+            ->pluck('user_id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The frozen assignee ids of a round opened before co-signing existed.
+     *
+     * @param  array<string, mixed>  $step
+     * @return array<int, int>
+     */
+    private function snapshotAssigneeIds(array $step): array
+    {
+        $ids = collect($step['assignees'] ?? [])
+            ->pluck('id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->values()
+            ->all();
+
+        if ($ids === []) {
+            $legacy = (int) ($step['assigneeId'] ?? 0);
+
+            return $legacy > 0 ? [$legacy] : [];
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @param  array<string, mixed>  $step
+     * @param  array<int, int>  $assigneeIds
+     */
+    private function notifyAssignees(ApprovalRequest $request, array $step, array $assigneeIds): void
+    {
+        $users = User::query()->whereIn('id', $assigneeIds)->get();
+
+        foreach ($users as $assignee) {
+            $assignee->notify(new ActionRequiredNotification([
+                'requestId' => $request->getKey(),
+                'subjectType' => $request->subject_type,
+                'subjectId' => $request->subject_id,
+                'documentCode' => $request->snapshot['documentCode'] ?? null,
+                'stepLabel' => $step['label'],
+                'amount' => number_format((float) $request->amount_snapshot, 2, '.', ''),
+            ]));
+        }
+    }
+
+    /**
+     * One position => list of user ids; scalars and empty/negative ids are
+     * normalized away (a position with no valid pick simply drops out).
+     *
+     * @param  array<int|string, mixed>  $assignees
+     * @return array<string, array<int, int>>
+     */
+    private function normalizeAssignees(array $assignees): array
+    {
+        $normalized = [];
+
+        foreach ($assignees as $position => $value) {
+            $ids = array_map('intval', is_array($value) ? array_values($value) : [$value]);
+            $ids = array_values(array_unique(array_filter($ids, fn (int $id): bool => $id > 0)));
+
+            if ($ids !== []) {
+                $normalized[(string) $position] = $ids;
+            }
+        }
+
+        return $normalized;
     }
 
     /**

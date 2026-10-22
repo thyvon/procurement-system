@@ -10,6 +10,8 @@ export interface ApprovalStepResource {
   position: number;
   key: string;
   label: string;
+  /** @nullable */
+  labelKh: string | null;
   actionMode: string;
   /** @nullable */
   allowedActions: unknown[] | null;

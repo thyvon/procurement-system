@@ -12,8 +12,8 @@ use Modules\Organization\Models\Entity;
 
 /**
  * Baseline approval configuration: the Evaluation workflow (two amount
- * bands) and placeholder TOCA authority rows. Runtime rows are created by
- * the API, never here.
+ * bands), one standard flow per payment document type, and placeholder TOCA
+ * authority rows. Runtime rows are created by the API, never here.
  */
 class ApprovalsDatabaseSeeder extends Seeder
 {
@@ -26,52 +26,105 @@ class ApprovalsDatabaseSeeder extends Seeder
         }
 
         $admin = User::query()->where('email', 'admin@procurement.local')->first();
+        $entityId = $entity->getKey();
 
-        $setting = ApprovalSetting::query()->firstOrCreate(
-            ['entity_id' => $entity->getKey(), 'subject_type' => 'evaluation'],
+        $this->seedFlows($entityId, $admin?->getKey(), 'evaluation', 'Evaluation Approval', [
             [
-                'name' => 'Evaluation Approval',
-                'is_active' => true,
-                'created_by' => $admin?->getKey(),
-                'updated_by' => $admin?->getKey(),
-            ],
-        );
-
-        $standard = ApprovalFlow::query()->firstOrCreate(
-            ['entity_id' => $entity->getKey(), 'code' => 'evaluation-standard'],
-            [
-                'approval_setting_id' => $setting->getKey(),
+                'code' => 'evaluation-standard',
                 'name' => 'Standard (0 – 1,000)',
                 'min_amount' => 0,
                 'max_amount' => 1000,
-                'is_active' => true,
+                'steps' => [
+                    ['prepared', 'Prepared By', 'រៀបចំដោយ', ApprovalStep::MODE_RECORD],
+                    ['acknowledged', 'Acknowledged By', 'ទទួលស្គាល់', ApprovalStep::MODE_DECIDE],
+                    ['checked', 'Checked By', 'ត្រួតពិនិត្យ', ApprovalStep::MODE_DECIDE],
+                    ['approved', 'Approved By', 'យល់ព្រម', ApprovalStep::MODE_DECIDE],
+                ],
             ],
-        );
-
-        $highValue = ApprovalFlow::query()->firstOrCreate(
-            ['entity_id' => $entity->getKey(), 'code' => 'evaluation-high-value'],
             [
-                'approval_setting_id' => $setting->getKey(),
+                'code' => 'evaluation-high-value',
                 'name' => 'High Value (1,001+)',
                 'min_amount' => 1001,
                 'max_amount' => null,
-                'is_active' => true,
+                'steps' => [
+                    ['prepared', 'Prepared By', 'រៀបចំដោយ', ApprovalStep::MODE_RECORD],
+                    ['acknowledged', 'Acknowledged By', 'ទទួលស្គាល់', ApprovalStep::MODE_DECIDE],
+                    ['checked', 'Checked By', 'ត្រួតពិនិត្យ', ApprovalStep::MODE_DECIDE],
+                    ['executive', 'Executive Approval', 'សម្រេចប្រធាន', ApprovalStep::MODE_DECIDE],
+                    ['approved', 'Approved By', 'យល់ព្រម', ApprovalStep::MODE_DECIDE],
+                ],
             ],
-        );
-
-        $this->seedSteps($entity->getKey(), $standard, [
-            ['prepared', 'Prepared By', ApprovalStep::MODE_RECORD],
-            ['acknowledged', 'Acknowledged By', ApprovalStep::MODE_DECIDE],
-            ['checked', 'Checked By', ApprovalStep::MODE_DECIDE],
-            ['approved', 'Approved By', ApprovalStep::MODE_DECIDE],
         ]);
 
-        $this->seedSteps($entity->getKey(), $highValue, [
-            ['prepared', 'Prepared By', ApprovalStep::MODE_RECORD],
-            ['acknowledged', 'Acknowledged By', ApprovalStep::MODE_DECIDE],
-            ['checked', 'Checked By', ApprovalStep::MODE_DECIDE],
-            ['executive', 'Executive Approval', ApprovalStep::MODE_DECIDE],
-            ['approved', 'Approved By', ApprovalStep::MODE_DECIDE],
+        $this->seedFlows($entityId, $admin?->getKey(), 'petty_cash_request', 'Petty Cash Approval', [
+            [
+                'code' => 'petty-cash-standard',
+                'name' => 'Standard',
+                'min_amount' => 0,
+                'max_amount' => null,
+                'steps' => [
+                    ['requested', 'Requested by', 'អ្នកសុំ', ApprovalStep::MODE_RECORD],
+                    ['checked', 'Checked by', 'តម្រូវឲ្យពិនិត្យ', ApprovalStep::MODE_DECIDE],
+                    ['approved', 'Approved by', 'អ្នកយល់ព្រម', ApprovalStep::MODE_DECIDE],
+                    ['received', 'Received by', 'អ្នកទទួល', ApprovalStep::MODE_DECIDE],
+                ],
+            ],
+        ]);
+
+        $this->seedFlows($entityId, $admin?->getKey(), 'advance_request', 'Advance Approval', [
+            [
+                'code' => 'advance-standard',
+                'name' => 'Standard',
+                'min_amount' => 0,
+                'max_amount' => null,
+                'steps' => [
+                    ['prepared', 'Prepared by', 'រៀបចំដោយ', ApprovalStep::MODE_RECORD],
+                    ['reviewed', 'Reviewed by', 'ពិនិត្យដោយ', ApprovalStep::MODE_DECIDE],
+                    ['approved', 'Approved by', 'យល់ព្រម', ApprovalStep::MODE_DECIDE],
+                ],
+            ],
+        ]);
+
+        $this->seedFlows($entityId, $admin?->getKey(), 'cash_request', 'Cash Request Approval', [
+            [
+                'code' => 'cash-standard',
+                'name' => 'Standard',
+                'min_amount' => 0,
+                'max_amount' => null,
+                'steps' => [
+                    ['prepared', 'Prepared by', 'រៀបចំដោយ', ApprovalStep::MODE_RECORD],
+                    ['reviewed', 'Reviewed by', 'ពិនិត្យដោយ', ApprovalStep::MODE_DECIDE],
+                    ['approved', 'Approved by', 'យល់ព្រម', ApprovalStep::MODE_DECIDE],
+                ],
+            ],
+        ]);
+
+        $this->seedFlows($entityId, $admin?->getKey(), 'cash_clearance', 'Cash Clearance Approval', [
+            [
+                'code' => 'clearance-standard',
+                'name' => 'Standard',
+                'min_amount' => 0,
+                'max_amount' => null,
+                'steps' => [
+                    ['prepared', 'Prepared by', 'អ្នករៀបចំ', ApprovalStep::MODE_RECORD],
+                    ['reviewed', 'Reviewed by', 'អ្នកត្រួតពិនិត្យ', ApprovalStep::MODE_DECIDE],
+                    ['approved', 'Approved by', 'អ្នកយល់ព្រម', ApprovalStep::MODE_DECIDE],
+                ],
+            ],
+        ]);
+
+        $this->seedFlows($entityId, $admin?->getKey(), 'advance_liquidation', 'Advance Liquidation Approval', [
+            [
+                'code' => 'liquidation-standard',
+                'name' => 'Standard',
+                'min_amount' => 0,
+                'max_amount' => null,
+                'steps' => [
+                    ['prepared', 'Prepared by', 'អ្នករៀបចំ', ApprovalStep::MODE_RECORD],
+                    ['reviewed', 'Reviewed by', 'អ្នកត្រួតពិនិត្យ', ApprovalStep::MODE_DECIDE],
+                    ['approved', 'Approved by', 'អ្នកយល់ព្រម', ApprovalStep::MODE_DECIDE],
+                ],
+            ],
         ]);
 
         $staff = User::query()->where('email', 'staff@procurement.local')->first();
@@ -111,7 +164,38 @@ class ApprovalsDatabaseSeeder extends Seeder
     }
 
     /**
-     * @param  array<int, array{0: string, 1: string, 2: string}>  $definitions
+     * @param  array<int, array{code: string, name: string, min_amount: int, max_amount: ?int, steps: array<int, array{0: string, 1: string, 2: ?string, 3: string}>}>  $flows
+     */
+    private function seedFlows(string $entityId, ?int $adminId, string $subjectType, string $settingName, array $flows): void
+    {
+        $setting = ApprovalSetting::query()->firstOrCreate(
+            ['entity_id' => $entityId, 'subject_type' => $subjectType],
+            [
+                'name' => $settingName,
+                'is_active' => true,
+                'created_by' => $adminId,
+                'updated_by' => $adminId,
+            ],
+        );
+
+        foreach ($flows as $flowDefinition) {
+            $flow = ApprovalFlow::query()->firstOrCreate(
+                ['entity_id' => $entityId, 'code' => $flowDefinition['code']],
+                [
+                    'approval_setting_id' => $setting->getKey(),
+                    'name' => $flowDefinition['name'],
+                    'min_amount' => $flowDefinition['min_amount'],
+                    'max_amount' => $flowDefinition['max_amount'],
+                    'is_active' => true,
+                ],
+            );
+
+            $this->seedSteps($entityId, $flow, $flowDefinition['steps']);
+        }
+    }
+
+    /**
+     * @param  array<int, array{0: string, 1: string, 2: ?string, 3: string}>  $definitions
      */
     private function seedSteps(string $entityId, ApprovalFlow $flow, array $definitions): void
     {
@@ -119,13 +203,14 @@ class ApprovalsDatabaseSeeder extends Seeder
             return;
         }
 
-        foreach ($definitions as $index => [$key, $label, $mode]) {
+        foreach ($definitions as $index => [$key, $label, $labelKh, $mode]) {
             ApprovalStep::query()->create([
                 'entity_id' => $entityId,
                 'approval_flow_id' => $flow->getKey(),
                 'position' => $index + 1,
                 'key' => $key,
                 'label' => $label,
+                'label_kh' => $labelKh,
                 'action_mode' => $mode,
                 'allowed_actions' => $mode === ApprovalStep::MODE_DECIDE
                     ? ['approve', 'reject', 'return']
