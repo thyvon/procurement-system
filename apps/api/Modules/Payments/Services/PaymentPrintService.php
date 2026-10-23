@@ -107,6 +107,7 @@ class PaymentPrintService
                     'purchaser' => $line->purchaser,
                     'description' => $line->description,
                     'vendor' => $line->vendor,
+                    'vendorPhone' => $line->vendor_phone,
                     'campus' => $line->campus,
                     'division' => $line->division,
                     'department' => $line->department,

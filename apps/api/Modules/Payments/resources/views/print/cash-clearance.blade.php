@@ -2,7 +2,7 @@
 
 @extends('print.layout')
 
-@section('title', 'Cash Clearance · '.$clearance['code'])
+@section('title', 'Petty Cash Clearance · '.$clearance['code'])
 
 @section('content')
 @php
@@ -11,45 +11,49 @@
     $td = 'border border-border px-1 py-1';
 @endphp
 
-<div class="flex min-h-[186mm] flex-col gap-3 text-sm text-foreground">
+<div class="flex min-h-[186mm] flex-col gap-3 text-xs text-foreground">
     <div class="grid grid-cols-[1fr_auto_1fr] items-start gap-4">
         <x-print.logo :src="$logo" />
         <h1 class="place-self-center text-center text-lg font-bold tracking-tight">
             <span class="block">ការទូទាត់សាច់ប្រាក់</span>
-            <span class="block">CASH CLEARANCE</span>
+            <span class="block">Petty Cash Clearance</span>
         </h1>
-        <div class="justify-self-end text-left leading-relaxed">
-            <div>កូដ / Code: <span class="font-mono">{{ $clearance['code'] }}</span></div>
-            <div>ថ្ងៃទូទាត់ / Clearance date: {{ PrintFormatter::orDash(PrintFormatter::dateOnly($clearance['clearanceDate'])) }}</div>
+        {{-- Official-form meta block: bilingual label left, ruled value right —
+             Ref, Date, Ref (Request) and the exchange rate, exactly the four
+             rows of the paper form. Amounts live in the totals box below. --}}
+        <div class="justify-self-end self-start grid grid-cols-[auto_auto] items-end gap-x-3 gap-y-0.5 text-left">
+            <span>លេខយោង / Ref:</span>
+            <span class="w-44 border-b border-border font-mono font-medium">{{ $clearance['code'] }}</span>
+            <span>ថ្ងៃទី / Date:</span>
+            <span class="w-44 border-b border-border font-medium">{{ PrintFormatter::orDash(PrintFormatter::dateOnly($clearance['clearanceDate'])) }}</span>
+            <span>លេខយោង / Ref (Request):</span>
+            <span class="w-44 border-b border-border font-mono font-medium">{{ PrintFormatter::orDash($clearance['cashRequestCode']) }}</span>
+            <span>អត្រាប្តូរប្រាក់ ($) / Exchange rate ($):</span>
+            <span class="w-44 border-b border-border font-medium">{{ PrintFormatter::numeric($clearance['exchangeRate']) }}</span>
         </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-x-8 gap-y-1 border border-border px-2 py-1.5 md:grid-cols-3">
-        <x-print.meta-cell label-km="សំណើសាច់ប្រាក់" label-en="Cash request" :value="$clearance['cashRequestCode']" />
-        <x-print.meta-cell label-km="អត្រាប្តូរប្រាក់" label-en="Exchange rate" :value="PrintFormatter::numeric($clearance['exchangeRate'])" />
-        <x-print.meta-cell label-km="ចំនួនស្នើសុំ" label-en="Request amount" :value="PrintFormatter::money($clearance['requestAmountUsd'], 'USD')" />
-        <x-print.meta-cell label-km="សរុប (USD)" label-en="Total (USD)" :value="PrintFormatter::money($clearance['totalUsd'], 'USD')" />
-        <x-print.meta-cell label-km="សមតុល្យ" label-en="Balance" :value="PrintFormatter::money($clearance['balanceUsd'], 'USD')" />
-    </div>
-
-    <table class="w-full border-collapse text-sm">
+    <table class="w-full border-collapse">
         <thead>
+            {{-- English only, as on the paper form: the bilingual block above
+                 (title, meta) and the approval titles carry the Khmer. --}}
             <tr>
-                <th class="{{ $head }}">#</th>
-                <th class="{{ $head }}"><span class="block">ថ្ងៃវិក្កយបត្រ</span><span class="block">Invoice date</span></th>
-                <th class="{{ $head }}"><span class="block">លេខយោង PR</span><span class="block">PR ref</span></th>
-                <th class="{{ $head }}"><span class="block">អ្នកទិញ</span><span class="block">Purchaser</span></th>
-                <th class="{{ $head }}"><span class="block">ការពិពណ៌នា</span><span class="block">Description</span></th>
-                <th class="{{ $head }}"><span class="block">អ្នកផ្គត់ផ្គង់</span><span class="block">Vendor</span></th>
-                <th class="{{ $head }}"><span class="block">សាខា</span><span class="block">Campus</span></th>
-                <th class="{{ $head }}"><span class="block">ផ្នែក</span><span class="block">Division</span></th>
-                <th class="{{ $head }}"><span class="block">នាយកដ្ឋាន</span><span class="block">Department</span></th>
-                <th class="{{ $headRight }}"><span class="block">ចំនួន</span><span class="block">Qty</span></th>
-                <th class="{{ $head }}"><span class="block">ឯកតា</span><span class="block">UoM</span></th>
-                <th class="{{ $headRight }}"><span class="block">តម្លៃឯកតា</span><span class="block">Unit price</span></th>
-                <th class="{{ $headRight }}"><span class="block">បញ្ចុះតម្លៃ</span><span class="block">Discount</span></th>
-                <th class="{{ $headRight }}"><span class="block">អាករ</span><span class="block">VAT</span></th>
-                <th class="{{ $headRight }}"><span class="block">ចំនួនទឹកប្រាក់</span><span class="block">Amount</span></th>
+                <th class="{{ $head }} text-center">No.</th>
+                <th class="{{ $head }}">Invoice date</th>
+                <th class="{{ $head }}">PR ref</th>
+                <th class="{{ $head }}">Purchaser</th>
+                <th class="{{ $head }}">Description</th>
+                <th class="{{ $head }}">Vendor</th>
+                <th class="{{ $head }}">Vendor phone no.</th>
+                <th class="{{ $head }}">Campus</th>
+                <th class="{{ $head }}">Division</th>
+                <th class="{{ $head }}">Department</th>
+                <th class="{{ $headRight }}">Qty</th>
+                <th class="{{ $head }}">UoM</th>
+                <th class="{{ $headRight }}">Unit price</th>
+                <th class="{{ $headRight }}">Discount</th>
+                <th class="{{ $headRight }}">VAT</th>
+                <th class="{{ $headRight }}">Amount</th>
             </tr>
         </thead>
         <tbody>
@@ -61,6 +65,7 @@
                     <td class="{{ $td }}">{{ PrintFormatter::orDash($line['purchaser']) }}</td>
                     <td class="{{ $td }}">{{ $line['description'] }}</td>
                     <td class="{{ $td }}">{{ $line['vendor'] }}</td>
+                    <td class="{{ $td }}">{{ PrintFormatter::orDash($line['vendorPhone']) }}</td>
                     <td class="{{ $td }}">{{ $line['campus'] }}</td>
                     <td class="{{ $td }}">{{ $line['division'] }}</td>
                     <td class="{{ $td }}">{{ $line['department'] }}</td>
@@ -72,13 +77,30 @@
                     <td class="{{ $td }} text-right font-semibold tabular-nums">{{ PrintFormatter::money($line['amountUsd'], 'USD') }}</td>
                 </tr>
             @endforeach
+        </tbody>
+        {{-- The paper form's three money rows are part of this same grid: the
+             label spans every column up to Amount, so each value sits exactly
+             under its Amount column — one table, one border box. --}}
+        <tfoot>
             <tr>
-                <td class="{{ $td }}" colspan="14">
-                    <span class="float-right font-semibold">សរុប (USD) / Total (USD):</span>
+                <td class="{{ $td }}" colspan="15">
+                    <span class="float-right font-semibold">Total</span>
                 </td>
                 <td class="{{ $td }} text-right font-semibold tabular-nums">{{ PrintFormatter::money($clearance['totalUsd'], 'USD') }}</td>
             </tr>
-        </tbody>
+            <tr>
+                <td class="{{ $td }}" colspan="15">
+                    <span class="float-right font-semibold">Request amount</span>
+                </td>
+                <td class="{{ $td }} text-right font-semibold tabular-nums">{{ PrintFormatter::money($clearance['requestAmountUsd'], 'USD') }}</td>
+            </tr>
+            <tr>
+                <td class="{{ $td }}" colspan="15">
+                    <span class="float-right font-semibold">Balance</span>
+                </td>
+                <td class="{{ $td }} text-right font-semibold tabular-nums">{{ PrintFormatter::money($clearance['balanceUsd'], 'USD') }}</td>
+            </tr>
+        </tfoot>
     </table>
 
     <x-print.signatures :columns="$columns" />

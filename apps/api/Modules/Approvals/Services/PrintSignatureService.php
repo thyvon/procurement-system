@@ -16,8 +16,11 @@ use Modules\Approvals\Repositories\ApprovalRequestRepositoryInterface;
  * user, each carrying that signer's own decision. Names and positions come
  * from the frozen submit snapshot, the date from the step's action (or the
  * submission for record steps), and a signature only once the step carries a
- * decision — a `cancel` is a withdrawal, not a decision, and pending steps
- * show an empty line.
+ * decision — a `cancel` is a withdrawal, not a decision. An unsigned step of
+ * a round that is still open (`pending`) is flagged so the sheet prints the
+ * PENDING placeholder in its signature slot; unsigned steps of a closed
+ * round (rejected, returned, cancelled) stay blank — nothing is waiting on
+ * them any more.
  *
  * Titles stack the flow's bilingual step names (`label` over `labelKh`).
  * There is no hardcoded fallback: a document without an approval round
@@ -28,7 +31,7 @@ class PrintSignatureService
     public function __construct(private readonly ApprovalRequestRepositoryInterface $requests) {}
 
     /**
-     * @return list<array{key: string, title: string, titleKh: ?string, name: string, position: string, date: string, signature: ?string}>
+     * @return list<array{key: string, title: string, titleKh: ?string, name: string, position: string, date: string, signature: ?string, pending: bool}>
      */
     public function forSubject(string $subjectType, string $subjectId): array
     {
@@ -36,7 +39,7 @@ class PrintSignatureService
     }
 
     /**
-     * @return list<array{key: string, title: string, titleKh: ?string, name: string, position: string, date: string, signature: ?string}>
+     * @return list<array{key: string, title: string, titleKh: ?string, name: string, position: string, date: string, signature: ?string, pending: bool}>
      */
     private function columns(?ApprovalRequest $round): array
     {
@@ -74,6 +77,7 @@ class PrintSignatureService
                     'position' => (string) ($step['assigneePosition'] ?? ''),
                     'date' => $this->date($step, $decided ? $action : null, $submittedAt),
                     'signature' => $decided ? $this->signature($step['assigneeSignature'] ?? null) : null,
+                    'pending' => $this->awaitingSignature($round, $action),
                 ]];
             }
 
@@ -91,6 +95,7 @@ class PrintSignatureService
                     'position' => (string) ($signer['position'] ?? ''),
                     'date' => $this->date($step, $decided ? $action : null, $submittedAt),
                     'signature' => $decided ? $this->signature($signer['signature'] ?? null) : null,
+                    'pending' => $this->awaitingSignature($round, $action),
                 ];
             }, $signers);
         })->all();
@@ -144,6 +149,17 @@ class PrintSignatureService
             ->where('step_position', $step['position'] ?? null)
             ->where('acted_by', $signerId)
             ->last();
+    }
+
+    /**
+     * A column awaits a signature only while its round is still open and the
+     * column carries no act of its own: unsigned steps of a rejected,
+     * returned or cancelled round will never be signed, so they print an
+     * empty slot rather than a PENDING placeholder.
+     */
+    private function awaitingSignature(ApprovalRequest $round, ?ApprovalAction $action): bool
+    {
+        return $action === null && $round->isPending();
     }
 
     /**

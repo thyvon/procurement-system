@@ -22,11 +22,21 @@
                         <div>{{ $column['title'] }}</div>
                     </div>
 
-                    @if($column['signature'])
-                        <div class="flex h-14 items-end justify-center">
+                    {{-- The signature slot is always reserved: signed steps
+                         print the signature, steps still waiting in an open
+                         round print the bilingual placeholder, and steps of
+                         a closed round print nothing — so columns of mixed
+                         decisions keep the same baseline. --}}
+                    <div class="flex h-14 items-end justify-center">
+                        @if($column['signature'])
                             <img src="{{ $column['signature'] }}" alt="" class="h-14 w-28 object-contain object-bottom">
-                        </div>
-                    @endif
+                        @elseif(! empty($column['pending']))
+                            <div class="print-signature__pending">
+                                <span>រង់ចាំ</span>
+                                <span>PENDING</span>
+                            </div>
+                        @endif
+                    </div>
 
                     @if(($column['name'] ?? '') !== '')
                         <div class="min-w-0 break-words font-bold">{{ $column['name'] }}</div>

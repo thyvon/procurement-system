@@ -30,7 +30,7 @@
         <x-print.logo :src="$logo" />
         {{-- Bottom edge sits on the logo's underline: Logo ____ Title. --}}
         <h1 class="grow text-center">
-            <span class="block font-muol">ការទូទាត់សាច់ប្រាក់ជាមុន</span>
+            <span class="block font-muol">ពាក្យស្នើសុំទូទាត់ប្រាក់បុរេប្រទាន</span>
             <span class="block text-base font-bold">Liquidation of Advance</span>
         </h1>
         {{-- Same footprint as the logo so the title stays optically centered
@@ -53,7 +53,7 @@
 
     <div class="flex items-end gap-x-6">
         <div class="flex items-end gap-1.5">
-            <span class="shrink-0">អ្នកសុំទូទាត់ / Requester:</span>
+            <span class="shrink-0">អ្នកស្នើសុំ / Requester:</span>
             <span class="w-48 border-b border-border font-bold">{{ PrintFormatter::orDash($liquidation['createdBy']) }}</span>
         </div>
         <div class="flex items-end gap-1.5">
@@ -82,7 +82,7 @@
             </div>
         </div>
         <div class="flex items-end gap-2">
-            <span class="shrink-0">អត្រាប្តូរប្រាក់ / Exchange Rate($):</span>
+            <span class="shrink-0">អត្រាប្តូរប្រាក់ / Exchange Rate:</span>
             <span class="w-28 border-b border-border font-bold">{{ PrintFormatter::numeric($liquidation['exchangeRate']) }}</span>
         </div>
     </div>
@@ -147,7 +147,7 @@
                  so its border and $ line up with the body rows. --}}
             <tr>
                 <td class="border border-border bg-muted/60" rowspan="3" colspan="2"></td>
-                <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">Total Actual Expense IN USD</td>
+                <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">Total Actual Expense (USD)</td>
                 <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">
                     <div class="flex items-center justify-between">
                         <span>{{ $symbol('USD') }}</span>
@@ -156,7 +156,7 @@
                 </td>
             </tr>
             <tr>
-                <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">Total Cash Advance IN USD</td>
+                <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">Total Cash Advance (USD)</td>
                 <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">
                     <div class="flex items-center justify-between">
                         <span>{{ $symbol('USD') }}</span>
@@ -165,7 +165,7 @@
                 </td>
             </tr>
             <tr>
-                <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">Remaining Cash IN USD</td>
+                <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">Remaining Cash (USD)</td>
                 <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">
                     <div class="flex items-center justify-between">
                         <span>{{ $symbol('USD') }}</span>

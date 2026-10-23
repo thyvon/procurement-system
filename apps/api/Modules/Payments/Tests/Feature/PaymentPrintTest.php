@@ -184,14 +184,133 @@ it('prints one column per co-signer with each own decision', function () {
         $html = $pdf->getHtml();
 
         // One column per co-signer: the title repeats twice, each column
-        // carries that signer's name value and its own Date line (the
-        // pending one ruled blank).
+        // carries that signer's name value and its own Date line — the one
+        // who approved prints the image, the one still open the placeholder,
+        // and both keep the same reserved slot.
         return substr_count($html, 'Reviewed By') === 2
             && str_contains($html, 'ពិនិត្យឡើងវិញ')
             && str_contains($html, $coSigner->name)
             && substr_count($html, 'shrink-0">Date:</span>') === 2
             && substr_count($html, 'Oct 20, 2026') === 1
-            && substr_count($html, 'data:image/png;base64,') === 1;
+            && substr_count($html, 'data:image/png;base64,') === 1
+            && substr_count($html, 'class="print-signature__pending"') === 1
+            && substr_count($html, 'flex h-14 items-end justify-center') === 2;
+    });
+});
+
+it('stamps a pending placeholder in the slot of a step that has not decided yet', function () {
+    $request = printableCashRequest();
+    $png = 'data:image/png;base64,'.base64_encode("\x89PNG\r\n\x1a\n");
+
+    ApprovalRequest::factory()->create([
+        'entity_id' => $this->entity->getKey(),
+        'subject_type' => 'cash_request',
+        'subject_id' => $request->getKey(),
+        'snapshot' => [
+            'steps' => [
+                [
+                    'position' => 1,
+                    'key' => 'checked',
+                    'label' => 'Checked By',
+                    'labelKh' => 'ត្រួតពិនិត្យ',
+                    'actionMode' => 'decide',
+                    'showOnPrint' => true,
+                    'assigneeId' => $this->admin->getKey(),
+                    'assigneeName' => $this->admin->name,
+                    'assigneePosition' => 'Manager',
+                    'assigneeSignature' => $png,
+                ],
+            ],
+        ],
+    ]);
+
+    Pdf::fake();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->get("/api/v1/payments/cash-requests/{$request->getKey()}/print")
+        ->assertOk();
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        $html = $pdf->getHtml();
+
+        // The signature was frozen at submit, but the round is still open and
+        // the step carries no act: the slot prints the bilingual placeholder
+        // instead of the image, and the slot itself stays reserved so the
+        // column keeps its baseline next to signed ones.
+        return substr_count($html, 'class="print-signature__pending"') === 1
+            && str_contains($html, '>រង់ចាំ</span>')
+            && str_contains($html, '>PENDING</span>')
+            && ! str_contains($html, 'data:image/png;base64,')
+            && substr_count($html, 'flex h-14 items-end justify-center') === 1;
+    });
+});
+
+it('keeps unsigned slots blank once the round is closed instead of stamping pending', function () {
+    $request = printableCashRequest();
+    $png = 'data:image/png;base64,'.base64_encode("\x89PNG\r\n\x1a\n");
+    $coSigner = User::factory()->create(['entity_id' => $this->entity->getKey()]);
+
+    $round = ApprovalRequest::factory()->create([
+        'entity_id' => $this->entity->getKey(),
+        'subject_type' => 'cash_request',
+        'subject_id' => $request->getKey(),
+        'status' => ApprovalRequest::STATUS_CANCELLED,
+        'snapshot' => [
+            'steps' => [
+                [
+                    'position' => 1,
+                    'key' => 'checked',
+                    'label' => 'Checked By',
+                    'labelKh' => 'ត្រួតពិនិត្យ',
+                    'actionMode' => 'decide',
+                    'showOnPrint' => true,
+                    'assigneeId' => $this->admin->getKey(),
+                    'assigneeName' => $this->admin->name,
+                    'assigneePosition' => 'Manager',
+                    'assigneeSignature' => $png,
+                ],
+                [
+                    'position' => 2,
+                    'key' => 'approved',
+                    'label' => 'Approved By',
+                    'labelKh' => 'យល់ព្រម',
+                    'actionMode' => 'decide',
+                    'showOnPrint' => true,
+                    'assigneeId' => $coSigner->getKey(),
+                    'assigneeName' => $coSigner->name,
+                    'assigneePosition' => 'Director',
+                    'assigneeSignature' => $png,
+                ],
+            ],
+        ],
+    ]);
+
+    // The withdrawal lands on the step the round was parked on; the later
+    // step never carried an act of its own.
+    $round->actions()->create([
+        'entity_id' => $this->entity->getKey(),
+        'step_position' => 1,
+        'step_key' => 'checked',
+        'action' => 'cancel',
+        'acted_by' => $this->admin->getKey(),
+        'acted_at' => '2026-10-20 09:00:00',
+    ]);
+
+    Pdf::fake();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->get("/api/v1/payments/cash-requests/{$request->getKey()}/print")
+        ->assertOk();
+
+    Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
+        $html = $pdf->getHtml();
+
+        // Nothing waits on a withdrawn round: neither the cancelled step nor
+        // the one behind it is stamped PENDING, the frozen signature is not
+        // printed as a decision, and both slots stay reserved for alignment.
+        return ! str_contains($html, 'class="print-signature__pending"')
+            && ! str_contains($html, 'data:image/png;base64,')
+            && substr_count($html, 'flex h-14 items-end justify-center') === 2;
     });
 });
 
@@ -372,6 +491,7 @@ it('prints a cash clearance sheet with its bilingual labels', function () {
         'cash_clearance_id' => $clearance->getKey(),
         'position' => 0,
         'description' => 'A4 Paper',
+        'vendor_phone' => '012 345 678',
         'qty' => 10,
         'unit_price_usd' => 15,
         'amount_usd' => 150,
@@ -389,10 +509,26 @@ it('prints a cash clearance sheet with its bilingual labels', function () {
     Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) use ($code) {
         $html = $pdf->getHtml();
 
-        return str_contains($html, 'CASH CLEARANCE')
+        return str_contains($html, 'Petty Cash Clearance')
             && str_contains($html, $code)
             && str_contains($html, 'A4 Paper')
             && str_contains($html, '$'."\u{00A0}".'150.00')
+            // The paper form's Vendor Phone No. column prints the stored phone.
+            && str_contains($html, 'Vendor phone no.')
+            && str_contains($html, '012 345 678')
+            // Header meta is Ref / Date / Ref (Request) / Exchange rate only.
+            && str_contains($html, 'Ref (Request)')
+            && ! str_contains($html, 'Cash request')
+            // The three money rows moved from the meta strip into the table's
+            // own footer: each label spans every column up to Amount, so the
+            // values sit in the Amount column of the same grid.
+            && str_contains($html, 'Request amount')
+            && str_contains($html, 'Balance')
+            && substr_count($html, 'colspan="15"') === 3
+            // Line headers and footer labels are English only, as on the paper
+            // form — the Khmer stays in the title, meta block and step titles.
+            && ! str_contains($html, 'ថ្ងៃវិក្កយបត្រ')
+            && ! str_contains($html, 'សរុប')
             // No clearance flow configured → empty signature block.
             && ! str_contains($html, 'Prepared by');
     });

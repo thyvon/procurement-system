@@ -124,6 +124,30 @@
     z-index: 1;
 }
 
+/* The signature slot of a step that is still waiting on an open approval
+ * round: the image's exact footprint (h-14 w-28) as a dashed light-gray
+ * outline, so mixed signed/unsigned columns keep one baseline without
+ * pretending the step is signed — the sheet already carries the diagonal
+ * NOT OFFICIAL watermark. Outlined, never filled: a filled stamp would read
+ * as an official seal, and steps of a closed round print an empty slot. */
+.print-signature__pending {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    height: 3.5rem;
+    width: 7rem;
+    border: 1px dashed rgba(0, 0, 0, 0.35);
+    border-radius: 0.25rem;
+    color: rgba(0, 0, 0, 0.45);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
 /* Mirrors apps/web globals.css: A4 landscape, 8mm — also passed to the
  * renderer via PdfBuilder::margins(), so CSS and engine agree. */
 @page {
@@ -198,5 +222,11 @@
 
     .print-signature {
         break-inside: avoid;
+    }
+
+    /* Out-specifies `.print-area *` above so the placeholder keeps its
+     * light-gray outline in the PDF instead of the black-border reset. */
+    .print-area .print-signature__pending {
+        border-color: rgba(0, 0, 0, 0.35) !important;
     }
 }
