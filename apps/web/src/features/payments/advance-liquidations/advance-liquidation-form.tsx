@@ -74,6 +74,7 @@ type LiquidationFormValue = {
   campus: string;
   division: string;
   department: string;
+  remark: string;
   lines: LineForm[];
 };
 
@@ -90,6 +91,7 @@ const EMPTY_FORM: LiquidationFormValue = {
   campus: "",
   division: "",
   department: "",
+  remark: "",
   lines: [{ ...EMPTY_LINE }],
 };
 
@@ -176,6 +178,7 @@ function toForm(
     campus: resource.campus ?? "",
     division: resource.division ?? "",
     department: resource.department ?? "",
+    remark: resource.remark ?? "",
     lines:
       lines.length > 0
         ? lines.map((line) => ({
@@ -388,6 +391,7 @@ export function AdvanceLiquidationForm({
       campus: form.campus.trim(),
       division: form.division.trim(),
       department: form.department.trim(),
+      remark: form.remark.trim() || null,
       lines: form.lines.map((line) => ({
         description: line.description.trim(),
         currency: line.currency,
@@ -763,6 +767,20 @@ export function AdvanceLiquidationForm({
                 </Button>
               }
             />
+
+            <div className="mt-3 flex items-center gap-2">
+              <Label htmlFor="al-remark" className={fieldLabelClass}>
+                {t("remark")}
+              </Label>
+              <Textarea
+                id="al-remark"
+                value={form.remark}
+                onChange={(e) => patch({ remark: e.target.value })}
+                placeholder={t("remark")}
+                className="min-h-0 flex-1 rounded-none border-0 border-b border-border bg-transparent px-0 shadow-none resize-none focus-visible:ring-0"
+                rows={1}
+              />
+            </div>
           </CardContent>
         </Card>
       </fieldset>

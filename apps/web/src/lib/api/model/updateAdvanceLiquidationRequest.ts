@@ -17,6 +17,8 @@ export interface UpdateAdvanceLiquidationRequest {
   division: string;
   /** @maxLength 64 */
   department: string;
+  /** @nullable */
+  remark?: string | null;
   /** @minItems 1 */
   lines: UpdateAdvanceLiquidationRequestLinesItem[];
 }

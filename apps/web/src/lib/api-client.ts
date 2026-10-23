@@ -8,22 +8,35 @@ import { authHeaders } from "@/lib/auth/token-store";
 export class ApiError extends Error {
   readonly statusCode: number;
   readonly error?: string;
+  /** Per-field validation messages from a 422 envelope (`{ errors: { field: [msg] } }`). */
+  readonly errors?: Record<string, string[]>;
 
-  constructor(statusCode: number, message: string, error?: string) {
+  constructor(
+    statusCode: number,
+    message: string,
+    error?: string,
+    errors?: Record<string, string[]>,
+  ) {
     super(message);
     this.name = "ApiError";
     this.statusCode = statusCode;
     this.error = error;
+    this.errors = errors;
   }
 }
 
 function assertOk(response: { status: number; data: unknown }): void {
   if (response.status >= 400) {
-    const body = response.data as { message?: string; error?: string };
+    const body = response.data as {
+      message?: string;
+      error?: string;
+      errors?: Record<string, string[]>;
+    };
     throw new ApiError(
       response.status,
       body?.message ?? `Request failed (${response.status})`,
       body?.error,
+      body?.errors,
     );
   }
 }

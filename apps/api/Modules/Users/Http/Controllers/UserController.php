@@ -74,7 +74,7 @@ class UserController extends Controller
         /** @var User $actor */
         $actor = $request->user();
 
-        $data = collect($request->validated())->except(['roles', 'toca_entry_ids'])->all();
+        $data = collect($request->validated())->except(['roles', 'toca_entry_ids', 'current_password'])->all();
 
         if ($data !== []) {
             $this->users->update($user, $data);

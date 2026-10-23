@@ -120,7 +120,7 @@ it('refuses to liquidate a source that is not an advance', function () {
 it('liquidates an approved advance with the derived usd totals and code', function () {
     $source = advanceSource(['total_usd' => 600]);
 
-    $response = storeAdvanceLiquidation($source->getKey())->assertStatus(201);
+    $response = storeAdvanceLiquidation($source->getKey(), ['remark' => 'Receipts attached.'])->assertStatus(201);
 
     $response
         ->assertJsonStructure([
@@ -145,6 +145,7 @@ it('liquidates an approved advance with the derived usd totals and code', functi
         ->assertJsonPath('data.totalActualExpenseUsd', 592.58)
         ->assertJsonPath('data.totalCashAdvanceUsd', 600)
         ->assertJsonPath('data.remainingCashUsd', 7.42)
+        ->assertJsonPath('data.remark', 'Receipts attached.')
         ->assertJsonCount(2, 'data.lines')
         ->assertJsonPath('data.lines.0.amountUsd', 220)
         ->assertJsonPath('data.lines.1.amountUsd', 372.58);
@@ -175,13 +176,14 @@ it('updates a draft by replacing the whole line list and recomputing totals', fu
     $source = advanceSource(['total_usd' => 600]);
     $id = storeAdvanceLiquidation($source->getKey())->json('data.id');
 
-    $payload = liquidationPayload($source->getKey(), ['division' => 'OPS']);
+    $payload = liquidationPayload($source->getKey(), ['division' => 'OPS', 'remark' => 'Updated remark.']);
     $payload['lines'] = [liquidationLine(['description' => 'Printer toner', 'amount' => 50])];
 
     $this->actingAs($this->admin, 'sanctum')
         ->patchJson("/api/v1/payments/advance-liquidations/{$id}", $payload)
         ->assertOk()
         ->assertJsonPath('data.division', 'OPS')
+        ->assertJsonPath('data.remark', 'Updated remark.')
         ->assertJsonCount(1, 'data.lines')
         ->assertJsonPath('data.lines.0.description', 'Printer toner')
         ->assertJsonPath('data.totalActualExpenseUsd', 50)

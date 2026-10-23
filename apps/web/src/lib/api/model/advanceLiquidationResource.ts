@@ -21,6 +21,8 @@ export interface AdvanceLiquidationResource {
   totalCashAdvanceUsd: number;
   remainingCashUsd: number;
   /** @nullable */
+  remark: string | null;
+  /** @nullable */
   updatedAt: string | null;
   /** @nullable */
   createdBy?: string | null;

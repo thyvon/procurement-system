@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 use Modules\Approvals\Models\TocaEntry;
@@ -268,4 +269,57 @@ it('rejects authority entry ids that do not exist or belong to another entity', 
         ->assertStatus(422);
 
     expect($crossEntity->json('errors'))->toHaveKey('toca_entry_ids.0');
+});
+
+it('requires the current password when a user changes their own password', function () {
+    $response = $this->actingAs($this->staffA, 'sanctum')
+        ->patchJson("/api/v1/users/{$this->staffA->getKey()}", [
+            'password' => 'brand-new-password-123',
+        ]);
+
+    $response->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
+
+    expect($response->json('errors'))->toHaveKey('current_password')
+        ->and(Hash::check('brand-new-password-123', $this->staffA->refresh()->password))->toBeFalse();
+});
+
+it('rejects a wrong current password with 422 and keeps the old password', function () {
+    $response = $this->actingAs($this->staffA, 'sanctum')
+        ->patchJson("/api/v1/users/{$this->staffA->getKey()}", [
+            'password' => 'brand-new-password-123',
+            'current_password' => 'not-my-password',
+        ]);
+
+    $response->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonPath('message', 'The current password is incorrect.');
+
+    expect($response->json('errors'))->toHaveKey('current_password')
+        ->and(Hash::check('brand-new-password-123', $this->staffA->refresh()->password))->toBeFalse();
+});
+
+it('changes the password when the correct current password is supplied', function () {
+    $this->actingAs($this->staffA, 'sanctum')
+        ->patchJson("/api/v1/users/{$this->staffA->getKey()}", [
+            'password' => 'brand-new-password-123',
+            'current_password' => 'password',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.email', 'staff.a@test.local');
+
+    expect(Hash::check('brand-new-password-123', $this->staffA->refresh()->password))->toBeTrue()
+        ->and(Hash::check('password', $this->staffA->password))->toBeFalse();
+});
+
+it('lets an admin reset another user password without a current password', function () {
+    $this->actingAs($this->adminA, 'sanctum')
+        ->patchJson("/api/v1/users/{$this->staffA->getKey()}", [
+            'password' => 'reset-by-admin-123',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.email', 'staff.a@test.local');
+
+    expect(Hash::check('reset-by-admin-123', $this->staffA->refresh()->password))->toBeTrue();
 });

@@ -26,6 +26,7 @@ use Modules\Payments\Database\Factories\AdvanceLiquidationFactory;
     'total_actual_expense_usd',
     'total_cash_advance_usd',
     'remaining_cash_usd',
+    'remark',
     'created_by',
     'updated_by',
 ])]

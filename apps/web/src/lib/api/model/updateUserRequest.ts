@@ -12,6 +12,7 @@ export interface UpdateUserRequest {
   email?: string;
   /** @minLength 10 */
   password?: string;
+  current_password?: string;
   /**
      * @maxLength 255
      * @nullable

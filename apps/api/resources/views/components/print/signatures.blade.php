@@ -23,8 +23,8 @@
                     </div>
 
                     @if($column['signature'])
-                        <div class="flex h-12 items-end justify-center">
-                            <img src="{{ $column['signature'] }}" alt="" class="max-h-12 w-auto max-w-full object-contain">
+                        <div class="flex h-14 items-end justify-center">
+                            <img src="{{ $column['signature'] }}" alt="" class="h-14 w-28 object-contain object-bottom">
                         </div>
                     @endif
 

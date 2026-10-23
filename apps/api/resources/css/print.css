@@ -169,9 +169,12 @@
         min-height: 0 !important;
     }
 
+    /* Chrome paints border-collapse's outer right border at
+     * [width, width+1] but printToPDF clips page content at the margin
+     * box — so a 100%-wide table loses its right border in the PDF. */
     .print-area table {
         min-width: 0 !important;
-        width: 100% !important;
+        width: calc(100% - 1px) !important;
     }
 
     .print-area .overflow-x-auto {

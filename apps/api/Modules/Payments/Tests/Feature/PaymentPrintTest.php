@@ -348,11 +348,15 @@ it('prints the advance branch sheet with the payment and purpose fields', functi
     $code = $request->code;
     Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->viewName === 'payments::print.advance-request');
     Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->downloadName === $code.'-advance-request.pdf');
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->format === 'a4'
+        && $pdf->orientation === 'Portrait'
+        && $pdf->margins == ['top' => 12, 'right' => 12, 'bottom' => 12, 'left' => 12, 'unit' => 'mm']);
     Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) {
         $html = $pdf->getHtml();
 
-        return str_contains($html, 'Advance · លុយទុកមុន')
-            && str_contains($html, 'Mode of payment')
+        return str_contains($html, 'Advance Request Form')
+            && str_contains($html, 'Mode of Payment')
+            && str_contains($html, 'Bank Transfer')
             && str_contains($html, 'Office supplies');
     });
 });
@@ -399,6 +403,7 @@ it('prints an advance liquidation sheet with its bilingual labels', function () 
         'entity_id' => $this->entity->getKey(),
         'created_by' => $this->admin->getKey(),
         'total_actual_expense_usd' => 80,
+        'remark' => 'Receipts attached.',
     ]);
     AdvanceLiquidationLine::factory()->create([
         'entity_id' => $this->entity->getKey(),
@@ -419,14 +424,21 @@ it('prints an advance liquidation sheet with its bilingual labels', function () 
     $code = $liquidation->code;
     Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->viewName === 'payments::print.advance-liquidation');
     Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->downloadName === $code.'-advance-liquidation.pdf');
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->format === 'a4'
+        && $pdf->orientation === 'Portrait'
+        && $pdf->margins == ['top' => 12, 'right' => 12, 'bottom' => 12, 'left' => 12, 'unit' => 'mm']);
     Pdf::assertRespondedWithPdf(function (PdfBuilder $pdf) use ($code) {
         $html = $pdf->getHtml();
 
-        return str_contains($html, 'ADVANCE LIQUIDATION')
+        return str_contains($html, 'Liquidation of Advance')
             && str_contains($html, $code)
             && str_contains($html, 'Taxi fare')
-            && str_contains($html, '$'."\u{00A0}".'80.00')
-            && str_contains($html, 'ចំណាយពិតសរុប / Total actual expense:');
+            && str_contains($html, '80.00')
+            && str_contains($html, 'Total Actual Expense')
+            && str_contains($html, 'Total Cash Advance')
+            && str_contains($html, 'Remaining Cash')
+            && str_contains($html, 'ចំណាំ / Remark:')
+            && str_contains($html, 'Receipts attached.');
     });
 });
 

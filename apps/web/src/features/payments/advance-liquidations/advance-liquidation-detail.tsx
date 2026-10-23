@@ -417,6 +417,10 @@ export function AdvanceLiquidationDetail({
                 },
               ]}
             />
+
+            <div className="mt-3">
+              <MetaRow label={tf("remark")} value={liquidation.remark || "—"} />
+            </div>
           </CardContent>
         </Card>
 

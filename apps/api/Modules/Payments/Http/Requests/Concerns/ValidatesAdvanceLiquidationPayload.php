@@ -32,6 +32,7 @@ trait ValidatesAdvanceLiquidationPayload
             'campus' => ['required', 'string', 'max:64'],
             'division' => ['required', 'string', 'max:64'],
             'department' => ['required', 'string', 'max:64'],
+            'remark' => ['nullable', 'string'],
             'lines' => ['required', 'array', 'min:1'],
             'lines.*.description' => ['required', 'string', 'max:255'],
             'lines.*.currency' => ['sometimes', 'string', Rule::in(Currency::CODES)],
@@ -53,6 +54,7 @@ trait ValidatesAdvanceLiquidationPayload
             'campus' => $this->validated('campus'),
             'division' => $this->validated('division'),
             'department' => $this->validated('department'),
+            'remark' => $this->validated('remark'),
             'lines' => array_values($this->validated('lines', [])),
         ];
     }

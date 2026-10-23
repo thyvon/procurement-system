@@ -64,6 +64,7 @@ class AdvanceLiquidationService
                 'total_actual_expense_usd' => 0,
                 'total_cash_advance_usd' => 0,
                 'remaining_cash_usd' => 0,
+                'remark' => $data['remark'] ?? null,
                 'created_by' => $user->getKey(),
                 'updated_by' => $user->getKey(),
             ]);
@@ -95,6 +96,7 @@ class AdvanceLiquidationService
                 'campus' => $data['campus'],
                 'division' => $data['division'],
                 'department' => $data['department'],
+                'remark' => $data['remark'] ?? null,
                 'updated_by' => $user->getKey(),
             ]);
 

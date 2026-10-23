@@ -7,11 +7,7 @@
 @section('content')
 <div class="flex min-h-[186mm] flex-col gap-3 text-sm text-foreground">
     <div class="grid grid-cols-[1fr_auto_1fr] items-start gap-4">
-        @if($logo)
-            <img src="{{ $logo }}" alt="" class="h-14 w-28 shrink-0 object-contain">
-        @else
-            <div aria-hidden class="h-14 w-28 shrink-0"></div>
-        @endif
+        <x-print.logo :src="$logo" />
         <h1 class="place-self-center text-center text-lg font-bold tracking-tight">
             <span class="block">សំណើសុំប្រាក់</span>
             <span class="block text-sm font-semibold">Cash Request</span>

@@ -26,11 +26,7 @@
 @endphp
 <div class="flex min-h-[262mm] flex-col gap-3 text-xs text-foreground">
     <div class="flex items-end gap-4">
-        @if($logo)
-            <img src="{{ $logo }}" alt="" class="h-14 w-32 shrink-0 object-contain">
-        @else
-            <div aria-hidden class="h-14 w-32 shrink-0"></div>
-        @endif
+        <x-print.logo :src="$logo" />
         {{-- Bottom edge sits on the logo's underline: Logo ____ Title. --}}
         <h1 class="grow text-center">
             <span class="block font-muol">ពាក្យស្នើសុំសាច់ប្រាក់បន្ទាប់បន្សំ</span>
@@ -38,7 +34,7 @@
         </h1>
         {{-- Same footprint as the logo so the title stays optically centered
              across the whole form header. --}}
-        <div aria-hidden class="h-14 w-32 shrink-0"></div>
+        <div aria-hidden class="h-14 w-28 shrink-0"></div>
     </div>
 
     <div class="flex justify-end">

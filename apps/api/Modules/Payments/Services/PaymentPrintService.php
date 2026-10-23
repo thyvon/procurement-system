@@ -37,10 +37,10 @@ class PaymentPrintService
             default => ['payments::print.cash-request', 'cash-request'],
         };
 
-        $isPettyCash = $cashRequest->type === CashRequest::TYPE_PETTY_CASH;
-        // The petty cash sheet is the official portrait A4 form; the other
-        // branches keep the landscape working sheets.
-        $margin = $isPettyCash ? 12 : 8;
+        $isPortraitForm = in_array($cashRequest->type, [CashRequest::TYPE_PETTY_CASH, CashRequest::TYPE_ADVANCE], true);
+        // The petty cash and advance sheets are official portrait A4 forms;
+        // the other branches keep the landscape working sheets.
+        $margin = $isPortraitForm ? 12 : 8;
 
         $pdf = Pdf::view($view, [
             'css' => PrintStylesheet::load(),
@@ -80,7 +80,7 @@ class PaymentPrintService
             ->format('a4')
             ->margins($margin, $margin, $margin, $margin, 'mm');
 
-        return ($isPettyCash ? $pdf->portrait() : $pdf->landscape())
+        return ($isPortraitForm ? $pdf->portrait() : $pdf->landscape())
             ->name($cashRequest->code.'-'.$sheet.'.pdf');
     }
 
@@ -139,12 +139,16 @@ class PaymentPrintService
                 'liquidationDate' => $liquidation->liquidation_date?->format('Y-m-d'),
                 'cashRequestCode' => $liquidation->cashRequest?->code ?? (string) $liquidation->cash_request_id,
                 'exchangeRate' => (float) $liquidation->exchange_rate,
+                'createdBy' => $liquidation->creator?->name,
+                'createdByPosition' => $liquidation->creator?->position,
+                'createdById' => $liquidation->created_by,
                 'campus' => $liquidation->campus,
                 'division' => $liquidation->division,
                 'department' => $liquidation->department,
                 'totalCashAdvanceUsd' => (float) $liquidation->total_cash_advance_usd,
                 'totalActualExpenseUsd' => (float) $liquidation->total_actual_expense_usd,
                 'remainingCashUsd' => (float) $liquidation->remaining_cash_usd,
+                'remark' => $liquidation->remark,
                 'lines' => $liquidation->lines->map(fn ($line): array => [
                     'id' => $line->getKey(),
                     'description' => $line->description,
@@ -156,8 +160,8 @@ class PaymentPrintService
             'columns' => $this->signatures->forSubject('advance_liquidation', (string) $liquidation->getKey()),
         ])
             ->format('a4')
-            ->landscape()
-            ->margins(8, 8, 8, 8, 'mm')
+            ->portrait()
+            ->margins(12, 12, 12, 12, 'mm')
             ->name($liquidation->code.'-advance-liquidation.pdf');
     }
 
