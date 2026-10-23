@@ -91,6 +91,9 @@
         <colgroup>
             <col class="w-14">
             <col>
+            {{-- Tail of the Description area: the footer totals label cell
+                 starts here (label + IN USD), exactly like the official grid. --}}
+            <col class="w-24">
             <col class="w-24">
             <col class="w-10">
             <col class="w-28">
@@ -101,7 +104,7 @@
                     <span class="block">ល.រ</span>
                     <span class="block">№</span>
                 </th>
-                <th class="border border-border bg-muted/60 px-2 py-1 text-center font-medium">
+                <th class="border border-border bg-muted/60 px-2 py-1 text-center font-medium" colspan="2">
                     <span class="block">ពិពណ៌នា</span>
                     <span class="block">Description</span>
                 </th>
@@ -119,7 +122,7 @@
             @foreach($liquidation['lines'] as $index => $line)
                 <tr>
                     <td class="border border-border px-2 text-center align-top">{{ $index + 1 }}</td>
-                    <td class="border border-border px-2 align-top">{{ $line['description'] }}</td>
+                    <td class="border border-border px-2 align-top" colspan="2">{{ $line['description'] }}</td>
                     <td class="border border-border px-2 align-top text-center">{{ $line['currency'] ?: 'USD' }}</td>
                     <td class="border-r-0 border border-border px-2 text-center align-top">{{ $symbol((string) ($line['currency'] ?: 'USD')) }}</td>
                     <td class="border-l-0 border border-border px-2 text-right align-top tabular-nums">{{ $amount((float) $line['amount'], (string) ($line['currency'] ?: 'USD')) }}</td>
@@ -130,7 +133,7 @@
             @if($blankRows > 0)
                 <tr>
                     <td class="border border-border px-2" style="height: {{ $blankRows * 20 }}px"></td>
-                    <td class="border border-border px-2"></td>
+                    <td class="border border-border px-2" colspan="2"></td>
                     <td class="border border-border px-2"></td>
                     <td class="border-r-0 border border-border px-2"></td>
                     <td class="border-l-0 border border-border px-2"></td>
@@ -138,23 +141,37 @@
             @endif
         </tbody>
         <tfoot class="text-xs font-bold">
+            {{-- One merged blank box spans the three totals rows (№ + bulk of
+                 Description); the label and IN USD share one cell in the
+                 Description tail, and the value cell spans the symbol column
+                 so its border and $ line up with the body rows. --}}
             <tr>
-                <td class="border border-border bg-muted/60 px-2 py-1 text-right" colspan="2">Total Actual Expense</td>
-                <td class="border border-border bg-muted/60 px-2 py-1 text-center">In USD</td>
-                <td class="border-r-0 border border-border bg-muted/60 px-2 py-1 text-center">{{ $symbol('USD') }}</td>
-                <td class="border-l-0 border border-border bg-muted/60 px-2 py-1 text-right tabular-nums">{{ $usd((float) $liquidation['totalActualExpenseUsd']) }}</td>
+                <td class="border border-border bg-muted/60" rowspan="3" colspan="2"></td>
+                <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">Total Actual Expense IN USD</td>
+                <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">
+                    <div class="flex items-center justify-between">
+                        <span>{{ $symbol('USD') }}</span>
+                        <span class="tabular-nums">{{ $usd((float) $liquidation['totalActualExpenseUsd']) }}</span>
+                    </div>
+                </td>
             </tr>
             <tr>
-                <td class="border border-border bg-muted/60 px-2 py-1 text-right" colspan="2">Total Cash Advance</td>
-                <td class="border border-border bg-muted/60 px-2 py-1 text-center">In USD</td>
-                <td class="border-r-0 border border-border bg-muted/60 px-2 py-1 text-center">{{ $symbol('USD') }}</td>
-                <td class="border-l-0 border border-border bg-muted/60 px-2 py-1 text-right tabular-nums">{{ $usd((float) $liquidation['totalCashAdvanceUsd']) }}</td>
+                <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">Total Cash Advance IN USD</td>
+                <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">
+                    <div class="flex items-center justify-between">
+                        <span>{{ $symbol('USD') }}</span>
+                        <span class="tabular-nums">{{ $usd((float) $liquidation['totalCashAdvanceUsd']) }}</span>
+                    </div>
+                </td>
             </tr>
             <tr>
-                <td class="border border-border bg-muted/60 px-2 py-1 text-right" colspan="2">Remaining Cash</td>
-                <td class="border border-border bg-muted/60 px-2 py-1 text-center">In USD</td>
-                <td class="border-r-0 border border-border bg-muted/60 px-2 py-1 text-center">{{ $symbol('USD') }}</td>
-                <td class="border-l-0 border border-border bg-muted/60 px-2 py-1 text-right tabular-nums">{{ $usd((float) $liquidation['remainingCashUsd']) }}</td>
+                <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">Remaining Cash IN USD</td>
+                <td class="border border-border bg-muted/60 px-2 py-1" colspan="2">
+                    <div class="flex items-center justify-between">
+                        <span>{{ $symbol('USD') }}</span>
+                        <span class="tabular-nums">{{ $usd((float) $liquidation['remainingCashUsd']) }}</span>
+                    </div>
+                </td>
             </tr>
         </tfoot>
     </table>
