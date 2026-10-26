@@ -20,7 +20,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function paginate(int $perPage = 20): CursorPaginator
     {
         return $this->query()
-            ->with('roles')
+            ->with(['roles', 'currentEmployeeProfile.campus', 'currentEmployeeProfile.division', 'currentEmployeeProfile.department'])
             ->orderBy('name')
             ->orderBy('id')
             ->cursorPaginate($perPage);

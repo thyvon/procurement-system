@@ -5,16 +5,18 @@ import { useState } from "react"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, Plus, Pencil, UserX } from "lucide-react"
+import { IdCard, MoreHorizontal, Plus, Pencil, UserX } from "lucide-react"
 import {
   usersUsersDestroy,
   usersUsersIndex,
   usersUsersStore,
   usersUsersUpdate,
 } from "@/lib/api/user/user"
+import type { UserResource } from "@/lib/api/model"
 import { rolesRolesIndex } from "@/lib/api/role/role"
 import { approvalsTocaEntriesIndex } from "@/lib/api/toca-entry/toca-entry"
 import { subjectLabel } from "@/features/approvals/approval-types"
+import { EmployeeProfileDialog } from "@/features/employee-profiles/employee-profile-dialog"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton"
@@ -54,17 +56,6 @@ import { unwrap, withAuth } from "@/lib/api-client"
 import { useMe } from "@/hooks/use-me"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
 
-type UserRow = {
-  id: number
-  name: string
-  email: string
-  avatar: string | null
-  entityId: string | null
-  isActive: boolean
-  roles?: string[]
-  createdAt: string | null
-}
-
 type AuthorityEntryRow = {
   id: string
   name: string
@@ -80,7 +71,7 @@ const money = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
 })
 
-const columnHelper = createColumnHelper<DataTableFeatures, UserRow>()
+const columnHelper = createColumnHelper<DataTableFeatures, UserResource>()
 
 const initialsOf = (name: string) =>
   name
@@ -93,14 +84,16 @@ const initialsOf = (name: string) =>
 function useUserColumns({
   onEditRequest,
   onDeactivateRequest,
+  onProfileRequest,
   canManageUsers,
   meId,
 }: {
-  onEditRequest: (user: UserRow) => void
-  onDeactivateRequest: (user: UserRow) => void
+  onEditRequest: (user: UserResource) => void
+  onDeactivateRequest: (user: UserResource) => void
+  onProfileRequest: (user: UserResource) => void
   canManageUsers: boolean
   meId: number | null
-}): ColumnDef<DataTableFeatures, UserRow>[] {
+}): ColumnDef<DataTableFeatures, UserResource>[] {
   const tc = useTranslations("users.columns")
   const tt = useTranslations("users.table")
   return [
@@ -184,7 +177,15 @@ function useUserColumns({
                     {tt("edit")}
                   </DropdownMenuItem>
                 )}
-                {canEdit && canDeactivate && <DropdownMenuSeparator />}
+                {canManageUsers && (
+                  <DropdownMenuItem onClick={() => onProfileRequest(user)}>
+                    <IdCard className="mr-2 size-4" />
+                    {tt("employeeProfile")}
+                  </DropdownMenuItem>
+                )}
+                {(canEdit || canManageUsers) && canDeactivate && (
+                  <DropdownMenuSeparator />
+                )}
                 {canDeactivate && (
                   <DropdownMenuItem
                     className="text-destructive"
@@ -200,7 +201,7 @@ function useUserColumns({
         )
       },
     }),
-  ] as ColumnDef<DataTableFeatures, UserRow>[]
+  ] as ColumnDef<DataTableFeatures, UserResource>[]
 }
 
 const EMPTY_FORM = {
@@ -225,15 +226,19 @@ export function UsersTab() {
   const canManageApprovals = permissions.includes("approvals.manage")
   const meId = meQuery.data?.id ?? null
   const [statusFilter, setStatusFilter] = useState("all")
-  const [editing, setEditing] = useState<UserRow | null>(null)
-  const [deactivateTarget, setDeactivateTarget] = useState<UserRow | null>(null)
+  const [editing, setEditing] = useState<UserResource | null>(null)
+  const [deactivateTarget, setDeactivateTarget] = useState<UserResource | null>(null)
+  const [profileTarget, setProfileTarget] = useState<{
+    id: number
+    name: string
+  } | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
 
   const query = useQuery({
     queryKey: ["users"],
     queryFn: async () =>
-      unwrap<UserRow[]>(await usersUsersIndex(withAuth())),
+      unwrap<UserResource[]>(await usersUsersIndex(withAuth())),
   })
 
   const rolesQuery = useQuery({
@@ -293,7 +298,9 @@ export function UsersTab() {
         if (form.password.trim()) {
           payload.password = form.password
         }
-        return unwrap(await usersUsersUpdate(editing.id, payload, withAuth()))
+        return unwrap<UserResource>(
+          await usersUsersUpdate(editing.id, payload, withAuth()),
+        )
       }
       const storePayload: {
         name: string
@@ -312,17 +319,23 @@ export function UsersTab() {
       if (canManageApprovals) {
         storePayload.toca_entry_ids = form.tocaEntryIds ?? []
       }
-      return unwrap(await usersUsersStore(storePayload, withAuth()))
+      return unwrap<UserResource>(
+        await usersUsersStore(storePayload, withAuth()),
+      )
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
+      const wasEditing = editing !== null
       qc.invalidateQueries({ queryKey: ["users"] })
       if (canManageApprovals) {
         qc.invalidateQueries({ queryKey: ["tocaEntries"] })
       }
       setFormOpen(false)
-      toast.success(editing ? t("updated") : t("created"))
+      toast.success(wasEditing ? t("updated") : t("created"))
       setEditing(null)
       setForm({ ...EMPTY_FORM })
+      if (!wasEditing) {
+        setProfileTarget({ id: saved.id, name: saved.name })
+      }
     },
   })
 
@@ -343,13 +356,15 @@ export function UsersTab() {
         name: user.name,
         email: user.email,
         password: "",
-        roles: user.roles ?? [],
+        roles: (user.roles ?? []) as string[],
         tocaEntryIds: null,
         isActive: user.isActive,
       })
       setFormOpen(true)
     },
     onDeactivateRequest: setDeactivateTarget,
+    onProfileRequest: (user) =>
+      setProfileTarget({ id: user.id, name: user.name }),
     canManageUsers,
     meId,
   })
@@ -586,6 +601,13 @@ export function UsersTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EmployeeProfileDialog
+        userId={profileTarget?.id ?? 0}
+        userName={profileTarget?.name ?? ""}
+        open={profileTarget !== null}
+        onOpenChange={(open) => !open && setProfileTarget(null)}
+      />
     </div>
   )
 }

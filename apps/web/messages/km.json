@@ -65,6 +65,7 @@
     "epurchasePos": "បញ្ជី PO",
     "userMgt": "គ្រប់គ្រងអ្នកប្រើប្រាស់",
     "users": "អ្នកប្រើប្រាស់",
+    "employeeProfiles": "ប្រវត្តិរូបបុគ្គលិក",
     "roles": "តួនាទី",
     "suppliers": "អ្នកផ្គត់ផ្គង់",
     "requisitions": "សំណើទិញ",
@@ -1008,7 +1009,6 @@
     "title": "ប្រវត្តិរូប",
     "name": "ឈ្មោះ",
     "email": "អ៊ីមែល",
-    "position": "តួនាទី",
     "password": "ពាក្យសម្ងាត់",
     "passwordPlaceholder": "ទុកឲ្យនៅទំនេរដើម្បីរក្សាពាក្យសម្ងាត់បច្ចុប្បន្ន",
     "changePhoto": "រូបភាពប្រវត្តិរូប",
@@ -1020,6 +1020,8 @@
     "cropApply": "អនុវត្តការកាត់",
     "cropFailed": "មិនអាចដំណើរការរូបហត្ថលេខាបានទេ។",
     "sectionPersonal": "ព័ត៌មានផ្ទាល់ខ្លួន",
+    "sectionEmployment": "ព័ត៌មានការងារ",
+    "employmentHint": "គ្រប់គ្រងដោយអ្នកគ្រប់គ្រង។ សូមទាក់ទងពួកគេដើម្បីកែប្រែព័ត៌មានទាំងនេះ។",
     "sectionPhotos": "រូបភាព និងហត្ថលេខា",
     "sectionPassword": "ផ្លាស់ប្តូរពាក្យសម្ងាត់",
     "currentPassword": "ពាក្យសម្ងាត់បច្ចុប្បន្ន",
@@ -1285,12 +1287,26 @@
       "inactive": "អសកម្ម",
       "openMenu": "បើកម៉ឺនុយ",
       "edit": "កែប្រែ",
+      "employeeProfile": "ប្រវត្តិរូបបុគ្គលិក",
       "delete": "លុប",
       "deactivate": "លែងប្រើ",
       "cancel": "បោះបង់",
       "confirmDelete": "លុប",
       "confirmDeactivate": "លែងប្រើ",
       "deleting": "កំពុងលុប..."
+    },
+    "employeeProfiles": {
+      "searchPlaceholder": "ស្វែងរកបុគ្គលិក...",
+      "openMenu": "បើកម៉ឺនុយ",
+      "manage": "គ្រប់គ្រងប្រវត្តិរូប",
+      "columns": {
+        "employee": "បុគ្គលិក",
+        "cardId": "លេខសម្គាល់កាត",
+        "position": "តួនាទី",
+        "campus": "សាខា",
+        "division": "ផ្នែក",
+        "department": "ដេប៉ាតឺម៉ង់"
+      }
     },
     "users": {
       "newTitle": "អ្នកប្រើថ្មី",
@@ -1299,6 +1315,7 @@
       "editDescription": "ធ្វើបច្ចុប្បន្នភាពព័ត៌មានអ្នកប្រើ និងតួនាទីដែលបានកំណត់។",
       "name": "ឈ្មោះ",
       "email": "អ៊ីមែល",
+      "position": "មុខតំណែង",
       "password": "ពាក្យសម្ងាត់",
       "roles": "តួនាទី",
       "active": "សកម្ម",
@@ -1352,6 +1369,33 @@
         "evaluations": "ការវាយតម្លៃ"
       }
     }
+  },
+  "employeeProfiles": {
+    "title": "ប្រវត្តិរូបបុគ្គលិក",
+    "forUser": "ប្រវត្តិរូបបុគ្គលិកសម្រាប់ {name}",
+    "cardId": "លេខសម្គាល់កាត",
+    "cardIdPlaceholder": "លេខសម្គាល់កាតបុគ្គលិក",
+    "position": "តួនាទី",
+    "positionPlaceholder": "ឈ្មោះមុខតំណែង",
+    "campus": "សាខា",
+    "division": "ផ្នែក",
+    "department": "ដេប៉ាតឺម៉ង់",
+    "none": "គ្មាន",
+    "current": "បច្ចុប្បន្ន",
+    "history": "ប្រវត្តិ",
+    "effectiveFrom": "ចាប់ផ្តើម",
+    "effectiveTo": "បញ្ចប់",
+    "status": "ស្ថានភាព",
+    "currentBadge": "បច្ចុប្បន្ន",
+    "historical": "កន្លងទៅ",
+    "noHistory": "មិនទាន់មានប្រវត្តិរូបបុគ្គលិកទេ។",
+    "nothingToSave": "បន្ថែមលេខសម្គាល់កាត តួនាទី ឬផ្នែកស្ថាប័នជាមុនសិន។",
+    "loading": "កំពុងផ្ទុក...",
+    "save": "រក្សាទុក",
+    "saving": "កំពុងរក្សាទុក...",
+    "cancel": "បោះបង់",
+    "close": "បិទ",
+    "saved": "បានធ្វើបច្ចុប្បន្នភាពប្រវត្តិរូបបុគ្គលិក។"
   },
   "settings": {
     "title": "ការកំណត់ប្រព័ន្ធ",

@@ -72,7 +72,7 @@ class ApprovalService
                             ->map(fn (User $user): array => [
                                 'id' => $user->getKey(),
                                 'name' => $user->name,
-                                'position' => $user->position,
+                                'position' => $user->currentEmployeeProfile?->position,
                             ])
                             ->values()
                             ->all()
@@ -188,15 +188,17 @@ class ApprovalService
 
             if ($assigneeIds !== []) {
                 $assignees = User::query()
+                    ->with('currentEmployeeProfile')
                     ->whereIn('id', $assigneeIds)
-                    ->get(['id', 'name', 'position', 'signature_path'])
+                    ->get(['id', 'name', 'signature_path'])
                     ->keyBy('id');
             }
 
             // The acting user instance may carry a partial attribute set (strict
             // mode); read the submitter's frozen identity from a fresh row.
             $submitter = User::query()
-                ->select(['id', 'name', 'position', 'signature_path'])
+                ->with('currentEmployeeProfile')
+                ->select(['id', 'name', 'signature_path'])
                 ->findOrFail($user->getKey());
 
             foreach ($snapshotSteps as $index => $step) {
@@ -209,7 +211,7 @@ class ApprovalService
                         ->map(fn (User $assignee): array => [
                             'id' => $assignee->getKey(),
                             'name' => $assignee->name,
-                            'position' => $assignee->position,
+                            'position' => $assignee->currentEmployeeProfile?->position,
                             'signature' => $assignee->signature_path,
                         ])
                         ->values()
@@ -223,7 +225,7 @@ class ApprovalService
                     $snapshotSteps[$index]['assigneeSignature'] = $firstSigner['signature'] ?? null;
                 } elseif ($step['actionMode'] === ApprovalStep::MODE_RECORD) {
                     $snapshotSteps[$index]['assigneeName'] = $submitter->name;
-                    $snapshotSteps[$index]['assigneePosition'] = $submitter->position;
+                    $snapshotSteps[$index]['assigneePosition'] = $submitter->currentEmployeeProfile?->position;
                     $snapshotSteps[$index]['assigneeSignature'] = $submitter->signature_path;
                 }
             }

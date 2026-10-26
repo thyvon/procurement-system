@@ -283,7 +283,7 @@ it('stores the company real_position on the user and exposes it through the auth
 
     $user = User::query()->where('email', 'vun.thy@mjqeducation.edu.kh')->firstOrFail();
 
-    expect($user->position)->toBe('Procurement Officer');
+    expect($user->currentEmployeeProfile?->position)->toBe('Procurement Officer');
 
     $this->withToken($data['access_token'])
         ->getJson('/api/v1/auth/me')
@@ -311,7 +311,7 @@ it('refreshes the stored position on later logins and keeps it when the company 
     expect($first)->toBe('Procurement Officer')
         ->and($second)->toBe('Head of Procurement')
         ->and($third)->toBe('Head of Procurement')
-        ->and($user->position)->toBe('Head of Procurement');
+        ->and($user->currentEmployeeProfile?->position)->toBe('Head of Procurement');
 });
 
 it('stores the company signature as an sso file on login and exposes it through the auth endpoints', function () {

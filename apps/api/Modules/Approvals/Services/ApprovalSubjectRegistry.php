@@ -377,6 +377,7 @@ class ApprovalSubjectRegistry
             ->unique();
 
         return User::query()
+            ->with('currentEmployeeProfile')
             ->whereIn('id', $userIds)
             ->where('is_active', true)
             ->orderBy('name')

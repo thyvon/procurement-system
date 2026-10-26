@@ -152,6 +152,7 @@ export const ROUTE_CRUMBS: Record<string, (string | null)[]> = {
   "/approvals/[id]": ["nav.approvals", "breadcrumb.details"],
   "/telegram": ["nav.telegram"],
   "/users": ["nav.users"],
+  "/users/employee-profiles": ["nav.users", "nav.employeeProfiles"],
   "/users/roles": ["nav.users", "nav.roles"],
   "/settings": ["nav.settings"],
 }
@@ -180,6 +181,7 @@ const SEGMENT_FALLBACKS: Record<string, string> = {
   departments: "nav.departments",
   approvals: "nav.approvals",
   users: "nav.users",
+  "employee-profiles": "nav.employeeProfiles",
   settings: "nav.settings",
   list: "breadcrumb.list",
   new: "breadcrumb.create",

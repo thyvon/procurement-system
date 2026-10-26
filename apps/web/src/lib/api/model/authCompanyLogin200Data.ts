@@ -4,10 +4,10 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
-import type { UserResource } from './userResource';
+import type { AuthCompanyLogin200DataUser } from './authCompanyLogin200DataUser';
 
 export type AuthCompanyLogin200Data = {
-  user: UserResource;
+  user: AuthCompanyLogin200DataUser;
   access_token: string;
   expires_in: string;
   refresh_token: string;

@@ -5,6 +5,7 @@ namespace Modules\Auth\Services;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\EmployeeProfiles\Services\EmployeeProfileService;
 use Modules\EPurchase\Services\EPurchaseClient;
 use Modules\EPurchase\Services\EPurchaseLoginResult;
 use Modules\EPurchase\Services\EPurchaseSession;
@@ -25,6 +26,7 @@ class CompanyLoginService
         private readonly AvatarService $avatars,
         private readonly SignatureService $signatures,
         private readonly EPurchaseSessionService $sessions,
+        private readonly EmployeeProfileService $employeeProfiles,
     ) {}
 
     /**
@@ -54,6 +56,8 @@ class CompanyLoginService
         $signature = $this->companySignature($session);
 
         $user = $this->provisionUser($result);
+
+        $this->employeeProfiles->applyCompanyPosition($user, $result->position);
 
         if ($result->userPhoto !== null) {
             $this->avatars->applyCompanyPhoto($user, $result->userPhoto);
@@ -96,7 +100,6 @@ class CompanyLoginService
                     'email' => $result->email,
                     'password' => Str::password(32),
                     'entity_id' => $this->defaultEntityId(),
-                    'position' => $result->position,
                 ]);
 
                 $user->assignRole(Role::findOrCreate('staff', 'sanctum'));
@@ -108,12 +111,6 @@ class CompanyLoginService
 
             if ($user->name !== $result->name) {
                 $changes['name'] = $result->name;
-            }
-
-            // The company system is the source of truth for the position, but a
-            // login payload without one must never wipe what we already store.
-            if ($result->position !== null && $user->position !== $result->position) {
-                $changes['position'] = $result->position;
             }
 
             if ($changes !== []) {

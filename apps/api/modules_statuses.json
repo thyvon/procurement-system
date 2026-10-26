@@ -10,5 +10,6 @@
     "Notifications": true,
     "Telegram": true,
     "Invoices": true,
-    "Payments": true
+    "Payments": true,
+    "EmployeeProfiles": true
 }

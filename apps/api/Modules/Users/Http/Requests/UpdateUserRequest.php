@@ -39,7 +39,6 @@ class UpdateUserRequest extends FormRequest
             'current_password' => $this->isSelfUpdate()
                 ? ['required_with:password', 'string', $currentPasswordCheck]
                 : ['sometimes', 'string', $currentPasswordCheck],
-            'position' => ['sometimes', 'nullable', 'string', 'max:255'],
             'is_active' => ['sometimes', 'boolean'],
             'roles' => ['sometimes', 'array'],
             'roles.*' => ['string', Rule::exists('roles', 'name')->where('guard_name', 'sanctum')],

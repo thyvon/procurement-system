@@ -34,6 +34,16 @@ class UserPolicy
             && ($actor->entity_id === null || $actor->entity_id === $target->entity_id);
     }
 
+    /**
+     * Employment details are managed by a user manager, never by the
+     * employee themselves — unlike `update`, there is no self-edit bypass.
+     */
+    public function manageEmployeeProfile(User $actor, User $target): bool
+    {
+        return $actor->can('users.manage', 'sanctum')
+            && ($actor->entity_id === null || $actor->entity_id === $target->entity_id);
+    }
+
     public function delete(User $actor, User $target): bool
     {
         return $actor->can('users.manage', 'sanctum')

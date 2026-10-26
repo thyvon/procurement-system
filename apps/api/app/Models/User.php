@@ -7,19 +7,21 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Modules\EmployeeProfiles\Models\EmployeeProfile;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
  * @property string|null $entity_id
  * @property string|null $avatar_path
- * @property string|null $position
  * @property string|null $signature_path
  */
-#[Fillable(['name', 'email', 'password', 'avatar_path', 'entity_id', 'is_active', 'position', 'signature_path'])]
+#[Fillable(['name', 'email', 'password', 'avatar_path', 'entity_id', 'is_active', 'signature_path'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -43,5 +45,24 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * @return HasOne<EmployeeProfile, $this>
+     */
+    public function currentEmployeeProfile(): HasOne
+    {
+        return $this->hasOne(EmployeeProfile::class)
+            ->where('is_current', true)
+            ->orderByDesc('effective_from')
+            ->orderByDesc('created_at');
+    }
+
+    /**
+     * @return HasMany<EmployeeProfile, $this>
+     */
+    public function employeeProfiles(): HasMany
+    {
+        return $this->hasMany(EmployeeProfile::class)->orderByDesc('effective_from');
     }
 }

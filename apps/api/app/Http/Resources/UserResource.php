@@ -17,11 +17,20 @@ class UserResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $profile = $this->currentEmployeeProfile;
+
         return [
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'position' => $this->position,
+            'position' => $profile?->position,
+            'cardId' => $profile?->card_id,
+            'campusId' => $profile?->campus_id,
+            'campusName' => $this->whenLoaded('currentEmployeeProfile', fn () => $this->currentEmployeeProfile?->campus?->name),
+            'divisionId' => $profile?->division_id,
+            'divisionName' => $this->whenLoaded('currentEmployeeProfile', fn () => $this->currentEmployeeProfile?->division?->name),
+            'departmentId' => $profile?->department_id,
+            'departmentName' => $this->whenLoaded('currentEmployeeProfile', fn () => $this->currentEmployeeProfile?->department?->name),
             'avatar' => $this->avatarUrl(),
             'signature' => $this->signatureUrl(),
             'entityId' => $this->entity_id,

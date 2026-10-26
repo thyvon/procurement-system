@@ -59,7 +59,7 @@ class CashRequestResource extends JsonResource
             'remark' => $this->remark,
             'updatedAt' => $this->updated_at?->format('Y-m-d H:i'),
             'createdBy' => $this->whenLoaded('creator', fn () => $this->creator?->name),
-            'createdByPosition' => $this->whenLoaded('creator', fn () => $this->creator?->position),
+            'createdByPosition' => $this->whenLoaded('creator', fn () => $this->creator?->currentEmployeeProfile?->position),
             'createdById' => $this->created_by,
             'lines' => $this->relationLoaded('lines')
                 ? CashRequestLineResource::collection($this->lines)

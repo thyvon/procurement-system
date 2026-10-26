@@ -29,7 +29,10 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         /** @var User|null $user */
-        $user = User::query()->where('email', $request->string('email'))->first();
+        $user = User::query()
+            ->with(['currentEmployeeProfile.campus', 'currentEmployeeProfile.division', 'currentEmployeeProfile.department'])
+            ->where('email', $request->string('email'))
+            ->first();
 
         if ($user === null || ! Hash::check($request->string('password'), $user->password)) {
             return ApiResponse::error(401, 'Invalid credentials.', 'InvalidCredentials');
@@ -60,7 +63,7 @@ class AuthController extends Controller
         }
 
         return ApiResponse::success([
-            'user' => new UserResource($data['user']),
+            'user' => new UserResource($data['user']->load(['currentEmployeeProfile.campus', 'currentEmployeeProfile.division', 'currentEmployeeProfile.department'])),
             ...$data['tokens'],
             'token_type' => 'Bearer',
         ]);
@@ -90,6 +93,6 @@ class AuthController extends Controller
 
     public function me(): JsonResponse
     {
-        return ApiResponse::success(new UserResource(request()->user()->load('roles')));
+        return ApiResponse::success(new UserResource(request()->user()->load(['roles', 'currentEmployeeProfile.campus', 'currentEmployeeProfile.division', 'currentEmployeeProfile.department'])));
     }
 }

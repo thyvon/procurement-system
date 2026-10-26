@@ -49,7 +49,6 @@ const initialsOf = (name: string) =>
 const PROFILE_ERROR_FIELDS = [
   "name",
   "email",
-  "position",
   "password",
   "current_password",
 ] as const;
@@ -62,12 +61,30 @@ const pickFieldErrors = (errors: Record<string, string[]>) =>
     ]),
   );
 
+/** Employment data is managed by an administrator, so it renders as text. */
+function ReadonlyRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null | undefined;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-28 shrink-0 text-left text-sm after:ml-1 after:content-[':']">
+        {label}
+      </span>
+      <p className="min-w-0 flex-1 truncate text-sm">{value || "—"}</p>
+    </div>
+  );
+}
+
 export function ProfileDialog({ user, open, onOpenChange }: Props) {
   const t = useTranslations("profile");
+  const tEmp = useTranslations("employeeProfiles");
   const queryClient = useQueryClient();
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
-  const [position, setPosition] = useState(user.position ?? "");
   const [password, setPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -114,13 +131,11 @@ export function ProfileDialog({ user, open, onOpenChange }: Props) {
       const payload: {
         name: string;
         email: string;
-        position: string | null;
         password?: string;
         current_password?: string;
       } = {
         name: name.trim(),
         email: email.trim(),
-        position: position.trim() || null,
       };
       if (password.trim()) {
         payload.password = password;
@@ -177,7 +192,6 @@ export function ProfileDialog({ user, open, onOpenChange }: Props) {
     if (next) {
       setName(user.name);
       setEmail(user.email);
-      setPosition(user.position ?? "");
       setPassword("");
       setCurrentPassword("");
       setShowPassword(false);
@@ -212,9 +226,9 @@ export function ProfileDialog({ user, open, onOpenChange }: Props) {
             <p className="truncate text-base font-medium">
               {name || user.name}
             </p>
-            {position.trim() && (
+            {user.position && (
               <p className="truncate text-sm text-muted-foreground">
-                {position}
+                {user.position}
               </p>
             )}
             <p className="truncate text-sm text-muted-foreground">{email}</p>
@@ -273,29 +287,24 @@ export function ProfileDialog({ user, open, onOpenChange }: Props) {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Label
-                  htmlFor="profile-position"
-                  className="w-28 shrink-0 text-left after:ml-1 after:content-[':']"
-                >
-                  {t("position")}
-                </Label>
-                <div className="min-w-0 flex-1 space-y-1">
-                  <Input
-                    id="profile-position"
-                    value={position}
-                    onChange={(e) => {
-                      setPosition(e.target.value);
-                      clearFieldError("position");
-                    }}
-                  />
-                  {fieldErrors.position && (
-                    <p className="text-xs text-destructive">
-                      {fieldErrors.position}
-                    </p>
-                  )}
-                </div>
-              </div>
+            </CardContent>
+          </Card>
+          <Card size="sm">
+            <CardHeader>
+              <CardTitle>{t("sectionEmployment")}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                {t("employmentHint")}
+              </p>
+              <ReadonlyRow label={tEmp("cardId")} value={user.cardId} />
+              <ReadonlyRow label={tEmp("position")} value={user.position} />
+              <ReadonlyRow label={tEmp("campus")} value={user.campusName} />
+              <ReadonlyRow label={tEmp("division")} value={user.divisionName} />
+              <ReadonlyRow
+                label={tEmp("department")}
+                value={user.departmentName}
+              />
             </CardContent>
           </Card>
           <Card size="sm">

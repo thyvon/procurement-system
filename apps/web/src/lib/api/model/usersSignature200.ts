@@ -4,8 +4,8 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
-import type { UserResource } from './userResource';
+import type { UsersSignature200Data } from './usersSignature200Data';
 
 export type UsersSignature200 = {
-  data: UserResource;
+  data: UsersSignature200Data;
 };

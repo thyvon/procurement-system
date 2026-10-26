@@ -29,7 +29,7 @@ class PaymentPrintService
 
     public function forCashRequest(CashRequest $cashRequest, User $user): PdfBuilder
     {
-        $cashRequest->load(['lines', 'creator']);
+        $cashRequest->load(['lines', 'creator.currentEmployeeProfile']);
 
         [$view, $sheet] = match ($cashRequest->type) {
             CashRequest::TYPE_PETTY_CASH => ['payments::print.petty-cash-request', 'petty-cash-request'],
@@ -62,7 +62,7 @@ class PaymentPrintService
                 'totalUsd' => (float) $cashRequest->total_usd,
                 'remark' => $cashRequest->remark,
                 'createdBy' => $cashRequest->creator?->name,
-                'createdByPosition' => $cashRequest->creator?->position,
+                'createdByPosition' => $cashRequest->creator?->currentEmployeeProfile?->position,
                 'createdById' => $cashRequest->created_by,
                 'lines' => $cashRequest->lines->map(fn ($line): array => [
                     'id' => $line->getKey(),
@@ -86,7 +86,7 @@ class PaymentPrintService
 
     public function forCashClearance(CashClearance $cashClearance, User $user): PdfBuilder
     {
-        $cashClearance->load(['lines', 'creator', 'cashRequest']);
+        $cashClearance->load(['lines', 'creator.currentEmployeeProfile', 'cashRequest']);
 
         return Pdf::view('payments::print.cash-clearance', [
             'css' => PrintStylesheet::load(),
@@ -129,7 +129,7 @@ class PaymentPrintService
 
     public function forAdvanceLiquidation(AdvanceLiquidation $liquidation, User $user): PdfBuilder
     {
-        $liquidation->load(['lines', 'creator', 'cashRequest']);
+        $liquidation->load(['lines', 'creator.currentEmployeeProfile', 'cashRequest']);
 
         return Pdf::view('payments::print.advance-liquidation', [
             'css' => PrintStylesheet::load(),
@@ -141,7 +141,7 @@ class PaymentPrintService
                 'cashRequestCode' => $liquidation->cashRequest?->code ?? (string) $liquidation->cash_request_id,
                 'exchangeRate' => (float) $liquidation->exchange_rate,
                 'createdBy' => $liquidation->creator?->name,
-                'createdByPosition' => $liquidation->creator?->position,
+                'createdByPosition' => $liquidation->creator?->currentEmployeeProfile?->position,
                 'createdById' => $liquidation->created_by,
                 'campus' => $liquidation->campus,
                 'division' => $liquidation->division,

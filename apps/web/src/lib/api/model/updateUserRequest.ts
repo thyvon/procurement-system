@@ -13,11 +13,6 @@ export interface UpdateUserRequest {
   /** @minLength 10 */
   password?: string;
   current_password?: string;
-  /**
-     * @maxLength 255
-     * @nullable
-     */
-  position?: string | null;
   is_active?: boolean;
   roles?: string[];
   toca_entry_ids?: string[];

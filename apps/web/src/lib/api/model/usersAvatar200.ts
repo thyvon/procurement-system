@@ -4,8 +4,8 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
-import type { UserResource } from './userResource';
+import type { UsersAvatar200Data } from './usersAvatar200Data';
 
 export type UsersAvatar200 = {
-  data: UserResource;
+  data: UsersAvatar200Data;
 };

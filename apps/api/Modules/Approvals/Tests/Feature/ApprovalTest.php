@@ -11,6 +11,7 @@ use Modules\Approvals\Models\ApprovalRequestStepAssignee;
 use Modules\Approvals\Models\ApprovalSetting;
 use Modules\Approvals\Models\ApprovalStep;
 use Modules\Approvals\Models\TocaEntry;
+use Modules\EmployeeProfiles\Models\EmployeeProfile;
 use Modules\Organization\Models\Entity;
 use Modules\PurchaseOrders\Models\Evaluation;
 use Modules\PurchaseOrders\Models\EvaluationItem;
@@ -532,8 +533,19 @@ it('requires an amount for a draft preview that references no document', functio
 
 it('submits an evaluation, stamps the record step and parks on the first decide step', function () {
     $evaluation = approvalsEvaluation();
-    $this->admin->update(['position' => 'Procurement Manager', 'signature_path' => 'signatures/sso_admin.png']);
-    $this->firstApprover->update(['position' => 'Finance Manager', 'signature_path' => 'signatures/sso_approver.png']);
+    $this->admin->update(['signature_path' => 'signatures/sso_admin.png']);
+    $this->firstApprover->update(['signature_path' => 'signatures/sso_approver.png']);
+
+    EmployeeProfile::factory()->create([
+        'entity_id' => $this->entity->getKey(),
+        'user_id' => $this->admin->getKey(),
+        'position' => 'Procurement Manager',
+    ]);
+    EmployeeProfile::factory()->create([
+        'entity_id' => $this->entity->getKey(),
+        'user_id' => $this->firstApprover->getKey(),
+        'position' => 'Finance Manager',
+    ]);
 
     $response = approvalsSubmit($evaluation, approvalsAssignees())
         ->assertStatus(201)

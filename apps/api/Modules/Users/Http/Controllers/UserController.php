@@ -57,14 +57,14 @@ class UserController extends Controller
             $this->toca->syncUserEntries($user, $request->input('toca_entry_ids'));
         }
 
-        return ApiResponse::success(new UserResource($user->load('roles')), 201);
+        return ApiResponse::success(new UserResource($user->load(['roles', 'currentEmployeeProfile.campus', 'currentEmployeeProfile.division', 'currentEmployeeProfile.department'])), 201);
     }
 
     public function show(User $user): UserResource
     {
         $this->authorize('view', $user);
 
-        return new UserResource($user->load('roles'));
+        return new UserResource($user->load(['roles', 'currentEmployeeProfile.campus', 'currentEmployeeProfile.division', 'currentEmployeeProfile.department']));
     }
 
     public function update(UpdateUserRequest $request, User $user): UserResource
@@ -88,7 +88,7 @@ class UserController extends Controller
             $this->toca->syncUserEntries($user, $request->input('toca_entry_ids'));
         }
 
-        return new UserResource($user->refresh()->load('roles'));
+        return new UserResource($user->refresh()->load(['roles', 'currentEmployeeProfile.campus', 'currentEmployeeProfile.division', 'currentEmployeeProfile.department']));
     }
 
     public function destroy(User $user): JsonResponse
@@ -106,7 +106,7 @@ class UserController extends Controller
 
         $this->avatars->replaceWithUpload($user, $request->file('image'));
 
-        return new UserResource($user->refresh());
+        return new UserResource($user->refresh()->load(['currentEmployeeProfile.campus', 'currentEmployeeProfile.division', 'currentEmployeeProfile.department']));
     }
 
     public function updateSignature(UpdateSignatureRequest $request, User $user): UserResource
@@ -115,6 +115,6 @@ class UserController extends Controller
 
         $this->signatures->replaceWithUpload($user, $request->file('image'));
 
-        return new UserResource($user->refresh());
+        return new UserResource($user->refresh()->load(['currentEmployeeProfile.campus', 'currentEmployeeProfile.division', 'currentEmployeeProfile.department']));
     }
 }

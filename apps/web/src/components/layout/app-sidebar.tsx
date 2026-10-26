@@ -134,6 +134,11 @@ const navItems: NavItem[] = [
     enabled: true,
     children: [
       { key: "users", href: "/users", enabled: true },
+      {
+        key: "employeeProfiles",
+        href: "/users/employee-profiles",
+        enabled: true,
+      },
       { key: "roles", href: "/users/roles", enabled: true },
     ],
   },

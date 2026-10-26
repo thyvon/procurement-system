@@ -93,19 +93,12 @@ it('lets a user update their own profile details', function () {
         ->patchJson("/api/v1/users/{$this->staffA->getKey()}", [
             'name' => 'Renamed Me',
             'email' => 'renamed.me@test.local',
-            'position' => 'Procurement Officer',
         ])
         ->assertOk()
         ->assertJsonPath('data.name', 'Renamed Me')
-        ->assertJsonPath('data.position', 'Procurement Officer');
+        ->assertJsonPath('data.email', 'renamed.me@test.local');
 
-    expect($this->staffA->refresh()->position)->toBe('Procurement Officer');
-
-    // An empty position clears it instead of failing validation.
-    $this->actingAs($this->staffA, 'sanctum')
-        ->patchJson("/api/v1/users/{$this->staffA->getKey()}", ['position' => null])
-        ->assertOk()
-        ->assertJsonPath('data.position', null);
+    expect($this->staffA->refresh()->name)->toBe('Renamed Me');
 });
 
 it('rejects weak passwords and duplicate emails with 422 envelope', function () {

@@ -12,6 +12,20 @@ export interface UserResource {
   /** @nullable */
   position: string | null;
   /** @nullable */
+  cardId: string | null;
+  /** @nullable */
+  campusId: string | null;
+  /** @nullable */
+  campusName?: string | null;
+  /** @nullable */
+  divisionId: string | null;
+  /** @nullable */
+  divisionName?: string | null;
+  /** @nullable */
+  departmentId: string | null;
+  /** @nullable */
+  departmentName?: string | null;
+  /** @nullable */
   avatar: string | null;
   /** @nullable */
   signature: string | null;

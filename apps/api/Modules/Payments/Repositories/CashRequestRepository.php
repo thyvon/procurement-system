@@ -16,7 +16,7 @@ class CashRequestRepository extends BaseRepository implements CashRequestReposit
 
     public function filtered(array $filters, int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
-        $query = $this->query()->with(['lines', 'creator']);
+        $query = $this->query()->with(['lines', 'creator.currentEmployeeProfile']);
 
         $search = trim((string) ($filters['search'] ?? ''));
 

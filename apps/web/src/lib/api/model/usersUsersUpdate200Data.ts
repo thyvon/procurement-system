@@ -6,4 +6,4 @@
  */
 import type { UserResource } from './userResource';
 
-export type UsersUsersUpdate200Data = UserResource & { [key: string]: unknown } & Required<Pick<UserResource & { [key: string]: unknown }, 'roles'>>;
+export type UsersUsersUpdate200Data = UserResource & { [key: string]: unknown } & Required<Pick<UserResource & { [key: string]: unknown }, 'campusName' | 'divisionName' | 'departmentName' | 'roles'>>;
