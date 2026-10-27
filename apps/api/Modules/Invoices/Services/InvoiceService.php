@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Invoices\Models\Invoice;
 use Modules\Invoices\Models\InvoiceLine;
+use Modules\Payments\Models\CashRequest;
 use Modules\Products\Services\CodeGenerationService;
 
 /**
@@ -48,7 +49,7 @@ class InvoiceService
                 'supplier_phone' => $data['supplier_phone'] ?? null,
                 'supplier_address' => $data['supplier_address'] ?? null,
                 'transaction_type' => $data['transaction_type'] ?? null,
-                'cash_reference' => $data['cash_reference'] ?? null,
+                ...$this->resolveCashLink($data),
                 'paid_at' => $this->derivePaidAt($data),
                 'payment_term' => $data['payment_term'] ?? null,
                 'invoice_date' => $data['invoice_date'],
@@ -66,6 +67,8 @@ class InvoiceService
             ]);
 
             $this->syncLines($invoice, $data, $user);
+
+            $this->ensureWithinCashRequestBalance($invoice);
 
             return $invoice->refresh();
         });
@@ -86,7 +89,7 @@ class InvoiceService
                 'supplier_phone' => $data['supplier_phone'] ?? null,
                 'supplier_address' => $data['supplier_address'] ?? null,
                 'transaction_type' => $data['transaction_type'] ?? null,
-                'cash_reference' => $data['cash_reference'] ?? null,
+                ...$this->resolveCashLink($data),
                 'paid_at' => $this->derivePaidAt($data),
                 'payment_term' => $data['payment_term'] ?? null,
                 'invoice_date' => $data['invoice_date'],
@@ -105,6 +108,8 @@ class InvoiceService
             $invoice->lines()->forceDelete();
 
             $this->syncLines($invoice, $data, $user);
+
+            $this->ensureWithinCashRequestBalance($invoice);
 
             return $invoice->refresh();
         });
@@ -164,6 +169,87 @@ class InvoiceService
             Invoice::TRANSACTION_TYPE_PETTY_CASH, Invoice::TRANSACTION_TYPE_ADVANCE => $data['invoice_date'],
             default => null,
         };
+    }
+
+    /**
+     * The cash link is server-owned: a cash-settled invoice stores the
+     * referenced request's id and derives `cash_reference` from its code
+     * (a reference must point at an existing request of the same type);
+     * a credit invoice — or a type switch to credit — clears both. Like
+     * `paid_at`, it is recomputed on every write.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{cash_request_id: string|null, cash_reference: string|null}
+     */
+    private function resolveCashLink(array $data): array
+    {
+        $requestId = $data['cash_request_id'] ?? null;
+
+        if ($data['transaction_type'] === Invoice::TRANSACTION_TYPE_CREDIT || $requestId === null) {
+            return ['cash_request_id' => null, 'cash_reference' => null];
+        }
+
+        $cashRequest = CashRequest::query()->find($requestId);
+
+        if ($cashRequest === null) {
+            throw ValidationException::withMessages([
+                'cash_request_id' => 'Record not found.',
+            ]);
+        }
+
+        if ($cashRequest->type !== $data['transaction_type']) {
+            throw ValidationException::withMessages([
+                'cash_request_id' => "An invoice of type '{$data['transaction_type']}' cannot reference a '{$cashRequest->type}' cash request.",
+            ]);
+        }
+
+        return [
+            'cash_request_id' => $cashRequest->getKey(),
+            'cash_reference' => $cashRequest->code,
+        ];
+    }
+
+    /**
+     * The spend cap: a cash-settled invoice may not push the sum of its
+     * request's non-cancelled invoices past the request's approved total.
+     * This invoice is excluded from the sum, so an update that repoints the
+     * link frees the old request's budget automatically. Runs inside the
+     * write transaction (after syncLines has written the final totals), so
+     * a violation rolls the whole write back.
+     */
+    private function ensureWithinCashRequestBalance(Invoice $invoice): void
+    {
+        if ($invoice->cash_request_id === null) {
+            return;
+        }
+
+        $cashRequest = CashRequest::query()->find($invoice->cash_request_id);
+
+        if ($cashRequest === null) {
+            return;
+        }
+
+        $usedUsd = (float) Invoice::query()
+            ->where('cash_request_id', $cashRequest->getKey())
+            ->whereKeyNot($invoice->getKey())
+            ->where('status', '!=', Invoice::STATUS_CANCELLED)
+            ->sum('grand_total_usd');
+
+        $invoiceUsd = (float) $invoice->grand_total_usd;
+        $approvedUsd = (float) $cashRequest->total_usd;
+
+        if (round($usedUsd + $invoiceUsd, 2) > $approvedUsd) {
+            throw ValidationException::withMessages([
+                'cash_request_id' => sprintf(
+                    'Invoice total (%s USD) exceeds cash request %s: approved %s USD, already used %s USD, remaining %s USD.',
+                    number_format($invoiceUsd, 2, '.', ''),
+                    $cashRequest->code,
+                    number_format($approvedUsd, 2, '.', ''),
+                    number_format($usedUsd, 2, '.', ''),
+                    number_format(max($approvedUsd - $usedUsd, 0), 2, '.', ''),
+                ),
+            ]);
+        }
     }
 
     /**

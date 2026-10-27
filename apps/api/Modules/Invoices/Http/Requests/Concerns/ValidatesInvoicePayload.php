@@ -9,7 +9,9 @@ use Modules\Invoices\Models\Invoice;
 /**
  * Shared invoice payload rules for Store/Update invoice requests. The line
  * list is always submitted whole (full-replace semantics); money columns
- * (subtotal, total) and `code`/`status` are server-owned and never accepted.
+ * (subtotal, total) and `code`/`status`/`cash_reference` are server-owned
+ * and never accepted — the cash link is submitted as `cash_request_id` and
+ * the service derives the reference code from it.
  */
 trait ValidatesInvoicePayload
 {
@@ -25,11 +27,13 @@ trait ValidatesInvoicePayload
             'supplier_phone' => ['required', 'string', 'max:32'],
             'supplier_address' => ['required', 'string', 'max:255'],
             'transaction_type' => ['required', 'string', Rule::in(Invoice::TRANSACTION_TYPES)],
-            'cash_reference' => [
+            'cash_request_id' => [
                 'nullable',
                 'string',
-                'max:64',
                 'required_unless:transaction_type,'.Invoice::TRANSACTION_TYPE_CREDIT,
+                Rule::exists('cash_requests', 'id')
+                    ->where('entity_id', $this->user()?->entity_id)
+                    ->whereNull('deleted_at'),
             ],
             'payment_term' => ['required', 'string', Rule::in(Invoice::PAYMENT_TERMS)],
             'invoice_date' => ['required', 'date'],
@@ -73,7 +77,7 @@ trait ValidatesInvoicePayload
             'supplier_phone' => $this->validated('supplier_phone'),
             'supplier_address' => $this->validated('supplier_address'),
             'transaction_type' => $this->validated('transaction_type'),
-            'cash_reference' => $this->validated('cash_reference'),
+            'cash_request_id' => $this->validated('cash_request_id'),
             'payment_term' => $this->validated('payment_term'),
             'invoice_date' => $this->validated('invoice_date'),
             'due_date' => $this->validated('due_date'),

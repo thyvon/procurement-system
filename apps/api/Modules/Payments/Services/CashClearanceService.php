@@ -3,9 +3,11 @@
 namespace Modules\Payments\Services;
 
 use App\Models\User;
+use App\Support\Currency;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Modules\Invoices\Models\Invoice;
 use Modules\Payments\Models\CashClearance;
 use Modules\Payments\Models\CashClearanceLine;
 use Modules\Payments\Models\CashRequest;
@@ -147,6 +149,110 @@ class CashClearanceService
     }
 
     /**
+     * Suggested clearance lines for a cash request: every non-cancelled
+     * invoice linked to it (FK), flattened into the line payload the client
+     * submits. VAT lives at header level on an invoice, so it is split across
+     * that invoice's lines by net-total share (remainder on the last line),
+     * and every amount is converted to USD through the invoice's own currency
+     * and entry-time rate.
+     *
+     * @return array<int, array{
+     *     invoiceDate: string|null,
+     *     prRef: string|null,
+     *     purchaser: string|null,
+     *     description: string,
+     *     vendor: string,
+     *     vendorPhone: string|null,
+     *     campus: string|null,
+     *     division: string|null,
+     *     department: string|null,
+     *     qty: float,
+     *     uom: string|null,
+     *     unitPriceUsd: float,
+     *     discountUsd: float,
+     *     vatUsd: float,
+     * }>
+     */
+    public function sourceItems(CashRequest $source): array
+    {
+        $invoices = Invoice::query()
+            ->where('entity_id', $source->entity_id)
+            ->where('cash_request_id', $source->getKey())
+            ->where('transaction_type', $source->type)
+            ->where('status', '!=', Invoice::STATUS_CANCELLED)
+            ->with(['lines' => fn ($query) => $query->orderBy('position')])
+            ->orderBy('invoice_date')
+            ->orderBy('code')
+            ->get();
+
+        $rows = [];
+
+        foreach ($invoices as $invoice) {
+            $currency = (string) $invoice->currency;
+            $rate = (float) $invoice->exchange_rate;
+            $vatUsd = Currency::toUsd((float) $invoice->vat_amount, $currency, $rate);
+            $shares = $this->allocateVat($invoice, $vatUsd);
+
+            foreach ($invoice->lines as $index => $line) {
+                $rows[] = [
+                    'invoiceDate' => $invoice->invoice_date?->format('Y-m-d'),
+                    'prRef' => null,
+                    'purchaser' => null,
+                    'description' => (string) $line->description,
+                    'vendor' => (string) $invoice->supplier_name,
+                    'vendorPhone' => $invoice->supplier_phone,
+                    'campus' => $line->campus,
+                    'division' => $line->division,
+                    'department' => $line->department,
+                    'qty' => (float) $line->qty,
+                    'uom' => $line->uom,
+                    'unitPriceUsd' => Currency::toUsd((float) $line->unit_price, $currency, $rate),
+                    'discountUsd' => Currency::toUsd((float) $line->discount, $currency, $rate),
+                    'vatUsd' => $shares[$index] ?? 0.0,
+                ];
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Split an invoice's USD VAT across its lines in proportion to each
+     * line's net total; the last line takes the rounding remainder so the
+     * shares always add back up to the header amount. A zero subtotal has
+     * no meaningful base, so the VAT is not attributed at all.
+     *
+     * @return array<int, float>
+     */
+    private function allocateVat(Invoice $invoice, float $vatUsd): array
+    {
+        $lines = $invoice->lines->values();
+        $count = $lines->count();
+        $base = round((float) $lines->sum('line_total'), 2);
+
+        if ($count === 0 || $base <= 0 || $vatUsd <= 0) {
+            return array_fill(0, $count, 0.0);
+        }
+
+        $shares = [];
+        $allocated = 0.0;
+
+        foreach ($lines as $index => $line) {
+            if ($index === $count - 1) {
+                $shares[$index] = round($vatUsd - $allocated, 2);
+
+                continue;
+            }
+
+            $share = round($vatUsd * (float) $line->line_total / $base, 2);
+            $allocated = round($allocated + $share, 2);
+            $shares[$index] = $share;
+        }
+
+        return $shares;
+    }
+
+    /**
      * The referenced cash request must exist and be a petty cash request:
      * a clearance settles the PC branch only (advances are liquidated, cash
      * requests settle themselves). The approved-source and one-clearance
@@ -248,10 +354,36 @@ class CashClearanceService
 
         $totalUsd = round($totalUsd, 2);
 
+        $this->ensureWithinRequestAmount($cashClearance, $totalUsd);
+
         $cashClearance->update([
             'total_usd' => $totalUsd,
             'balance_usd' => round((float) $cashClearance->request_amount_usd - $totalUsd, 2),
             'updated_by' => $user->getKey(),
         ]);
+    }
+
+    /**
+     * The spend cap: a clearance may not spend more than the request holds.
+     * Runs inside the write transaction, so a violation rolls the whole
+     * write back (the lines written so far go with it).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function ensureWithinRequestAmount(CashClearance $cashClearance, float $totalUsd): void
+    {
+        $requestAmountUsd = (float) $cashClearance->request_amount_usd;
+
+        if (round($totalUsd, 2) > $requestAmountUsd) {
+            throw ValidationException::withMessages([
+                'lines' => sprintf(
+                    'The clearance total (%s USD) exceeds cash request %s: approved %s USD, over by %s USD.',
+                    number_format($totalUsd, 2, '.', ''),
+                    $cashClearance->cashRequest?->code ?? 'the linked request',
+                    number_format($requestAmountUsd, 2, '.', ''),
+                    number_format($totalUsd - $requestAmountUsd, 2, '.', ''),
+                ),
+            ]);
+        }
     }
 }

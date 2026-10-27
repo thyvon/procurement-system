@@ -29,6 +29,7 @@ import type {
   PaymentsPettyCashRequestsDestroy200,
   PaymentsPettyCashRequestsIndex200,
   PaymentsPettyCashRequestsIndexParams,
+  PaymentsPettyCashRequestsInvoiceItems200,
   PaymentsPettyCashRequestsPrint200,
   PaymentsPettyCashRequestsShow200,
   PaymentsPettyCashRequestsStatus200,
@@ -1163,6 +1164,203 @@ export function usePaymentsPettyCashRequestsPrintSuspense<TData = Awaited<Return
  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getPaymentsPettyCashRequestsPrintSuspenseQueryOptions(cashRequest,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type paymentsPettyCashRequestsInvoiceItemsResponse200 = {
+  data: PaymentsPettyCashRequestsInvoiceItems200
+  status: 200
+}
+
+export type paymentsPettyCashRequestsInvoiceItemsResponse401 = {
+  data: AuthenticationExceptionResponse
+  status: 401
+}
+
+export type paymentsPettyCashRequestsInvoiceItemsResponse403 = {
+  data: AuthorizationExceptionResponse
+  status: 403
+}
+
+export type paymentsPettyCashRequestsInvoiceItemsResponse404 = {
+  data: ModelNotFoundExceptionResponse
+  status: 404
+}
+
+export type paymentsPettyCashRequestsInvoiceItemsResponseSuccess = (paymentsPettyCashRequestsInvoiceItemsResponse200) & {
+  headers: Headers;
+};
+export type paymentsPettyCashRequestsInvoiceItemsResponseError = (paymentsPettyCashRequestsInvoiceItemsResponse401 | paymentsPettyCashRequestsInvoiceItemsResponse403 | paymentsPettyCashRequestsInvoiceItemsResponse404) & {
+  headers: Headers;
+};
+
+export type paymentsPettyCashRequestsInvoiceItemsResponse = (paymentsPettyCashRequestsInvoiceItemsResponseSuccess | paymentsPettyCashRequestsInvoiceItemsResponseError)
+
+export const getPaymentsPettyCashRequestsInvoiceItemsUrl = (cashRequest: string,) => {
+
+
+
+
+  return `${process.env.NEXT_PUBLIC_API_URL}/api/v1/payments/petty-cash-requests/${cashRequest}/invoice-items`
+}
+
+/**
+ * @summary The invoice items linked to this request, shaped as suggested cash
+clearance lines: the prefill the clearance form applies when the user
+picks the request
+ */
+export const paymentsPettyCashRequestsInvoiceItems = async (cashRequest: string, options?: RequestInit): Promise<paymentsPettyCashRequestsInvoiceItemsResponse> => {
+
+  const res = await fetch(getPaymentsPettyCashRequestsInvoiceItemsUrl(cashRequest),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: paymentsPettyCashRequestsInvoiceItemsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as paymentsPettyCashRequestsInvoiceItemsResponse
+}
+
+
+
+
+
+export const getPaymentsPettyCashRequestsInvoiceItemsQueryKey = (cashRequest: string,) => {
+    return [
+    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/payments/petty-cash-requests/${cashRequest}/invoice-items`
+    ] as const;
+    }
+
+
+export const getPaymentsPettyCashRequestsInvoiceItemsQueryOptions = <TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(cashRequest: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPaymentsPettyCashRequestsInvoiceItemsQueryKey(cashRequest);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>> = ({ signal }) => paymentsPettyCashRequestsInvoiceItems(cashRequest, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: cashRequest !== null && cashRequest !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PaymentsPettyCashRequestsInvoiceItemsQueryResult = NonNullable<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>>
+export type PaymentsPettyCashRequestsInvoiceItemsQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
+
+
+export function usePaymentsPettyCashRequestsInvoiceItems<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>,
+          TError,
+          Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsPettyCashRequestsInvoiceItems<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>,
+          TError,
+          Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsPettyCashRequestsInvoiceItems<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The invoice items linked to this request, shaped as suggested cash
+clearance lines: the prefill the clearance form applies when the user
+picks the request
+ */
+
+export function usePaymentsPettyCashRequestsInvoiceItems<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPaymentsPettyCashRequestsInvoiceItemsQueryOptions(cashRequest,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getPaymentsPettyCashRequestsInvoiceItemsSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(cashRequest: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPaymentsPettyCashRequestsInvoiceItemsQueryKey(cashRequest);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>> = ({ signal }) => paymentsPettyCashRequestsInvoiceItems(cashRequest, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PaymentsPettyCashRequestsInvoiceItemsSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>>
+export type PaymentsPettyCashRequestsInvoiceItemsSuspenseQueryError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse
+
+
+export function usePaymentsPettyCashRequestsInvoiceItemsSuspense<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsPettyCashRequestsInvoiceItemsSuspense<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsPettyCashRequestsInvoiceItemsSuspense<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The invoice items linked to this request, shaped as suggested cash
+clearance lines: the prefill the clearance form applies when the user
+picks the request
+ */
+
+export function usePaymentsPettyCashRequestsInvoiceItemsSuspense<TData = Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError = AuthenticationExceptionResponse | AuthorizationExceptionResponse | ModelNotFoundExceptionResponse>(
+ cashRequest: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof paymentsPettyCashRequestsInvoiceItems>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPaymentsPettyCashRequestsInvoiceItemsSuspenseQueryOptions(cashRequest,options)
 
   const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

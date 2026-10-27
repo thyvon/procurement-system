@@ -3,6 +3,8 @@
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Testing\TestResponse;
+use Modules\Invoices\Models\Invoice;
+use Modules\Invoices\Models\InvoiceLine;
 use Modules\Organization\Models\Entity;
 use Modules\Payments\Models\CashRequest;
 use Spatie\Permission\Models\Role;
@@ -379,4 +381,143 @@ it('creates an advance and a cash request under their own branches', function ()
         ->getJson('/api/v1/payments/petty-cash-requests')
         ->assertOk()
         ->assertJsonPath('meta.total', 0);
+});
+
+it('returns the linked invoice items shaped as clearance lines', function () {
+    $request = CashRequest::factory()->approved()->create([
+        'entity_id' => $this->entity->getKey(),
+        'type' => CashRequest::TYPE_PETTY_CASH,
+    ]);
+
+    $invoice = Invoice::factory()->create([
+        'entity_id' => $this->entity->getKey(),
+        'transaction_type' => CashRequest::TYPE_PETTY_CASH,
+        'cash_request_id' => $request->getKey(),
+        'cash_reference' => $request->code,
+        'invoice_date' => '2026-06-10',
+        'supplier_name' => 'Acme Trading',
+        'supplier_phone' => '012345678',
+        'vat_amount' => 10,
+    ]);
+
+    InvoiceLine::factory()->create([
+        'entity_id' => $this->entity->getKey(),
+        'invoice_id' => $invoice->getKey(),
+        'description' => 'A4 Paper',
+        'uom' => 'box',
+        'campus' => 'CCV',
+        'division' => 'ADM',
+        'department' => 'FIN',
+        'qty' => 10,
+        'unit_price' => 3.5,
+        'discount' => 0,
+        'line_total' => 35,
+        'position' => 0,
+    ]);
+    InvoiceLine::factory()->create([
+        'entity_id' => $this->entity->getKey(),
+        'invoice_id' => $invoice->getKey(),
+        'description' => 'Stapler',
+        'uom' => 'pc',
+        'campus' => 'CCV',
+        'division' => 'ADM',
+        'department' => 'FIN',
+        'qty' => 2,
+        'unit_price' => 5,
+        'discount' => 0,
+        'line_total' => 10,
+        'position' => 1,
+    ]);
+
+    // A cancelled invoice never feeds a clearance.
+    $cancelled = Invoice::factory()->cancelled()->create([
+        'entity_id' => $this->entity->getKey(),
+        'transaction_type' => CashRequest::TYPE_PETTY_CASH,
+        'cash_request_id' => $request->getKey(),
+        'cash_reference' => $request->code,
+        'vat_amount' => 0,
+    ]);
+    InvoiceLine::factory()->create([
+        'entity_id' => $this->entity->getKey(),
+        'invoice_id' => $cancelled->getKey(),
+        'description' => 'Cancelled item',
+        'line_total' => 5,
+    ]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/payments/petty-cash-requests/{$request->getKey()}/invoice-items")
+        ->assertOk()
+        ->assertJsonCount(2, 'data')
+        ->assertJsonPath('data.0.invoiceDate', '2026-06-10')
+        ->assertJsonPath('data.0.description', 'A4 Paper')
+        ->assertJsonPath('data.0.vendor', 'Acme Trading')
+        ->assertJsonPath('data.0.vendorPhone', '012345678')
+        ->assertJsonPath('data.0.campus', 'CCV')
+        ->assertJsonPath('data.0.division', 'ADM')
+        ->assertJsonPath('data.0.department', 'FIN')
+        ->assertJsonPath('data.0.qty', 10)
+        ->assertJsonPath('data.0.uom', 'box')
+        ->assertJsonPath('data.0.unitPriceUsd', 3.5)
+        ->assertJsonPath('data.0.discountUsd', 0)
+        ->assertJsonPath('data.0.prRef', null)
+        ->assertJsonPath('data.0.purchaser', null)
+        // Header VAT 10 split by net share: 10 × 35/45 = 7.78, last line 2.22.
+        ->assertJsonPath('data.0.vatUsd', 7.78)
+        ->assertJsonPath('data.1.description', 'Stapler')
+        ->assertJsonPath('data.1.vatUsd', 2.22);
+});
+
+it('refuses to serve another branch document as a clearance source', function () {
+    $advance = CashRequest::factory()->advance()->create([
+        'entity_id' => $this->entity->getKey(),
+    ]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/payments/petty-cash-requests/{$advance->getKey()}/invoice-items")
+        ->assertNotFound();
+});
+
+it('returns an empty list when the request has no linked invoices', function () {
+    $request = CashRequest::factory()->approved()->create([
+        'entity_id' => $this->entity->getKey(),
+    ]);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/payments/petty-cash-requests/{$request->getKey()}/invoice-items")
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+});
+
+it('reports the invoice budget usage and remaining amount', function () {
+    $request = CashRequest::factory()->approved()->create([
+        'entity_id' => $this->entity->getKey(),
+        'total_usd' => 500,
+    ]);
+
+    Invoice::factory()->create([
+        'entity_id' => $this->entity->getKey(),
+        'cash_request_id' => $request->getKey(),
+        'grand_total_usd' => 120,
+    ]);
+
+    // A cancelled invoice never counts against the budget.
+    Invoice::factory()->cancelled()->create([
+        'entity_id' => $this->entity->getKey(),
+        'cash_request_id' => $request->getKey(),
+        'grand_total_usd' => 999,
+    ]);
+
+    // Index carries the withSum aggregate.
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson('/api/v1/payments/petty-cash-requests')
+        ->assertOk()
+        ->assertJsonPath('data.0.usedAmountUsd', 120)
+        ->assertJsonPath('data.0.remainingAmountUsd', 380);
+
+    // Show falls back to the single-row sum.
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/payments/petty-cash-requests/{$request->getKey()}")
+        ->assertOk()
+        ->assertJsonPath('data.usedAmountUsd', 120)
+        ->assertJsonPath('data.remainingAmountUsd', 380);
 });

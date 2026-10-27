@@ -764,6 +764,7 @@
       "cashReference": "លេខយោងសាច់ប្រាក់",
       "cashReferencePlaceholder": "ឧ. CSH-001",
       "cashReferenceEmpty": "មិនទាន់មានជម្រើសទេ",
+      "cashReferenceRemaining": "នៅសល់: {amount}",
       "paymentTerm": "រយៈពេលទូទាត់",
       "paymentTermPlaceholder": "ជ្រើសរើសរយៈពេល",
       "paymentTerms": {
@@ -937,7 +938,8 @@
       "updated": "បានកែការទូទាត់សាច់ប្រាក់។",
       "deleted": "បានលុបការទូទាត់សាច់ប្រាក់។",
       "cancelDocumentTitle": "លុបចោលការទូទាត់សាច់ប្រាក់",
-      "cancelled": "បានលុបចោលការទូទាត់សាច់ប្រាក់។"
+      "cancelled": "បានលុបចោលការទូទាត់សាច់ប្រាក់។",
+      "sourceItemsEmpty": "មិនមានវត្ថុលើវិក្កយបត្រដែលភ្ជាប់ជាមួយសំណើសាច់ប្រាក់នេះទេ។"
     },
     "advanceLiquidations": {
       "newTitle": "ការទូទាត់ប្រាក់ជាមុនថ្មី",
@@ -964,6 +966,7 @@
       "totalUsd": "សរុប (USD)",
       "remark": "ចំណាំ",
       "cashRequest": "សំណើសាច់ប្រាក់",
+      "cashRequestRemaining": "នៅសល់: {amount}",
       "clearanceDate": "ថ្ងៃទូទាត់",
       "liquidationDate": "ថ្ងៃទូទាត់ជាមុន",
       "requestAmount": "ចំនួនស្នើសុំ",
@@ -1380,6 +1383,9 @@
     "campus": "សាខា",
     "division": "ផ្នែក",
     "department": "ដេប៉ាតឺម៉ង់",
+    "noCampuses": "មិនឃើញសាខាទេ។",
+    "noDivisions": "មិនឃើញផ្នែកទេ។",
+    "noDepartments": "មិនឃើញដេប៉ាតឺម៉ង់ទេ។",
     "none": "គ្មាន",
     "current": "បច្ចុប្បន្ន",
     "history": "ប្រវត្តិ",

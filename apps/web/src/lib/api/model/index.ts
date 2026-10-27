@@ -247,6 +247,8 @@ export * from './paymentsPettyCashRequestsIndex200';
 export * from './paymentsPettyCashRequestsIndex200Meta';
 export * from './paymentsPettyCashRequestsIndexParams';
 export * from './paymentsPettyCashRequestsIndexStatus';
+export * from './paymentsPettyCashRequestsInvoiceItems200';
+export * from './paymentsPettyCashRequestsInvoiceItems200DataItem';
 export * from './paymentsPettyCashRequestsPrint200';
 export * from './paymentsPettyCashRequestsShow200';
 export * from './paymentsPettyCashRequestsShow200Data';

@@ -765,6 +765,7 @@
       "cashReference": "Cash reference",
       "cashReferencePlaceholder": "e.g. CSH-001",
       "cashReferenceEmpty": "No options yet",
+      "cashReferenceRemaining": "Remaining: {amount}",
       "paymentTerm": "Payment term",
       "paymentTermPlaceholder": "Select term",
       "paymentTerms": {
@@ -938,7 +939,8 @@
       "updated": "Cash clearance updated.",
       "deleted": "Cash clearance deleted.",
       "cancelDocumentTitle": "Cancel cash clearance",
-      "cancelled": "Cash clearance cancelled."
+      "cancelled": "Cash clearance cancelled.",
+      "sourceItemsEmpty": "No invoice items are linked to this cash request."
     },
     "advanceLiquidations": {
       "newTitle": "New advance liquidation",
@@ -965,6 +967,7 @@
       "totalUsd": "Total (USD)",
       "remark": "Remark",
       "cashRequest": "Cash request",
+      "cashRequestRemaining": "Remaining: {amount}",
       "clearanceDate": "Clearance date",
       "liquidationDate": "Liquidation date",
       "requestAmount": "Request amount",
@@ -1381,6 +1384,9 @@
     "campus": "Campus",
     "division": "Division",
     "department": "Department",
+    "noCampuses": "No campuses found.",
+    "noDivisions": "No divisions found.",
+    "noDepartments": "No departments found.",
     "none": "None",
     "current": "Current",
     "history": "History",

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { ArrowLeft, Plus, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,7 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox";
+import { Combobox as ComboboxNS } from "@base-ui/react/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
 import { cn, formatMoney } from "@/lib/utils";
@@ -36,13 +38,18 @@ import {
   paymentsCashClearancesStore,
   paymentsCashClearancesUpdate,
 } from "@/lib/api/cash-clearance/cash-clearance";
-import { paymentsPettyCashRequestsIndex, paymentsPettyCashRequestsShow } from "@/lib/api/petty-cash-request/petty-cash-request";
+import {
+  paymentsPettyCashRequestsIndex,
+  paymentsPettyCashRequestsShow,
+  paymentsPettyCashRequestsInvoiceItems,
+} from "@/lib/api/petty-cash-request/petty-cash-request";
 import { organizationCampusesIndex } from "@/lib/api/campus/campus";
 import { organizationDivisionsIndex } from "@/lib/api/division/division";
 import { organizationDepartmentsIndex } from "@/lib/api/department/department";
 import type { StoreCashClearanceRequest } from "@/lib/api/model/storeCashClearanceRequest";
 import type { CashClearanceResource } from "@/lib/api/model/cashClearanceResource";
 import type { CashRequestResource } from "@/lib/api/model/cashRequestResource";
+import type { PaymentsPettyCashRequestsInvoiceItems200DataItem } from "@/lib/api/model/paymentsPettyCashRequestsInvoiceItems200DataItem";
 import { useMe } from "@/hooks/use-me";
 import { useApprovalSubmit } from "@/features/approvals/use-approval-submit";
 import { SubmitApprovalPanel } from "@/features/approvals/components/submit-approval-panel";
@@ -162,6 +169,28 @@ function toDate(value: string | null | undefined): Date | undefined {
   return new Date(year, month - 1, day);
 }
 
+/** Map a suggested source row (linked invoice items) into a form line. */
+function toSourceLine(
+  row: PaymentsPettyCashRequestsInvoiceItems200DataItem
+): LineForm {
+  return {
+    invoiceDate: toDate(row.invoiceDate),
+    prRef: row.prRef ?? "",
+    purchaser: row.purchaser ?? "",
+    description: row.description,
+    vendor: row.vendor,
+    vendorPhone: row.vendorPhone ?? "",
+    campus: row.campus ?? "",
+    division: row.division ?? "",
+    department: row.department ?? "",
+    qty: String(row.qty),
+    uom: row.uom ?? "",
+    unitPrice: String(row.unitPriceUsd),
+    discount: String(row.discountUsd),
+    vat: String(row.vatUsd),
+  };
+}
+
 // Server-computed line_total: qty × unit price, minus discount, plus VAT.
 function lineAmountOf(line: LineForm): number {
   return (
@@ -238,6 +267,9 @@ export function CashClearanceForm({ clearanceId, onBack }: CashClearanceFormProp
   const meQuery = useMe();
   const [form, setForm] = useState<CashClearanceFormValue>(() => toForm(null));
   const [hydratedId, setHydratedId] = useState<string | null>(null);
+  // Latest picker pick: a source-items response for an abandoned pick is
+  // dropped instead of overwriting whatever the user selected since.
+  const latestSourceIdRef = useRef<string | null>(null);
 
   const showQuery = useQuery({
     queryKey: ["cash-clearances", "detail", clearanceId],
@@ -295,6 +327,7 @@ export function CashClearanceForm({ clearanceId, onBack }: CashClearanceFormProp
       value: request.id,
       label: request.code,
       totalUsd: Number(request.totalUsd ?? 0),
+      remainingUsd: Number(request.remainingAmountUsd ?? 0),
     })
   );
 
@@ -320,8 +353,28 @@ export function CashClearanceForm({ clearanceId, onBack }: CashClearanceFormProp
       value: linked.id,
       label: linked.code,
       totalUsd: Number(linked.totalUsd ?? 0),
+      remainingUsd: Number(linked.remainingAmountUsd ?? 0),
     });
   }
+
+  // Selecting a cash request replaces the lines with its linked invoice
+  // items; an empty result keeps the current rows and just explains why.
+  const sourceItemsMutation = useMutation({
+    mutationFn: async (
+      requestId: string
+    ): Promise<PaymentsPettyCashRequestsInvoiceItems200DataItem[]> =>
+      unwrap<
+        PaymentsPettyCashRequestsInvoiceItems200DataItem[]
+      >(await paymentsPettyCashRequestsInvoiceItems(requestId, withAuth())),
+    onSuccess: (rows, requestId) => {
+      if (latestSourceIdRef.current !== requestId) return;
+      if (rows.length === 0) {
+        toast.info(tn("sourceItemsEmpty"));
+      } else {
+        setForm((current) => ({ ...current, lines: rows.map(toSourceLine) }));
+      }
+    },
+  });
 
   const campusOptions = (campusesQuery.data ?? [])
     .filter((c) => c.isActive)
@@ -525,11 +578,20 @@ export function CashClearanceForm({ clearanceId, onBack }: CashClearanceFormProp
                     {t("cashRequest")} <RequiredMark />
                   </Label>
                   <Combobox
-                    items={pickerOptions}
+                    items={ComboboxNS.createItems(pickerOptions, {
+                      getValue: (option) => option.value,
+                      getLabel: (option) => option.label,
+                    })}
                     value={form.cashRequestId || null}
-                    onValueChange={(value) =>
-                      patch({ cashRequestId: value ?? "" })
+                    itemToStringLabel={(id) =>
+                      pickerOptions.find((option) => option.value === id)
+                        ?.label ?? ""
                     }
+                    onValueChange={(value) => {
+                      patch({ cashRequestId: value ?? "" });
+                      latestSourceIdRef.current = value ?? null;
+                      if (value) sourceItemsMutation.mutate(value);
+                    }}
                   >
                     <ComboboxInput
                       placeholder={t("cashRequest")}
@@ -543,8 +605,18 @@ export function CashClearanceForm({ clearanceId, onBack }: CashClearanceFormProp
                             key={option.value}
                             value={option.value}
                           >
-                            <span className="font-mono text-xs">
-                              {option.label}
+                            <span className="flex min-w-0 flex-col">
+                              <span className="font-mono text-xs">
+                                {option.label}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {t("cashRequestRemaining", {
+                                  amount: formatMoney(
+                                    option.remainingUsd,
+                                    "USD"
+                                  ),
+                                })}
+                              </span>
                             </span>
                           </ComboboxItem>
                         )}

@@ -24,11 +24,8 @@ export interface StoreInvoiceRequest {
   /** @maxLength 255 */
   supplier_address: string;
   transaction_type: StoreInvoiceRequestTransactionType;
-  /**
-     * @maxLength 64
-     * @nullable
-     */
-  cash_reference?: string | null;
+  /** @nullable */
+  cash_request_id?: string | null;
   payment_term: StoreInvoiceRequestPaymentTerm;
   invoice_date: string;
   /** @nullable */

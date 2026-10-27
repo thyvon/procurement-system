@@ -159,6 +159,45 @@ it('includes vat and nets the discount in the line amount', function () {
         ->assertJsonPath('data.balanceUsd', 491);
 });
 
+it('blocks a clearance that would exceed its cash request amount', function () {
+    $request = approvedCashRequest(['total_usd' => 100]);
+
+    // Create path: the default line spends 146 against 100 approved.
+    $response = storeCashClearance($request->getKey())
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors' => ['lines']]);
+
+    expect($response->json('errors.lines.0'))
+        ->toContain($request->code)
+        ->toContain('146.00')
+        ->toContain('100.00')
+        ->and(CashClearance::query()->count())->toBe(0);
+
+    // Update path: growing an existing draft past the amount rolls back.
+    $id = storeCashClearance($request->getKey(), [
+        'lines' => [clearanceLine(['qty' => 4, 'unit_price_usd' => 25, 'discount_usd' => 0])],
+    ])
+        ->assertStatus(201)
+        ->json('data.id');
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/payments/cash-clearances/{$id}", clearancePayload($request->getKey()))
+        ->assertStatus(422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors' => ['lines']]);
+
+    expect((float) CashClearance::query()->findOrFail($id)->total_usd)->toBe(100.0);
+});
+
+it('allows a clearance that exactly consumes the request amount', function () {
+    $request = approvedCashRequest(['total_usd' => 146]);
+
+    storeCashClearance($request->getKey())
+        ->assertStatus(201)
+        ->assertJsonPath('data.totalUsd', 146)
+        ->assertJsonPath('data.balanceUsd', 0);
+});
+
 it('allows only one final clearance per cash request until the first is deleted', function () {
     $request = approvedCashRequest(['total_usd' => 500]);
 

@@ -30,6 +30,7 @@ Route::prefix('v1/payments')
         Route::patch('advance-liquidations/{advance_liquidation}/status', [AdvanceLiquidationController::class, 'status'])->name('advance-liquidations.status');
 
         Route::get('petty-cash-requests/{cash_request}/print', [PettyCashRequestController::class, 'print'])->name('petty-cash-requests.print');
+        Route::get('petty-cash-requests/{cash_request}/invoice-items', [PettyCashRequestController::class, 'invoiceItems'])->name('petty-cash-requests.invoice-items');
         Route::get('advance-requests/{cash_request}/print', [AdvanceRequestController::class, 'print'])->name('advance-requests.print');
         Route::get('cash-requests/{cash_request}/print', [CashRequestController::class, 'print'])->name('cash-requests.print');
         Route::get('cash-clearances/{cash_clearance}/print', [CashClearanceController::class, 'print'])->name('cash-clearances.print');

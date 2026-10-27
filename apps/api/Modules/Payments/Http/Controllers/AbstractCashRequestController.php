@@ -141,7 +141,7 @@ abstract class AbstractCashRequestController extends Controller
     /**
      * A document of another type does not exist for this branch.
      */
-    private function ensureOwned(CashRequest $cashRequest): void
+    protected function ensureOwned(CashRequest $cashRequest): void
     {
         if ($cashRequest->type !== $this->type()) {
             abort(404);

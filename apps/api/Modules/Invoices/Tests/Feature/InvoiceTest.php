@@ -4,6 +4,7 @@ use App\Models\User;
 use Illuminate\Testing\TestResponse;
 use Modules\Invoices\Models\Invoice;
 use Modules\Organization\Models\Entity;
+use Modules\Payments\Models\CashRequest;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
@@ -64,6 +65,18 @@ function storeInvoice(array $overrides = [], ?User $user = null): TestResponse
 
     return test()->actingAs($user, 'sanctum')
         ->postJson('/api/v1/invoices', invoicePayload($overrides));
+}
+
+function linkedCashRequest(string $type, string $code, array $overrides = []): CashRequest
+{
+    return CashRequest::factory()->create(array_merge([
+        'entity_id' => test()->entity->getKey(),
+        'type' => $type,
+        'status' => CashRequest::STATUS_APPROVED,
+        'code' => $code,
+        // Headroom for the happy-path tests; budget tests pass their own.
+        'total_usd' => 1000,
+    ], $overrides));
 }
 
 it('requires authentication', function () {
@@ -448,11 +461,13 @@ it('updates a draft by replacing the lines and recomputing totals', function () 
 });
 
 it('stores the supplier head fields', function () {
+    $cashRequest = linkedCashRequest(CashRequest::TYPE_ADVANCE, 'CSH-001');
+
     $response = storeInvoice([
         'supplier_phone' => '012345678',
         'supplier_address' => 'No. 12, Street 271, Phnom Penh',
         'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
-        'cash_reference' => 'CSH-001',
+        'cash_request_id' => $cashRequest->getKey(),
         'payment_term' => Invoice::PAYMENT_TERM_CREDIT_1M,
     ])->assertStatus(201);
 
@@ -460,6 +475,8 @@ it('stores the supplier head fields', function () {
         ->assertJsonPath('data.supplierPhone', '012345678')
         ->assertJsonPath('data.supplierAddress', 'No. 12, Street 271, Phnom Penh')
         ->assertJsonPath('data.transactionType', 'advance')
+        ->assertJsonPath('data.cashRequestId', $cashRequest->getKey())
+        // The reference code is derived server-side from the linked request.
         ->assertJsonPath('data.cashReference', 'CSH-001')
         ->assertJsonPath('data.paymentTerm', 'credit_1m')
         ->assertJsonPath('data.vatPercent', null);
@@ -468,6 +485,7 @@ it('stores the supplier head fields', function () {
 
     expect($invoice->supplier_phone)->toBe('012345678')
         ->and($invoice->transaction_type)->toBe('advance')
+        ->and($invoice->cash_request_id)->toBe($cashRequest->getKey())
         ->and($invoice->payment_term)->toBe('credit_1m');
 });
 
@@ -494,27 +512,30 @@ it('derives the vat amount from the percent of the discounted subtotal', functio
 });
 
 it('recomputes the vat amount and replaces the head fields on update', function () {
+    $cashRequest = linkedCashRequest(CashRequest::TYPE_ADVANCE, 'CSH-001');
+
     $id = storeInvoice([
         'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
         'payment_term' => Invoice::PAYMENT_TERM_CREDIT_1M,
-        'cash_reference' => 'CSH-001',
+        'cash_request_id' => $cashRequest->getKey(),
         'vat_percent' => 10,
     ])->json('data.id');
 
     // Transaction type, payment term and the supplier fields are required,
-    // so an update must swap them for new values; cash_reference is only
+    // so an update must swap them for new values; the cash link is only
     // clearable by moving the invoice to credit (where it is not required).
     $response = $this->actingAs($this->admin, 'sanctum')
         ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
             'transaction_type' => Invoice::TRANSACTION_TYPE_CREDIT,
             'payment_term' => Invoice::PAYMENT_TERM_CREDIT_1W,
-            'cash_reference' => null,
+            'cash_request_id' => null,
             'vat_percent' => 5,
         ]))
         ->assertOk()
         ->assertJsonPath('data.transactionType', 'credit')
         ->assertJsonPath('data.paymentTerm', 'credit_1w')
         ->assertJsonPath('data.cashReference', null)
+        ->assertJsonPath('data.cashRequestId', null)
         ->assertJsonPath('data.vatPercent', 5)
         ->assertJsonPath('data.vatAmount', 2);
 
@@ -523,36 +544,192 @@ it('recomputes the vat amount and replaces the head fields on update', function 
     expect($invoice->transaction_type)->toBe('credit')
         ->and($invoice->payment_term)->toBe('credit_1w')
         ->and($invoice->cash_reference)->toBeNull()
+        ->and($invoice->cash_request_id)->toBeNull()
         ->and((float) $invoice->vat_percent)->toBe(5.0)
         // subtotal 45 − 5 discount = 40; 5% of 40 → 2.
         ->and((float) $invoice->vat_amount)->toBe(2.0);
 });
 
-it('requires a cash reference for cash-settled invoices but not for credit', function () {
+it('requires a cash request for cash-settled invoices but not for credit', function () {
     storeInvoice([
         'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
-        'cash_reference' => null,
+        'cash_request_id' => null,
     ])
         ->assertStatus(422)
-        ->assertJsonValidationErrors(['cash_reference']);
+        ->assertJsonValidationErrors(['cash_request_id']);
 
     storeInvoice([
         'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
-        'cash_reference' => null,
+        'cash_request_id' => null,
     ])
         ->assertStatus(422)
-        ->assertJsonValidationErrors(['cash_reference']);
+        ->assertJsonValidationErrors(['cash_request_id']);
 
     storeInvoice([
         'transaction_type' => Invoice::TRANSACTION_TYPE_CREDIT,
-        'cash_reference' => null,
+        'cash_request_id' => null,
+    ])->assertStatus(201);
+});
+
+it('rejects an unknown or mismatched cash request', function () {
+    storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+        'cash_request_id' => '01K00000000000000000000000',
+    ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['cash_request_id']);
+
+    // A petty cash invoice may only draw on a petty cash request.
+    $advanceRequest = linkedCashRequest(CashRequest::TYPE_ADVANCE, 'ADV-001');
+
+    storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+        'cash_request_id' => $advanceRequest->getKey(),
+    ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['cash_request_id']);
+});
+
+it('blocks a cash-settled invoice that would exceed its cash request budget', function () {
+    // The default payload totals 50 (45 − 5 + 10), the request holds 40.
+    $cashRequest = linkedCashRequest(CashRequest::TYPE_PETTY_CASH, 'PC-100', ['total_usd' => 40]);
+
+    $response = storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+        'cash_request_id' => $cashRequest->getKey(),
+    ])
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors' => ['cash_request_id']]);
+
+    // The message names the request and the amounts involved.
+    expect($response->json('errors.cash_request_id.0'))
+        ->toContain('PC-100')
+        ->toContain('40.00')
+        ->toContain('50.00')
+        ->and(Invoice::query()->count())->toBe(0);
+});
+
+it('allows a cash-settled invoice that exactly consumes the budget', function () {
+    $cashRequest = linkedCashRequest(CashRequest::TYPE_PETTY_CASH, 'PC-101', ['total_usd' => 50]);
+
+    storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+        'cash_request_id' => $cashRequest->getKey(),
+    ])->assertStatus(201);
+});
+
+it('counts earlier non-cancelled invoices against the budget', function () {
+    $cashRequest = linkedCashRequest(CashRequest::TYPE_PETTY_CASH, 'PC-102', ['total_usd' => 100]);
+
+    storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+        'cash_request_id' => $cashRequest->getKey(),
+    ])->assertStatus(201);
+
+    // 50 used + 50 = 100, the exact remaining amount.
+    storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+        'cash_request_id' => $cashRequest->getKey(),
+    ])->assertStatus(201);
+
+    // 100 used + 50 would go over.
+    storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+        'cash_request_id' => $cashRequest->getKey(),
+    ])->assertStatus(422)->assertJsonValidationErrors(['cash_request_id']);
+
+    expect(Invoice::query()->count())->toBe(2);
+});
+
+it('frees the budget when a linked invoice is cancelled', function () {
+    $cashRequest = linkedCashRequest(CashRequest::TYPE_PETTY_CASH, 'PC-103', ['total_usd' => 50]);
+
+    $id = storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+        'cash_request_id' => $cashRequest->getKey(),
+    ])->assertStatus(201)->json('data.id');
+
+    storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+        'cash_request_id' => $cashRequest->getKey(),
+    ])->assertStatus(422);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/invoices/{$id}/status", ['status' => 'cancelled'])
+        ->assertOk();
+
+    storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
+        'cash_request_id' => $cashRequest->getKey(),
+    ])->assertStatus(201);
+});
+
+it('excludes the invoice itself from the budget check on update', function () {
+    $cashRequest = linkedCashRequest(CashRequest::TYPE_ADVANCE, 'ADV-100', ['total_usd' => 50]);
+
+    $id = storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
+        'cash_request_id' => $cashRequest->getKey(),
+    ])->assertStatus(201)->json('data.id');
+
+    // Re-saving at its own total passes: the invoice is its own budget use.
+    $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
+            'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
+            'cash_request_id' => $cashRequest->getKey(),
+        ]))
+        ->assertOk();
+
+    // Growing past the request amount is refused.
+    $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
+            'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
+            'cash_request_id' => $cashRequest->getKey(),
+            'discount_amount' => 0,
+            'vat_amount' => 0,
+            'lines' => [invoiceLine(['qty' => 1, 'unit_price' => 60])],
+        ]))
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['cash_request_id']);
+
+    expect((float) Invoice::query()->find($id)->grand_total_usd)->toBe(50.0);
+});
+
+it('compares the budget in USD for foreign-currency invoices', function () {
+    $cashRequest = linkedCashRequest(CashRequest::TYPE_ADVANCE, 'ADV-101', ['total_usd' => 100]);
+
+    // 600,000 KHR at 4,000 = 150 USD against 100 USD approved.
+    storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
+        'cash_request_id' => $cashRequest->getKey(),
+        'currency' => 'KHR',
+        'exchange_rate' => 4000,
+        'discount_amount' => 0,
+        'vat_amount' => 0,
+        'lines' => [invoiceLine(['qty' => 1, 'unit_price' => 600000])],
+    ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['cash_request_id']);
+
+    // The same invoice at 10,000 rate is 60 USD — within the budget.
+    storeInvoice([
+        'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
+        'cash_request_id' => $cashRequest->getKey(),
+        'currency' => 'KHR',
+        'exchange_rate' => 10000,
+        'discount_amount' => 0,
+        'vat_amount' => 0,
+        'lines' => [invoiceLine(['qty' => 1, 'unit_price' => 600000])],
     ])->assertStatus(201);
 });
 
 it('derives paid_at from the invoice date for cash-settled invoices', function () {
+    $cashRequest = linkedCashRequest(CashRequest::TYPE_PETTY_CASH, 'PC-001');
+
     $id = storeInvoice([
         'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
-        'cash_reference' => 'PC-001',
+        'cash_request_id' => $cashRequest->getKey(),
         'invoice_date' => '2026-10-01',
     ])
         ->assertStatus(201)
@@ -572,29 +749,37 @@ it('leaves paid_at empty for credit invoices', function () {
 });
 
 it('re-stamps paid_at on update when the transaction type changes', function () {
+    $advanceRequest = linkedCashRequest(CashRequest::TYPE_ADVANCE, 'CSH-001');
+    $pettyRequest = linkedCashRequest(CashRequest::TYPE_PETTY_CASH, 'PC-002');
+
     $id = storeInvoice([
         'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
-        'cash_reference' => 'CSH-001',
+        'cash_request_id' => $advanceRequest->getKey(),
         'invoice_date' => '2026-10-01',
     ])->json('data.id');
 
     $this->actingAs($this->admin, 'sanctum')
         ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
             'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
-            'cash_reference' => 'CSH-002',
+            'cash_request_id' => $pettyRequest->getKey(),
             'invoice_date' => '2026-10-15',
         ]))
-        ->assertOk();
+        ->assertOk()
+        // The link re-stamps too: reference follows the newly picked request.
+        ->assertJsonPath('data.cashReference', 'PC-002')
+        ->assertJsonPath('data.cashRequestId', $pettyRequest->getKey());
 
     expect(Invoice::query()->findOrFail($id)->paid_at?->format('Y-m-d'))->toBe('2026-10-15');
 
-    // Moving to credit clears the stamp again.
+    // Moving to credit clears the stamp and the cash link again.
     $this->actingAs($this->admin, 'sanctum')
         ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
             'transaction_type' => Invoice::TRANSACTION_TYPE_CREDIT,
-            'cash_reference' => null,
+            'cash_request_id' => null,
         ]))
-        ->assertOk();
+        ->assertOk()
+        ->assertJsonPath('data.cashReference', null)
+        ->assertJsonPath('data.cashRequestId', null);
 
     expect(Invoice::query()->findOrFail($id)->paid_at)->toBeNull();
 });

@@ -5,6 +5,7 @@ namespace Modules\Payments\Repositories;
 use App\Support\Repository\BaseRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Modules\Invoices\Models\Invoice;
 use Modules\Payments\Models\CashRequest;
 
 class CashRequestRepository extends BaseRepository implements CashRequestRepositoryInterface
@@ -16,7 +17,13 @@ class CashRequestRepository extends BaseRepository implements CashRequestReposit
 
     public function filtered(array $filters, int $perPage = 20, int $page = 1): LengthAwarePaginator
     {
-        $query = $this->query()->with(['lines', 'creator.currentEmployeeProfile']);
+        $query = $this->query()->with(['lines', 'creator.currentEmployeeProfile'])
+            // Budget consumption for the resource: one subquery per page,
+            // counting non-cancelled invoices only (cancelled ones release it).
+            ->withSum(
+                ['invoices as used_amount_usd' => fn (Builder $q) => $q->where('status', '!=', Invoice::STATUS_CANCELLED)],
+                'grand_total_usd'
+            );
 
         $search = trim((string) ($filters['search'] ?? ''));
 

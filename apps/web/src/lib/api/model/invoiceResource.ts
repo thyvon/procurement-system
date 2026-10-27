@@ -23,6 +23,8 @@ export interface InvoiceResource {
   /** @nullable */
   cashReference: string | null;
   /** @nullable */
+  cashRequestId: string | null;
+  /** @nullable */
   paymentTerm: string | null;
   invoiceDate: string;
   /** @nullable */

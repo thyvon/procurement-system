@@ -27,6 +27,8 @@ export interface CashRequestResource {
   /** @nullable */
   advanceRequestFor: string | null;
   totalUsd: number;
+  usedAmountUsd: number;
+  remainingAmountUsd: number;
   /** @nullable */
   remark: string | null;
   /** @nullable */

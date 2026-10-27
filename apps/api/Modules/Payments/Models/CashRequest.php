@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Invoices\Models\Invoice;
 use Modules\Payments\Database\Factories\CashRequestFactory;
 
 #[Fillable([
@@ -93,6 +94,18 @@ class CashRequest extends Model
     public function lines(): HasMany
     {
         return $this->hasMany(CashRequestLine::class)->orderBy('position');
+    }
+
+    /**
+     * Inverse of `invoices.cash_request_id`: every invoice drawing on this
+     * request. Callers constrain status themselves (the budget counts
+     * non-cancelled invoices only).
+     *
+     * @return HasMany<Invoice, $this>
+     */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class, 'cash_request_id');
     }
 
     /**

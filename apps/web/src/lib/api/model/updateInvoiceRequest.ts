@@ -24,11 +24,8 @@ export interface UpdateInvoiceRequest {
   /** @maxLength 255 */
   supplier_address: string;
   transaction_type: UpdateInvoiceRequestTransactionType;
-  /**
-     * @maxLength 64
-     * @nullable
-     */
-  cash_reference?: string | null;
+  /** @nullable */
+  cash_request_id?: string | null;
   payment_term: UpdateInvoiceRequestPaymentTerm;
   invoice_date: string;
   /** @nullable */

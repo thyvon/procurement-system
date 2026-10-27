@@ -39,14 +39,15 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox";
-import { unwrap, withAuth } from "@/lib/api-client";
+import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
 import { cn, formatMoney } from "@/lib/utils";
 import {
   invoicesInvoicesShow,
   invoicesInvoicesStore,
   invoicesInvoicesUpdate,
 } from "@/lib/api/invoice/invoice";
-import { paymentsCashRequestsIndex } from "@/lib/api/cash-request/cash-request";
+import { paymentsAdvanceRequestsIndex } from "@/lib/api/advance-request/advance-request";
+import { paymentsPettyCashRequestsIndex } from "@/lib/api/petty-cash-request/petty-cash-request";
 import { organizationCampusesIndex } from "@/lib/api/campus/campus";
 import { organizationDivisionsIndex } from "@/lib/api/division/division";
 import { organizationDepartmentsIndex } from "@/lib/api/department/department";
@@ -85,7 +86,7 @@ type InvoiceFormValue = {
   supplierPhone: string;
   supplierAddress: string;
   transactionType: TransactionType | "";
-  cashReference: string;
+  cashRequestId: string;
   paymentTerm: PaymentTerm | "";
   invoiceDate: Date | undefined;
   dueDate: Date | undefined;
@@ -119,7 +120,7 @@ const EMPTY_FORM: InvoiceFormValue = {
   supplierPhone: "",
   supplierAddress: "",
   transactionType: "",
-  cashReference: "",
+  cashRequestId: "",
   paymentTerm: "",
   invoiceDate: undefined,
   dueDate: undefined,
@@ -262,7 +263,7 @@ function toForm(resource?: InvoiceResource | null): InvoiceFormValue {
     supplierPhone: resource.supplierPhone ?? "",
     supplierAddress: resource.supplierAddress ?? "",
     transactionType: (resource.transactionType as TransactionType | null) ?? "",
-    cashReference: resource.cashReference ?? "",
+    cashRequestId: resource.cashRequestId ?? "",
     paymentTerm: (resource.paymentTerm as PaymentTerm | null) ?? "",
     invoiceDate: toDate(resource.invoiceDate),
     dueDate: toDate(resource.dueDate),
@@ -342,18 +343,36 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
 
   // Approved cash requests power the cash-reference picker: only fetched
   // once a cash-settled transaction type is chosen (credit needs none).
-  const cashRequestsQuery = useQuery({
-    queryKey: ["cashRequests", "invoiceOptions"],
+  // Each branch URI owns its type — petty-cash-requests → PC, advance-requests
+  // → AD — and shares its key/shape with the forms that own those documents.
+  const pettyCashRequestsQuery = useQuery({
+    queryKey: ["petty-cash-requests", "approved"],
     queryFn: async () =>
-      unwrap<CashRequestResource[]>(
-        await paymentsCashRequestsIndex(
+      unwrapWithMeta<
+        CashRequestResource[],
+        { page: number; perPage: number; total: number }
+      >(
+        await paymentsPettyCashRequestsIndex(
           { status: "approved", per_page: 100 },
           withAuth()
         )
       ),
-    enabled:
-      form.transactionType === "petty_cash" ||
-      form.transactionType === "advance",
+    enabled: form.transactionType === "petty_cash",
+    staleTime: 5 * 60 * 1000,
+  });
+  const advanceRequestsQuery = useQuery({
+    queryKey: ["advance-requests", "approved"],
+    queryFn: async () =>
+      unwrapWithMeta<
+        CashRequestResource[],
+        { page: number; perPage: number; total: number }
+      >(
+        await paymentsAdvanceRequestsIndex(
+          { status: "approved", per_page: 100 },
+          withAuth()
+        )
+      ),
+    enabled: form.transactionType === "advance",
     staleTime: 5 * 60 * 1000,
   });
 
@@ -364,10 +383,38 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
     .filter((d) => d.isActive)
     .map((d) => ({ value: d.name, label: d.name }));
   // Narrowed to the chosen transaction type: a petty-cash invoice draws
-  // on petty-cash requests, an advance invoice on advance requests.
-  const cashReferenceOptions = (cashRequestsQuery.data ?? [])
-    .filter((r) => r.type === form.transactionType)
-    .map((r) => ({ value: r.code, label: r.code }));
+  // on petty-cash requests, an advance invoice on advance requests. The
+  // option value is the request id — the API resolves the reference code.
+  // `remainingUsd` shows what is left of the request's approved amount.
+  const cashReferenceOptions: {
+    value: string;
+    label: string;
+    remainingUsd: number | null;
+  }[] = (
+    form.transactionType === "advance"
+      ? advanceRequestsQuery.data?.data ?? []
+      : pettyCashRequestsQuery.data?.data ?? []
+  ).map((r) => ({
+    value: r.id,
+    label: r.code,
+    remainingUsd: Number(r.remainingAmountUsd ?? 0),
+  }));
+  // Edit mode: the linked request may have left the approved list since the
+  // invoice was created — keep its label from the stored reference code.
+  if (
+    isEdit &&
+    showQuery.data?.cashRequestId &&
+    showQuery.data.cashReference &&
+    !cashReferenceOptions.some(
+      (option) => option.value === showQuery.data.cashRequestId
+    )
+  ) {
+    cashReferenceOptions.push({
+      value: showQuery.data.cashRequestId,
+      label: showQuery.data.cashReference,
+      remainingUsd: null,
+    });
+  }
   // Cascade: the department list stays empty until a division is picked,
   // then narrows to that division's linked departments.
   const divisionIdByName = new Map(
@@ -483,7 +530,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
         // The '' select placeholder is unreachable — canSave gates it.
         transaction_type:
           form.transactionType as StoreInvoiceRequest["transaction_type"],
-        cash_reference: form.cashReference.trim() || null,
+        cash_request_id: form.cashRequestId.trim() || null,
         payment_term: form.paymentTerm as StoreInvoiceRequest["payment_term"],
         invoice_date: toDateInput(form.invoiceDate) ?? "",
         due_date: toDateInput(form.dueDate),
@@ -664,7 +711,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                       // picked one so it is not silently submitted.
                       patch(
                         next === "credit" || next === ""
-                          ? { transactionType: next, cashReference: "" }
+                          ? { transactionType: next, cashRequestId: "" }
                           : { transactionType: next }
                       );
                     }}
@@ -691,9 +738,14 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                       </Label>
                       <Combobox
                         items={cashReferenceOptions}
-                        value={form.cashReference || null}
+                        value={form.cashRequestId || null}
+                        itemToStringLabel={(value) =>
+                          cashReferenceOptions.find(
+                            (option) => option.value === value
+                          )?.label ?? ""
+                        }
                         onValueChange={(value) =>
-                          patch({ cashReference: value ?? "" })
+                          patch({ cashRequestId: value ?? "" })
                         }
                       >
                         <ComboboxInput
@@ -710,7 +762,19 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                                 key={option.value}
                                 value={option.value}
                               >
-                                {option.label}
+                                <span className="flex min-w-0 flex-col">
+                                  <span>{option.label}</span>
+                                  {option.remainingUsd != null && (
+                                    <span className="text-[11px] text-muted-foreground">
+                                      {t("cashReferenceRemaining", {
+                                        amount: formatMoney(
+                                          option.remainingUsd,
+                                          "USD"
+                                        ),
+                                      })}
+                                    </span>
+                                  )}
+                                </span>
                               </ComboboxItem>
                             )}
                           </ComboboxList>

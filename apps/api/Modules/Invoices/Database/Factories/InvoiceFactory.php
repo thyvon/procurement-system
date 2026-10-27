@@ -30,6 +30,7 @@ class InvoiceFactory extends Factory
             'supplier_address' => null,
             'transaction_type' => null,
             'cash_reference' => null,
+            'cash_request_id' => null,
             'payment_term' => null,
             'invoice_date' => now()->toDateString(),
             'due_date' => now()->addDays(30)->toDateString(),

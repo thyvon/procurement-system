@@ -24,6 +24,7 @@ use Modules\Invoices\Database\Factories\InvoiceFactory;
     'supplier_address',
     'transaction_type',
     'cash_reference',
+    'cash_request_id',
     'payment_term',
     'invoice_date',
     'due_date',
