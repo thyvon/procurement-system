@@ -324,9 +324,10 @@ export function CashClearanceDetail({
                 {
                   key: "invoiceDate",
                   label: tf("invoiceDate"),
-                  width: "w-28",
+                  width: "w-24",
+                  align: "center",
                   cell: (line) => (
-                    <span className="flex h-8 items-center text-sm">
+                    <span className="flex h-8 items-center justify-center text-sm whitespace-nowrap">
                       {formatDate(line.invoiceDate)}
                     </span>
                   ),
@@ -334,9 +335,10 @@ export function CashClearanceDetail({
                 {
                   key: "prRef",
                   label: tf("prRef"),
-                  width: "w-24",
+                  width: "w-45",
+                  align: "center",
                   cell: (line) => (
-                    <span className="flex h-8 items-center text-sm">
+                    <span className="flex h-8 items-center justify-center text-sm whitespace-nowrap" title={line.prRef ?? undefined}>
                       {line.prRef || "—"}
                     </span>
                   ),
@@ -344,9 +346,10 @@ export function CashClearanceDetail({
                 {
                   key: "purchaser",
                   label: tf("purchaser"),
-                  width: "w-28",
+                  width: "w-45",
+                  align: "center",
                   cell: (line) => (
-                    <span className="flex h-8 items-center text-sm">
+                    <span className="flex h-8 items-center justify-center text-sm whitespace-nowrap">
                       {line.purchaser || "—"}
                     </span>
                   ),
@@ -354,6 +357,8 @@ export function CashClearanceDetail({
                 {
                   key: "description",
                   label: tf("description"),
+                  align: "center",
+                  minWidth: 320,
                   cell: (line) => (
                     <span
                       className="flex min-h-8 items-center py-1 text-sm whitespace-pre-wrap break-words"
@@ -366,9 +371,13 @@ export function CashClearanceDetail({
                 {
                   key: "vendor",
                   label: tf("vendor"),
-                  width: "w-32",
+                  width: "w-48",
+                  align: "center",
                   cell: (line) => (
-                    <span className="flex h-8 items-center truncate text-sm" title={line.vendor}>
+                    <span
+                      className="flex min-h-8 items-center py-1 text-sm whitespace-pre-wrap break-words"
+                      title={line.vendor}
+                    >
                       {line.vendor}
                     </span>
                   ),
@@ -376,9 +385,10 @@ export function CashClearanceDetail({
                 {
                   key: "campus",
                   label: tf("campus"),
-                  width: "w-24",
+                  width: "w-20",
+                  align: "center",
                   cell: (line) => (
-                    <span className="flex h-8 items-center text-sm">
+                    <span className="flex h-8 items-center justify-center text-sm">
                       {line.campus || "—"}
                     </span>
                   ),
@@ -386,9 +396,10 @@ export function CashClearanceDetail({
                 {
                   key: "division",
                   label: tf("division"),
-                  width: "w-24",
+                  width: "w-20",
+                  align: "center",
                   cell: (line) => (
-                    <span className="flex h-8 items-center text-sm">
+                    <span className="flex h-8 items-center justify-center text-sm">
                       {line.division || "—"}
                     </span>
                   ),
@@ -396,9 +407,10 @@ export function CashClearanceDetail({
                 {
                   key: "department",
                   label: tf("department"),
-                  width: "w-28",
+                  width: "w-25",
+                  align: "center",
                   cell: (line) => (
-                    <span className="flex h-8 items-center text-sm">
+                    <span className="flex h-8 items-center justify-center text-sm">
                       {line.department || "—"}
                     </span>
                   ),
@@ -407,9 +419,9 @@ export function CashClearanceDetail({
                   key: "qty",
                   label: tf("qty"),
                   width: "w-20",
-                  align: "right",
+                  align: "center",
                   cell: (line) => (
-                    <span className="flex h-8 items-center justify-end text-sm tabular-nums">
+                    <span className="flex h-8 items-center justify-center text-sm tabular-nums">
                       {line.qty}
                     </span>
                   ),
@@ -417,9 +429,10 @@ export function CashClearanceDetail({
                 {
                   key: "uom",
                   label: tf("uom"),
-                  width: "w-20",
+                  width: "w-24",
+                  align: "center",
                   cell: (line) => (
-                    <span className="flex h-8 items-center text-sm">
+                    <span className="flex h-8 items-center justify-center text-sm">
                       {line.uom || "—"}
                     </span>
                   ),
@@ -438,7 +451,7 @@ export function CashClearanceDetail({
                 {
                   key: "discountUsd",
                   label: tf("discount"),
-                  width: "w-24",
+                  width: "w-28",
                   align: "right",
                   cell: (line) => (
                     <span className="flex h-8 items-center justify-end text-sm tabular-nums">
@@ -449,7 +462,7 @@ export function CashClearanceDetail({
                 {
                   key: "vatUsd",
                   label: tf("vat"),
-                  width: "w-24",
+                  width: "w-28",
                   align: "right",
                   cell: (line) => (
                     <span className="flex h-8 items-center justify-end text-sm tabular-nums">
@@ -478,6 +491,19 @@ export function CashClearanceDetail({
                   key: "total",
                   label: tf("totalUsd"),
                   value: formatMoney(Number(clearance.totalUsd), "USD"),
+                },
+                {
+                  key: "requestAmount",
+                  label: tf("requestAmount"),
+                  value: formatMoney(
+                    Number(clearance.requestAmountUsd),
+                    "USD",
+                  ),
+                },
+                {
+                  key: "balance",
+                  label: tf("balance"),
+                  value: formatMoney(Number(clearance.balanceUsd), "USD"),
                   strong: true,
                 },
               ]}

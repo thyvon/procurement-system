@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RequiredMark } from "@/components/required-mark";
+import { cn } from "@/lib/utils";
 
 export const headCell =
   "border border-border bg-muted/60 px-2 py-1.5 text-left text-sm font-medium";
@@ -31,11 +32,13 @@ const WIDTH_PX: Record<string, number> = {
   "w-10": 40,
   "w-20": 80,
   "w-24": 96,
+  "w-25": 100,
   "w-28": 112,
   "w-32": 128,
   "w-36": 144,
   "w-40": 160,
   "w-44": 176,
+  "w-45": 180,
   "w-48": 192,
   "w-56": 224,
   "w-64": 256,
@@ -66,6 +69,8 @@ export type LineItemsColumn<T> = {
   align?: "left" | "right" | "center";
   /** Marks the header label as a required cell (the API enforces it). */
   required?: boolean;
+  /** Budget floor (px) for this column when it has no fixed `width` token. */
+  minWidth?: number;
   cell: (row: T, index: number) => ReactNode;
 };
 
@@ -92,6 +97,8 @@ export interface LineItemsTableProps<T> {
   summary?: LineItemsSummary[];
   /** Rendered on the left of the totals footer — the usual home for "Add row". */
   footerLeading?: ReactNode;
+  /** Per-instance min-width budget in px; defaults to the computed column budget. */
+  minWidth?: number;
 }
 
 /**
@@ -113,6 +120,7 @@ export function LineItemsTable<T>({
   removeLabel,
   summary,
   footerLeading,
+  minWidth,
 }: LineItemsTableProps<T>) {
   const hasActions = Boolean(actions) || Boolean(onRemove);
   const canRemove = !disabled && rows.length > minRows;
@@ -120,10 +128,13 @@ export function LineItemsTable<T>({
     (sum, column) => sum + (column.width ? (WIDTH_PX[column.width] ?? 0) : 0),
     0
   );
-  const flexibleColumns = columns.filter((column) => !column.width).length;
+  const flexibleColumns = columns.filter((column) => !column.width);
   const tableWidth =
     fixedWidth +
-    flexibleColumns * DESCRIPTION_MIN_WIDTH +
+    flexibleColumns.reduce(
+      (sum, column) => sum + (column.minWidth ?? DESCRIPTION_MIN_WIDTH),
+      0
+    ) +
     (showIndex ? INDEX_COLUMN_WIDTH : 0) +
     (hasActions ? ACTIONS_COLUMN_WIDTH : 0);
 
@@ -215,7 +226,7 @@ export function LineItemsTable<T>({
       <div className="w-full overflow-x-auto border border-border">
         <table
           className="w-full border-collapse text-sm table-fixed"
-          style={{ width: "100%", minWidth: tableWidth }}
+          style={{ width: "100%", minWidth: minWidth ?? tableWidth }}
         >
           <colgroup>
             {showIndex ? <col className="w-8" /> : null}
@@ -230,13 +241,13 @@ export function LineItemsTable<T>({
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className={`${headCell} ${ALIGN_CLASS[column.align ?? "left"]}`}
+                  className={cn(headCell, ALIGN_CLASS[column.align ?? "left"])}
                 >
                   {column.label} {column.required ? <RequiredMark /> : null}
                 </th>
               ))}
               {hasActions ? (
-                <th className={`${headCell} text-center`}>{actionsLabel}</th>
+                <th className={cn(headCell, "text-center")}>{actionsLabel}</th>
               ) : null}
             </tr>
           </thead>

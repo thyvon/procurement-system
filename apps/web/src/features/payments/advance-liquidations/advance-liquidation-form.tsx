@@ -36,6 +36,7 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox";
+import { Combobox as ComboboxNS } from "@base-ui/react/combobox";
 import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
 import { cn, formatMoney } from "@/lib/utils";
 import {
@@ -492,8 +493,15 @@ export function AdvanceLiquidationForm({
                     {t("cashRequest")} <RequiredMark />
                   </Label>
                   <Combobox
-                    items={pickerOptions}
+                    items={ComboboxNS.createItems(pickerOptions, {
+                      getValue: (option) => option.value,
+                      getLabel: (option) => option.label,
+                    })}
                     value={form.cashRequestId || null}
+                    itemToStringLabel={(id) =>
+                      pickerOptions.find((option) => option.value === id)
+                        ?.label ?? ""
+                    }
                     onValueChange={(value) =>
                       patch({ cashRequestId: value ?? "" })
                     }

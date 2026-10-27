@@ -5,12 +5,14 @@ import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
+import { Combobox as ComboboxNS } from "@base-ui/react/combobox";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { organizationCampusesIndex } from "@/lib/api/campus/campus";
 import { organizationDepartmentsIndex } from "@/lib/api/department/department";
@@ -20,6 +22,10 @@ import type { EmployeeProfileValues } from "../employee-profile-form";
 type LookupOption = {
   id: string;
   name: string;
+};
+
+type DepartmentOption = LookupOption & {
+  divisionIds?: string[];
 };
 
 type EmployeeProfileFieldsProps = {
@@ -58,10 +64,20 @@ export function EmployeeProfileFields({
   const departmentsQuery = useQuery({
     queryKey: ["departments"],
     queryFn: async () =>
-      unwrap<LookupOption[]>(await organizationDepartmentsIndex(withAuth())),
+      unwrap<DepartmentOption[]>(
+        await organizationDepartmentsIndex(withAuth()),
+      ),
     enabled,
     staleTime: 5 * 60 * 1000,
   });
+
+  const departments = departmentsQuery.data ?? [];
+  const divisionId = values.divisionId;
+  const departmentOptions = divisionId
+    ? departments.filter((department) =>
+        (department.divisionIds ?? []).includes(divisionId),
+      )
+    : [];
 
   function setValue<K extends keyof EmployeeProfileValues>(
     key: K,
@@ -112,108 +128,135 @@ export function EmployeeProfileFields({
           )}
         </div>
       </div>
-      <div className="flex items-center gap-3">
-        <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">
-          {t("campus")}
-        </Label>
-        <div className="min-w-0 flex-1 space-y-1">
-          <Select
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="space-y-1">
+          <Label className="text-left after:ml-1 after:content-[':']">
+            {t("campus")}
+          </Label>
+          <Combobox
+            items={ComboboxNS.createItems(campusesQuery.data ?? [], {
+              getValue: (campus) => campus.id,
+              getLabel: (campus) => campus.name,
+            })}
             value={values.campusId}
+            itemToStringLabel={(id) =>
+              campusesQuery.data?.find((campus) => campus.id === id)?.name ?? ""
+            }
             onValueChange={(value) =>
               setValue("campusId", value ?? null, "campus_id")
             }
-            items={[
-              { value: null, label: t("none") },
-              ...(campusesQuery.data ?? []).map((campus) => ({
-                value: campus.id,
-                label: campus.name,
-              })),
-            ]}
           >
-            <SelectTrigger className="min-w-0 flex-1">
-              <SelectValue placeholder={t("none")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={null}>{t("none")}</SelectItem>
-              {(campusesQuery.data ?? []).map((campus) => (
-                <SelectItem key={campus.id} value={campus.id}>
-                  {campus.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <ComboboxInput
+              placeholder={t("none")}
+              aria-label={t("campus")}
+              showClear
+              className="w-full"
+            />
+            <ComboboxContent>
+              <ComboboxEmpty>{t("noCampuses")}</ComboboxEmpty>
+              <ComboboxList>
+                {(campus) => (
+                  <ComboboxItem key={campus.id} value={campus.id}>
+                    {campus.name}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
           {fieldErrors?.campus_id && (
             <p className="text-xs text-destructive">{fieldErrors.campus_id}</p>
           )}
         </div>
-      </div>
-      <div className="flex items-center gap-3">
-        <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">
-          {t("division")}
-        </Label>
-        <div className="min-w-0 flex-1 space-y-1">
-          <Select
+        <div className="space-y-1">
+          <Label className="text-left after:ml-1 after:content-[':']">
+            {t("division")}
+          </Label>
+          <Combobox
+            items={ComboboxNS.createItems(divisionsQuery.data ?? [], {
+              getValue: (division) => division.id,
+              getLabel: (division) => division.name,
+            })}
             value={values.divisionId}
-            onValueChange={(value) =>
-              setValue("divisionId", value ?? null, "division_id")
+            itemToStringLabel={(id) =>
+              divisionsQuery.data?.find((division) => division.id === id)
+                ?.name ?? ""
             }
-            items={[
-              { value: null, label: t("none") },
-              ...(divisionsQuery.data ?? []).map((division) => ({
-                value: division.id,
-                label: division.name,
-              })),
-            ]}
+            onValueChange={(value) => {
+              const nextDivisionId = value;
+              const valid =
+                nextDivisionId != null &&
+                departments.some(
+                  (department) =>
+                    department.id === values.departmentId &&
+                    (department.divisionIds ?? []).includes(nextDivisionId),
+                );
+              onChange({
+                ...values,
+                divisionId: nextDivisionId,
+                departmentId: valid ? values.departmentId : null,
+              });
+              onClearError?.("division_id");
+              onClearError?.("department_id");
+            }}
           >
-            <SelectTrigger className="min-w-0 flex-1">
-              <SelectValue placeholder={t("none")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={null}>{t("none")}</SelectItem>
-              {(divisionsQuery.data ?? []).map((division) => (
-                <SelectItem key={division.id} value={division.id}>
-                  {division.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <ComboboxInput
+              placeholder={t("none")}
+              aria-label={t("division")}
+              showClear
+              className="w-full"
+            />
+            <ComboboxContent>
+              <ComboboxEmpty>{t("noDivisions")}</ComboboxEmpty>
+              <ComboboxList>
+                {(division) => (
+                  <ComboboxItem key={division.id} value={division.id}>
+                    {division.name}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
           {fieldErrors?.division_id && (
             <p className="text-xs text-destructive">
               {fieldErrors.division_id}
             </p>
           )}
         </div>
-      </div>
-      <div className="flex items-center gap-3">
-        <Label className="w-28 shrink-0 text-left after:ml-1 after:content-[':']">
-          {t("department")}
-        </Label>
-        <div className="min-w-0 flex-1 space-y-1">
-          <Select
+        <div className="space-y-1">
+          <Label className="text-left after:ml-1 after:content-[':']">
+            {t("department")}
+          </Label>
+          <Combobox
+            items={ComboboxNS.createItems(departmentOptions, {
+              getValue: (department) => department.id,
+              getLabel: (department) => department.name,
+            })}
             value={values.departmentId}
+            itemToStringLabel={(id) =>
+              departments.find((department) => department.id === id)?.name ?? ""
+            }
             onValueChange={(value) =>
               setValue("departmentId", value ?? null, "department_id")
             }
-            items={[
-              { value: null, label: t("none") },
-              ...(departmentsQuery.data ?? []).map((department) => ({
-                value: department.id,
-                label: department.name,
-              })),
-            ]}
           >
-            <SelectTrigger className="min-w-0 flex-1">
-              <SelectValue placeholder={t("none")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={null}>{t("none")}</SelectItem>
-              {(departmentsQuery.data ?? []).map((department) => (
-                <SelectItem key={department.id} value={department.id}>
-                  {department.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <ComboboxInput
+              placeholder={t("none")}
+              aria-label={t("department")}
+              disabled={!values.divisionId}
+              showClear
+              className="w-full"
+            />
+            <ComboboxContent>
+              <ComboboxEmpty>{t("noDepartments")}</ComboboxEmpty>
+              <ComboboxList>
+                {(department) => (
+                  <ComboboxItem key={department.id} value={department.id}>
+                    {department.name}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
           {fieldErrors?.department_id && (
             <p className="text-xs text-destructive">
               {fieldErrors.department_id}

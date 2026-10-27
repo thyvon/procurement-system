@@ -34,6 +34,7 @@ Project-wide rules live in the root `AGENTS.md` (API-first principle, consistenc
 ## UI
 
 - shadcn `components/ui` + Tailwind tokens only; one `cn` import source; one Toaster (sonner from `providers.tsx`); no raw palette classes or inline gradient styles.
+- Never render raw IDs in the UI. IDs belong in payloads/query keys only — pickers and comboboxes must display the human-readable label (code, name) via `itemToStringLabel` (base-ui `Combobox`) or explicit label mapping.
 
 ## Known debt (do not copy)
 
