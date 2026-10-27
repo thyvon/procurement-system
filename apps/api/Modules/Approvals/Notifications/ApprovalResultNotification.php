@@ -4,6 +4,8 @@ namespace Modules\Approvals\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
+use Modules\Approvals\Services\ApprovalAlertMessage;
+use Modules\Telegram\Channels\TelegramAlertChannel;
 
 class ApprovalResultNotification extends Notification
 {
@@ -19,7 +21,7 @@ class ApprovalResultNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', TelegramAlertChannel::class];
     }
 
     /**
@@ -31,5 +33,14 @@ class ApprovalResultNotification extends Notification
             'type' => 'approval.result',
             ...$this->context,
         ];
+    }
+
+    /**
+     * Plain text for the Bot API channel; wording lives in the shared
+     * builder so every future transport says the same thing.
+     */
+    public function toTelegram(object $notifiable): string
+    {
+        return ApprovalAlertMessage::result($this->context);
     }
 }

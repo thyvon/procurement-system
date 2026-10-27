@@ -3,9 +3,9 @@
 namespace Modules\Telegram\Services;
 
 /**
- * Result of one delivery attempt against the TDLib service. Returned instead
- * of thrown exceptions so the job can decide between release/fail/retry
- * without parsing transport errors.
+ * Result of one delivery attempt against a Telegram transport (the TDLib
+ * service or the Bot API). Returned instead of thrown exceptions so the job
+ * can decide between release/fail/retry without parsing transport errors.
  */
 final readonly class SendOutcome
 {

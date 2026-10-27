@@ -11,6 +11,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Telegram\Database\Factories\TelegramMessageFactory;
 
+/**
+ * Audit row for every Telegram send/receive. Two transports share it:
+ * TDLib messages carry telegram_account_id + telegram_contact_id, Bot API
+ * approval alerts (see TelegramGateway::sendBotAlert) carry neither — only
+ * telegram_chat_id of the user's direct chat.
+ */
 #[Fillable([
     'entity_id',
     'direction',

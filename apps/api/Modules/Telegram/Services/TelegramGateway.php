@@ -3,8 +3,11 @@
 namespace Modules\Telegram\Services;
 
 use App\Models\User;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Modules\Telegram\Jobs\SendTelegramAlert;
 use Modules\Telegram\Jobs\SendTelegramMessage;
 use Modules\Telegram\Models\TelegramAccount;
 use Modules\Telegram\Models\TelegramContact;
@@ -68,6 +71,46 @@ class TelegramGateway
         ]);
 
         SendTelegramMessage::dispatch($message->id, $account->id);
+
+        return $message;
+    }
+
+    /**
+     * Queue one Bot API alert (approval notifications): no TDLib account
+     * and no contact — only a user's direct chat, so telegram_account_id
+     * and telegram_contact_id stay null and the transport is Bot API.
+     * Replay-safe like sendToContact(): a known idempotency key returns the
+     * existing row untouched instead of queueing a second delivery.
+     *
+     * @param  array<string, mixed>  $reference  reference_type/reference_id (approval_request link)
+     */
+    public function sendBotAlert(
+        int $chatId,
+        string $body,
+        string $idempotencyKey,
+        string $entityId,
+        array $reference = [],
+    ): TelegramMessage {
+        $existing = TelegramMessage::query()->where('idempotency_key', $idempotencyKey)->first();
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $message = TelegramMessage::create([
+            'entity_id' => $entityId,
+            'direction' => TelegramMessage::DIRECTION_OUT,
+            'telegram_account_id' => null,
+            'telegram_contact_id' => null,
+            'telegram_chat_id' => $chatId,
+            'reference_type' => $reference['reference_type'] ?? null,
+            'reference_id' => $reference['reference_id'] ?? null,
+            'body' => $body,
+            'status' => TelegramMessage::STATUS_QUEUED,
+            'idempotency_key' => $idempotencyKey,
+        ]);
+
+        SendTelegramAlert::dispatch($message->id, $chatId);
 
         return $message;
     }
@@ -169,6 +212,84 @@ class TelegramGateway
         }
 
         $error = $response->json('error', "send_failed:{$status}");
+        $this->markFailed($messageId, (string) $error);
+
+        return SendOutcome::failed((string) $error);
+    }
+
+    /**
+     * One Bot API delivery attempt for a queued alert. Called by
+     * SendTelegramAlert inside the queue worker (no entity context — the
+     * lookup is unscoped by ULID). A row already marked sent short-circuits
+     * so an at-least-once queue retry can never send the alert twice.
+     *
+     * The bot token rides in the request URL, so raw transport exceptions
+     * are re-thrown with static messages only — no path can persist it.
+     */
+    public function deliverBotAlert(string $messageId): SendOutcome
+    {
+        $message = TelegramMessage::withoutGlobalScope('entity')->find($messageId);
+
+        if ($message === null) {
+            return SendOutcome::failed('message_not_found');
+        }
+
+        if ($message->status === TelegramMessage::STATUS_SENT) {
+            return SendOutcome::sent();
+        }
+
+        $token = (string) config('services.telegram.bot_token');
+
+        if ($token === '') {
+            $this->markFailed($messageId, 'bot_token_not_configured');
+
+            return SendOutcome::failed('bot_token_not_configured');
+        }
+
+        try {
+            $response = Http::withToken($token)
+                ->timeout(15)
+                ->connectTimeout(5)
+                ->post('https://api.telegram.org/bot'.$token.'/sendMessage', [
+                    'chat_id' => $message->telegram_chat_id,
+                    'text' => $message->body,
+                ]);
+        } catch (ConnectionException $exception) {
+            throw new RuntimeException('telegram_api_unreachable:'.$exception->getCode());
+        }
+
+        $status = $response->status();
+
+        if ($status === 200 && $response->json('ok') === true) {
+            $message->update([
+                'status' => TelegramMessage::STATUS_SENT,
+                'telegram_message_id' => (int) $response->json('result.message_id') ?: null,
+                'error' => null,
+            ]);
+
+            Log::info('telegram.alert.sent', [
+                'message_id' => $message->getKey(),
+                'chat_id' => $message->telegram_chat_id,
+                'reference_type' => $message->reference_type,
+                'reference_id' => $message->reference_id,
+            ]);
+
+            return SendOutcome::sent();
+        }
+
+        if ($status === 429) {
+            $retryAfter = (int) $response->json('parameters.retry_after')
+                ?: (int) $response->header('Retry-After')
+                ?: 60;
+
+            return SendOutcome::throttled($retryAfter);
+        }
+
+        if ($status >= 500) {
+            throw new RuntimeException("telegram_api_unavailable:{$status}");
+        }
+
+        $error = $response->json('description', "send_failed:{$status}");
         $this->markFailed($messageId, (string) $error);
 
         return SendOutcome::failed((string) $error);

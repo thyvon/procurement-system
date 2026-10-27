@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Approval Engine — ERD &amp; Workflow</title>
+<style>
+  :root {
+    --ink: #1a1f2e;
+    --muted: #5b6472;
+    --line: #d9dee7;
+    --accent: #1f5eff;
+    --bg: #f6f8fb;
+    --card: #ffffff;
+    --code: #eef1f6;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif; color: var(--ink); background: var(--bg); }
+  header { background: linear-gradient(135deg, #14213d 0%, #1f3a6e 60%, #27548f 100%); color: #fff; padding: 30px 24px 24px; }
+  header .wrap, main, footer .wrap { max-width: 1160px; margin: 0 auto; }
+  header h1 { margin: 0 0 6px; font-size: 25px; letter-spacing: .2px; }
+  header p { margin: 3px 0; color: #cdd8ee; font-size: 14.5px; }
+  nav { background: var(--card); border-bottom: 1px solid var(--line); padding: 10px 24px; position: sticky; top: 0; z-index: 5; box-shadow: 0 1px 6px rgba(20, 33, 61, .06); }
+  nav .wrap { max-width: 1160px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 4px 18px; }
+  nav a { color: var(--accent); text-decoration: none; font-size: 13.5px; font-weight: 600; }
+  nav a:hover { text-decoration: underline; }
+  main { padding: 8px 24px 52px; }
+  section { margin: 34px 0; }
+  section > h2 { font-size: 20px; margin: 0 0 2px; }
+  .rule { height: 3px; background: var(--accent); border-radius: 2px; width: 64px; margin: 0 0 10px; }
+  .sub { color: var(--muted); margin: 4px 0 14px; font-size: 14.5px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 12px 0; overflow-x: auto; }
+  .facts { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .fact { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 13px; }
+  .fact b { display: block; font-size: 13.5px; margin-bottom: 2px; }
+  .fact span { font-size: 13.5px; color: var(--muted); }
+  .mermaid { display: flex; align-items: flex-start; justify-content: flex-start; min-width: 0; overflow: auto; max-height: 78vh; padding-bottom: 6px; cursor: grab; }
+  .mermaid svg { max-width: none !important; width: auto; height: auto; flex-shrink: 0; }
+  .mermaid.grabbing { cursor: grabbing; user-select: none; }
+  .zoombar { display: flex; align-items: center; gap: 6px; margin: 2px 0 10px; flex-wrap: wrap; }
+  .zoombar button { font: 600 13.5px "Segoe UI", system-ui, sans-serif; min-width: 28px; height: 27px; padding: 0 7px; border: 1px solid var(--line); background: #fff; border-radius: 6px; cursor: pointer; color: var(--ink); }
+  .zoombar button:hover { background: #eef2f8; border-color: #8aa4d8; }
+  .zoombar .zlabel { font: 600 13px Consolas, "Cascadia Mono", monospace; color: var(--muted); min-width: 48px; text-align: center; }
+  .zoombar .zhint { font-size: 12.5px; color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; background: var(--card); }
+  th, td { border: 1px solid var(--line); padding: 6px 9px; text-align: left; vertical-align: top; }
+  th { background: #eef2f8; font-weight: 650; }
+  tr:nth-child(even) td { background: #fafbfd; }
+  code, .mono { font-family: Consolas, "Cascadia Mono", monospace; font-size: 13px; background: var(--code); padding: 1px 5px; border-radius: 4px; }
+  .pill { display: inline-block; background: #e7edfb; color: #24479b; border-radius: 999px; padding: 1px 9px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .pill.red { background: #fbe4e4; color: #98232a; }
+  .pill.green { background: #e3f6e9; color: #1c6b3a; }
+  .pill.amber { background: #fdf1d7; color: #8a5b06; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 13.5px; color: var(--muted); margin: 10px 0 0; }
+  .legend b { color: var(--ink); }
+  ol, ul { margin: 8px 0; padding-left: 24px; }
+  li { margin: 5px 0; }
+  h3 { font-size: 15.5px; margin: 22px 0 6px; }
+  footer { border-top: 1px solid var(--line); padding: 16px 24px 30px; color: var(--muted); font-size: 13.5px; }
+  @media print {
+    nav { display: none; }
+    body { background: #fff; }
+    .card { break-inside: avoid; }
+    header { background: #14213d !important; -webkit-print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>Approval Engine — ERD &amp; Workflow</h1>
+    <p>The full database diagram and how an approval round runs</p>
+    <p>Source of truth: <span class="mono">apps/api/Modules/Approvals</span></p>
+  </div>
+</header>
+
+<nav>
+  <div class="wrap">
+    <a href="#erd">1. ERD</a>
+    <a href="#workflow">2. Approval workflow</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- ================= 1 · ERD ================= -->
+<section id="erd">
+  <h2>1. Entity–relationship diagram</h2>
+  <div class="rule"></div>
+  <p class="sub">The whole approval schema in one picture: 9 tables (incl. the TOCA pivot), plus <span class="mono">users</span>, <span class="mono">entities</span> and the four documents it approves. Solid = real foreign key · dotted = logical link (no FK).</p>
+
+  <div class="card">
+    <pre class="mermaid">
+erDiagram
+    entities ||--o{ approval_settings : "entity_id on every table"
+    users ||--o{ approval_requests : "creator · parked assignee"
+    users }o--o{ toca_entries : "toca_entry_user (m:n)"
+
+    approval_settings ||--o{ approval_flows : "amount bands"
+    approval_flows ||--o{ approval_steps : "ordered steps"
+    approval_settings ||--o{ approval_requests : "resolved at submit"
+    approval_flows ||--o{ approval_requests : "band picked"
+    approval_requests ||--o{ approval_request_step_assignees : "co-signers"
+    approval_requests ||--o{ approval_actions : "decisions"
+
+    approval_requests }o..|| evaluations : "evaluation"
+    approval_requests }o..|| cash_requests : "petty_cash · advance · cash"
+    approval_requests }o..|| cash_clearances : "cash_clearance"
+    approval_requests }o..|| advance_liquidations : "advance_liquidation"
+    approval_drafts }o..|| evaluations : "same pointer"
+    approval_drafts }o..|| cash_requests : "same pointer"
+    approval_drafts }o..|| cash_clearances : "same pointer"
+    approval_drafts }o..|| advance_liquidations : "same pointer"
+
+    entities {
+        ulid id PK
+        string name
+    }
+    users {
+        int id PK
+        string name
+        string email UK
+        bool is_active
+        string signature_path "frozen into snapshots"
+    }
+    approval_settings {
+        ulid id PK
+        ulid entity_id FK
+        string subject_type UK "unique per entity"
+        string name
+        bool is_active "default true"
+        int created_by FK
+        int updated_by FK
+        timestamp deleted_at "soft delete"
+    }
+    approval_flows {
+        ulid id PK
+        ulid entity_id FK
+        ulid approval_setting_id FK "cascade"
+        string code UK "unique per entity"
+        string name
+        decimal min_amount "default 0"
+        decimal max_amount "null = open"
+        bool is_active "default true"
+        int created_by FK
+        int updated_by FK
+        timestamp deleted_at "soft delete"
+    }
+    approval_steps {
+        ulid id PK
+        ulid entity_id FK
+        ulid approval_flow_id FK "cascade"
+        int position UK "unique per flow"
+        string key UK "unique per flow"
+        string label
+        string label_kh "Khmer, nullable"
+        string action_mode "record | decide"
+        json allowed_actions "approve reject return"
+        bool show_on_print "default true"
+        int created_by FK
+        int updated_by FK
+        timestamp deleted_at "soft delete"
+    }
+    toca_entries {
+        ulid id PK
+        ulid entity_id FK
+        string name
+        string subject_type
+        string step_key "null = every step"
+        decimal min_amount "default 0"
+        decimal max_amount "null = unlimited"
+        int created_by FK
+        int updated_by FK
+        timestamp deleted_at "soft delete"
+    }
+    toca_entry_user {
+        ulid toca_entry_id PK,FK "cascade"
+        int user_id PK,FK "cascade"
+    }
+    approval_requests {
+        ulid id PK
+        ulid entity_id FK
+        string subject_type "6 registry types"
+        string subject_id "document id, no FK"
+        ulid approval_setting_id FK "restrict"
+        ulid approval_flow_id FK "restrict"
+        decimal amount_snapshot "USD at submit"
+        string status "pending approved rejected returned cancelled"
+        int current_position "parked step, nullable"
+        int current_assignee_id FK "nullable"
+        json snapshot "frozen flow + steps + document"
+        int created_by FK "submitter"
+        int updated_by FK
+        timestamp decided_at "nullable"
+        timestamp deleted_at "soft delete"
+    }
+    approval_request_step_assignees {
+        ulid id PK
+        ulid entity_id FK
+        ulid approval_request_id FK "cascade"
+        int step_position
+        int user_id FK "nullable, nullOnDelete"
+        timestamp acted_at "null = still owed"
+    }
+    approval_actions {
+        ulid id PK
+        ulid entity_id FK
+        ulid approval_request_id FK "cascade"
+        int step_position
+        string step_key
+        string action "record approve reject return cancel"
+        string comment "required on reject/return"
+        int acted_by FK "nullable"
+        timestamp acted_at
+    }
+    approval_drafts {
+        ulid id PK
+        ulid entity_id FK
+        string subject_type
+        string subject_id
+        json assignees "position to user ids"
+        int created_by FK
+        int updated_by FK
+    }
+    evaluations {
+        int id PK
+        string code
+        string status "draft in_review approved rejected"
+        decimal awarded_total "amount source"
+        string currency
+        timestamp deleted_at
+    }
+    cash_requests {
+        int id PK
+        string type "petty_cash advance cash"
+        string code
+        string status "draft in_review approved rejected cleared"
+        decimal total_usd "amount source"
+        decimal exchange_rate
+        timestamp deleted_at
+    }
+    cash_clearances {
+        int id PK
+        string code
+        string status "draft in_review approved rejected"
+        decimal total_usd "amount source"
+        int cash_request_id FK "source request"
+        timestamp deleted_at
+    }
+    advance_liquidations {
+        int id PK
+        string code
+        string status "draft in_review approved rejected"
+        decimal total_actual_expense_usd "amount source"
+        timestamp deleted_at
+    }
+    </pre>
+  </div>
+
+  <div class="legend">
+    <span><b>Tenancy:</b> every approval table carries <span class="mono">entity_id → entities</span> (cascade) — drawn once, applies to all.</span>
+    <span><b>Audit:</b> <span class="mono">created_by / updated_by → users</span> (nullOnDelete) on all tables except the two history tables.</span>
+    <span><b>user_id edges:</b> <span class="mono">current_assignee_id</span> · <span class="mono">acted_by</span> · <span class="mono">step assignees.user_id</span> → users.</span>
+    <span><b>Subject link:</b> <span class="mono">subject_type + subject_id</span>, validated by <span class="mono">ApprovalSubjectRegistry</span>, never a FK.</span>
+  </div>
+</section>
+
+<!-- ================= 2 · WORKFLOW ================= -->
+<section id="workflow">
+  <h2>2. Approval workflow</h2>
+  <div class="rule"></div>
+  <p class="sub">Five engine states, one transaction per call, row locked while decided. Config tables are only read by this flow — never written.</p>
+
+  <div class="card">
+    <pre class="mermaid">
+flowchart TD
+    PRE["Preview<br/>reads settings · flows · steps · toca (candidates)"]
+    DRAFT["Save draft<br/>upserts approval_drafts"]
+    SUB["Submit — one DB transaction"]
+    CHECK{"guards"}
+    WR["deletes approval_drafts<br/>inserts approval_requests (pending)<br/>inserts approval_request_step_assignees"]
+    PARK["record steps stamped<br/>park on first decide step"]
+    WAIT["pending — waits on assignees"]
+    ACT{"Decision<br/>approve / reject / return / cancel"}
+    ADV["approve · co-signers left → stay on step"]
+    NEXT["approve · step done → advance"]
+    DONE["approved"]
+    CLOSE["reject / return → all unacted rows stamped"]
+    CANCEL["cancel (submitter only)"]
+    EVN["ApprovalStatusChanged"]
+    SUBJ["Listener updates the subject document"]
+
+    PRE --> DRAFT --> SUB --> CHECK
+    CHECK -->|"missing band / assignee / authority<br/>or a round is already pending"| ERR["422 / 403 — nothing written"]
+    CHECK -->|"ok"| WR --> PARK --> WAIT --> ACT
+    ADV --> WAIT
+    NEXT --> WAIT
+    NEXT --> DONE
+    ACT -->|"reject / return"| CLOSE --> EVN
+    ACT -->|"cancel"| CANCEL --> EVN
+    DONE --> EVN
+    EVN --> SUBJ
+    </pre>
+  </div>
+
+  <div class="facts">
+    <div class="fact"><b>Submit guards, in order</b><span>policy → one pending round per document → subject status must be <span class="mono">draft/returned</span> → active band covers the amount → every decide step has an assignee → each assignee passes TOCA.</span></div>
+    <div class="fact"><b>Co-signing</b><span>Several users per step: each approves on the same step; one reject/return closes the round for everyone and stamps all unacted rows.</span></div>
+    <div class="fact"><b>Snapshot isolation</b><span>Config edits replace steps wholesale, but a round only reads its own <span class="mono">snapshot</span> — in-flight requests never change.</span></div>
+    <div class="fact"><b>Authority is re-checked</b><span>TOCA covers amount + step key at submit <b>and</b> at every decision, against the frozen <span class="mono">amount_snapshot</span>.</span></div>
+  </div>
+
+  <h3>2.1 Status bridge — engine → document</h3>
+  <table>
+    <thead><tr><th>Engine status</th><th>Subject document status</th><th>Written by</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill">pending</span></td><td class="mono">in_review</td><td rowspan="5">Listener, synchronously inside the approval transaction — the engine never writes subject tables:<br/><span class="mono">Modules/Payments/Listeners/SyncPaymentApprovalStatus</span> · <span class="mono">Modules/PurchaseOrders/Listeners/SyncEvaluationApprovalStatus</span></td></tr>
+      <tr><td><span class="pill green">approved</span></td><td class="mono">approved</td></tr>
+      <tr><td><span class="pill red">rejected</span></td><td class="mono">rejected</td></tr>
+      <tr><td><span class="pill amber">returned</span></td><td class="mono">draft (resubmittable)</td></tr>
+      <tr><td><span class="pill">cancelled</span></td><td class="mono">draft (resubmittable)</td></tr>
+      <tr><td colspan="2"><b>Cascade:</b> an approved <span class="mono">cash_clearance</span> also sets its source <span class="mono">cash_request</span> → <span class="mono">cleared</span>.</td><td><span class="mono">SyncPaymentApprovalStatus</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <b>Source of truth:</b> <span class="mono">apps/api/Modules/Approvals</span> — migrations (8 files), models, services, repository, and the status listeners in Payments / PurchaseOrders.
+  </div>
+</footer>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: "neutral",
+    themeVariables: {
+      fontFamily: '"Segoe UI", system-ui, sans-serif',
+      fontSize: "14px",
+      primaryColor: "#eef2fb",
+      primaryBorderColor: "#8aa4d8",
+      primaryTextColor: "#1a1f2e",
+      lineColor: "#5b6472"
+    },
+    flowchart: { curve: "basis", htmlLabels: true, useMaxWidth: false },
+    er: { fontSize: 17, entityPadding: 18, useMaxWidth: false }
+  });
+
+  const sourceOf = (pre) => {
+    let out = "";
+    for (const child of pre.childNodes) {
+      out += child.nodeType === Node.ELEMENT_NODE && child.tagName === "BR" ? "<br/>" : child.textContent;
+    }
+    return out;
+  };
+
+  const nodes = [...document.querySelectorAll("pre.mermaid")];
+  for (let i = 0; i < nodes.length; i++) {
+    const src = sourceOf(nodes[i]);
+    let svg = "";
+    for (let attempt = 0; attempt < 3 && !svg; attempt++) {
+      try {
+        const rendered = (await mermaid.render("mmd" + i, src)).svg;
+        svg = /<(rect|path|polygon|circle|line|ellipse)\b/.test(rendered) ? rendered : "";
+      } catch {
+        svg = "";
+      }
+      if (!svg) await new Promise((r) => setTimeout(r, 120));
+    }
+    if (svg) nodes[i].innerHTML = svg;
+  }
+
+  const clamp = (v) => Math.min(8, Math.max(0.25, v));
+  for (const wrap of nodes) {
+    const svgEl = wrap.querySelector("svg");
+    if (!svgEl) continue;
+
+    const card = wrap.closest(".card") || wrap.parentElement;
+    const bar = document.createElement("div");
+    bar.className = "zoombar";
+
+    const mkBtn = (text, title, wide) => {
+      const b = document.createElement("button");
+      b.textContent = text;
+      b.title = title;
+      if (wide) b.style.padding = "0 10px";
+      return b;
+    };
+    const minus = mkBtn("−", "Zoom out");
+    const label = document.createElement("span");
+    label.className = "zlabel";
+    label.textContent = "100%";
+    const plus = mkBtn("+", "Zoom in");
+    const reset = mkBtn("100%", "Reset to 100%", true);
+    const fit = mkBtn("⤢", "Fit diagram to the card width", true);
+    const hint = document.createElement("span");
+    hint.className = "zhint";
+    hint.textContent = "Ctrl + scroll to zoom · drag to pan";
+    bar.append(minus, label, plus, reset, fit, hint);
+    card.insertBefore(bar, wrap);
+
+    let base = 0;
+    let z = 1;
+    // Natural size: the viewBox is unaffected by later width overrides.
+    if (svgEl.viewBox && svgEl.viewBox.baseVal && svgEl.viewBox.baseVal.width) {
+      base = svgEl.viewBox.baseVal.width;
+    } else if (svgEl.width && svgEl.width.baseVal && svgEl.width.baseVal.value) {
+      base = svgEl.width.baseVal.value;
+    } else {
+      base = svgEl.getBoundingClientRect().width;
+    }
+    const apply = () => {
+      svgEl.style.width = Math.round(base * z) + "px";
+      svgEl.style.height = "auto";
+      label.textContent = Math.round(z * 100) + "%";
+    };
+    const setZ = (v) => { z = clamp(v); apply(); };
+
+    minus.addEventListener("click", () => setZ(z / 1.25));
+    plus.addEventListener("click", () => setZ(z * 1.25));
+    reset.addEventListener("click", () => { setZ(1); wrap.scrollTo(0, 0); });
+    const fitZ = () => Math.min(1, Math.max(0.25, (card.clientWidth - 40) / base));
+    fit.addEventListener("click", () => setZ(fitZ()));
+
+    wrap.addEventListener("wheel", (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      setZ(z * (e.deltaY < 0 ? 1.12 : 1 / 1.12));
+    }, { passive: false });
+
+    let dragging = false, startX = 0, startY = 0, startL = 0, startT = 0;
+    wrap.addEventListener("mousedown", (e) => {
+      dragging = true;
+      startX = e.clientX; startY = e.clientY;
+      startL = wrap.scrollLeft; startT = wrap.scrollTop;
+      wrap.classList.add("grabbing");
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+      wrap.scrollLeft = startL - (e.clientX - startX);
+      wrap.scrollTop = startT - (e.clientY - startY);
+    });
+    window.addEventListener("mouseup", () => {
+      dragging = false;
+      wrap.classList.remove("grabbing");
+    });
+
+    // On load, show the whole diagram (never zoomed past 100%).
+    setZ(fitZ());
+  }
+</script>
+
+</body>
+</html>

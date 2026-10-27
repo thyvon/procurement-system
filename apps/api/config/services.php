@@ -45,6 +45,19 @@ return [
         'rate_per_minute' => env('TELEGRAM_RATE_PER_MINUTE', 5),
         // Random pre-send delay ceiling in ms (0 disables — tests).
         'jitter_max_ms' => env('TELEGRAM_JITTER_MAX_MS', 3000),
+        // Bot API (api.telegram.org) — approval alerts to users' direct chats.
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        // Kill switch for approval alerts; database notifications always fire.
+        'alerts_enabled' => env('TELEGRAM_ALERTS_ENABLED', true),
+        // Outbound alert ceiling (jobs/minute), enforced by queue middleware.
+        'alert_rate_per_minute' => env('TELEGRAM_ALERTS_RATE_PER_MINUTE', 30),
+        // Bot public username for the /start deep link (https://t.me/<username>).
+        'bot_username' => env('TELEGRAM_BOT_USERNAME'),
+        // secret_token Telegram echoes back in X-Telegram-Bot-Api-Secret-Token
+        // on the bot webhook (VerifyTelegramBotWebhook).
+        'bot_webhook_secret' => env('TELEGRAM_BOT_WEBHOOK_SECRET'),
+        // Lifetime of a /start deep-link code, in minutes.
+        'link_code_ttl_minutes' => env('TELEGRAM_LINK_CODE_TTL_MINUTES', 10),
     ],
 
 ];

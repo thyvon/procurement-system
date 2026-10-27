@@ -51,5 +51,10 @@ class TelegramServiceProvider extends ModuleServiceProvider
             return Limit::perMinute((int) config('services.telegram.rate_per_minute', 5))
                 ->by($job->accountId ?? 'unknown');
         });
+
+        RateLimiter::for('telegram-alert', function (object $job) {
+            return Limit::perMinute((int) config('services.telegram.alert_rate_per_minute', 30))
+                ->by($job->chatId ?? 'unknown');
+        });
     }
 }

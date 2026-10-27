@@ -575,6 +575,7 @@ class ApprovalService
 
         foreach ($users as $assignee) {
             $assignee->notify(new ActionRequiredNotification([
+                'entityId' => $request->entity_id,
                 'requestId' => $request->getKey(),
                 'subjectType' => $request->subject_type,
                 'subjectId' => $request->subject_id,
@@ -630,6 +631,7 @@ class ApprovalService
         $submitter = User::query()->find($request->created_by);
 
         $submitter?->notify(new ApprovalResultNotification([
+            'entityId' => $request->entity_id,
             'requestId' => $request->getKey(),
             'subjectType' => $request->subject_type,
             'subjectId' => $request->subject_id,
@@ -648,6 +650,7 @@ class ApprovalService
         $assignee = User::query()->find($request->current_assignee_id);
 
         $assignee?->notify(new ApprovalResultNotification([
+            'entityId' => $request->entity_id,
             'requestId' => $request->getKey(),
             'subjectType' => $request->subject_type,
             'subjectId' => $request->subject_id,
