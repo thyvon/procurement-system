@@ -520,11 +520,14 @@ it('prints a cash clearance sheet with its bilingual labels', function () {
             && str_contains($html, 'Ref (Request)')
             && ! str_contains($html, 'Cash request')
             // The three money rows moved from the meta strip into the table's
-            // own footer: each label spans every column up to Amount, so the
-            // values sit in the Amount column of the same grid.
+            // own footer: the label sits over the merged Discount + VAT cells
+            // (colspan 2) with the value in the Amount column, and the blank
+            // No.-to-Unit-price span is one cell across all three rows.
             && str_contains($html, 'Request amount')
             && str_contains($html, 'Balance')
-            && substr_count($html, 'colspan="15"') === 3
+            && substr_count($html, 'colspan="13"') === 1
+            && substr_count($html, 'rowspan="3"') === 1
+            && substr_count($html, 'colspan="2"') === 3
             // Line headers and footer labels are English only, as on the paper
             // form — the Khmer stays in the title, meta block and step titles.
             && ! str_contains($html, 'ថ្ងៃវិក្កយបត្រ')
