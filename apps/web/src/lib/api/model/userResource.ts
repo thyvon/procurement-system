@@ -31,6 +31,8 @@ export interface UserResource {
   signature: string | null;
   /** @nullable */
   entityId: string | null;
+  /** @nullable */
+  telegramChatId: number | null;
   isActive: boolean;
   roles?: unknown[];
   permissions?: unknown[];

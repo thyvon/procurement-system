@@ -34,6 +34,7 @@ class UserResource extends JsonResource
             'avatar' => $this->avatarUrl(),
             'signature' => $this->signatureUrl(),
             'entityId' => $this->entity_id,
+            'telegramChatId' => $this->telegram_chat_id,
             'isActive' => $this->is_active ?? null,
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')->values()),
             'permissions' => $this->when(

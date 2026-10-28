@@ -31,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SignatureCropDialog } from "@/features/profile/signature-crop-dialog";
+import { TelegramAlertsCard } from "@/features/profile/components/telegram-alerts-card";
 
 type Props = {
   user: UserResource;
@@ -500,6 +501,7 @@ export function ProfileDialog({ user, open, onOpenChange }: Props) {
               </div>
             </CardContent>
           </Card>
+          <TelegramAlertsCard key={open ? "open" : "closed"} user={user} />
         </div>
         <DialogFooter>
           <Button
