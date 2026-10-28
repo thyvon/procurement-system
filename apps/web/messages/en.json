@@ -1375,13 +1375,21 @@
         "users": "Users",
         "roles": "Roles",
         "entities": "Entities",
+        "campuses": "Campuses",
+        "divisions": "Divisions",
+        "departments": "Departments",
         "products": "Products",
         "categories": "Categories",
         "brands": "Brands",
         "groups": "Groups",
         "uoms": "Units of Measure",
         "variations": "Variations",
-        "evaluations": "Evaluations"
+        "evaluations": "Evaluations",
+        "invoices": "Invoices",
+        "payments": "Payments",
+        "approvals": "Approvals",
+        "telegram": "Telegram",
+        "settings": "Settings"
       }
     }
   },
@@ -1418,6 +1426,10 @@
   "settings": {
     "title": "System settings",
     "description": "Manage organization-wide settings.",
+    "tabs": {
+      "branding": "Branding",
+      "telegram": "Telegram"
+    },
     "logoTitle": "Logo",
     "logoDescription": "Shown in the sidebar and on printed documents.",
     "logoEmpty": "No logo yet",
@@ -1425,7 +1437,22 @@
     "uploadLabel": "Logo file",
     "uploadHint": "JPG, PNG or WebP. Max 2 MB.",
     "upload": "Upload",
-    "uploading": "Uploading…"
+    "uploading": "Uploading…",
+    "telegram": {
+      "cardTitle": "Telegram integration",
+      "cardDescription": "Bot, deep-link and TDLib service settings. Secrets are write-only: configured values are never shown, only their state.",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "saved": "Settings saved.",
+      "configured": "Configured",
+      "clear": "Clear",
+      "clearQueued": "Will clear",
+      "secretConfiguredPlaceholder": "••••••••",
+      "secretEmptyPlaceholder": "Not set",
+      "envFallbackHint": "Falls back to {env}.",
+      "overriddenHint": "Overridden — the {env} environment value is ignored.",
+      "rangeHint": "{min}–{max}. Leave empty to fall back to {env}."
+    }
   },
   "telegram": {
     "contacts": {

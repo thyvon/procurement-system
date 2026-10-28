@@ -54,6 +54,9 @@ const PERMISSION_MODULES = [
   "users",
   "roles",
   "entities",
+  "campuses",
+  "divisions",
+  "departments",
   "products",
   "categories",
   "brands",
@@ -61,6 +64,11 @@ const PERMISSION_MODULES = [
   "uoms",
   "variations",
   "evaluations",
+  "invoices",
+  "payments",
+  "approvals",
+  "telegram",
+  "settings",
 ] as const
 
 const columnHelper = createColumnHelper<DataTableFeatures, RoleRow>()

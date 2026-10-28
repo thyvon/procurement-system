@@ -1374,13 +1374,21 @@
         "users": "អ្នកប្រើប្រាស់",
         "roles": "តួនាទី",
         "entities": "អង្គភាព",
+        "campuses": "សាខា",
+        "divisions": "ផ្នែក",
+        "departments": "នាយកដ្ឋាន",
         "products": "ផលិតផល",
         "categories": "ប្រភេទ",
         "brands": "ម៉ាក",
         "groups": "ក្រុម",
         "uoms": "ឯកតា",
         "variations": "ភាពប្រែប្រួល",
-        "evaluations": "ការវាយតម្លៃ"
+        "evaluations": "ការវាយតម្លៃ",
+        "invoices": "វិក្កយបត្រ",
+        "payments": "ការទូទាត់ប្រាក់",
+        "approvals": "ការអនុម័ត",
+        "telegram": "តេឡេក្រាម",
+        "settings": "ការកំណត់"
       }
     }
   },
@@ -1417,6 +1425,10 @@
   "settings": {
     "title": "ការកំណត់ប្រព័ន្ធ",
     "description": "គ្រប់គ្រងការកំណត់ទូទាំងអង្គភាព។",
+    "tabs": {
+      "branding": "ម៉ាកសញ្ញា",
+      "telegram": "តេឡេក្រាម"
+    },
     "logoTitle": "ឡូហ្គូ",
     "logoDescription": "បង្ហាញក្នុងរបារចំហៀង និងលើឯកសារបោះពុម្ព។",
     "logoEmpty": "មិនទាន់មានឡូហ្គូ",
@@ -1424,7 +1436,22 @@
     "uploadLabel": "ឯកសារឡូហ្គូ",
     "uploadHint": "JPG, PNG ឬ WebP។ អតិបរមា 2 MB។",
     "upload": "បញ្ចូល",
-    "uploading": "កំពុងបញ្ចូល…"
+    "uploading": "កំពុងបញ្ចូល…",
+    "telegram": {
+      "cardTitle": "ការតភ្ជាប់តេឡេក្រាម",
+      "cardDescription": "ការកំណត់បូត តេឡេក្រាមបូត និងសេវាកម្ម TDLib។ ពាក្យសម្ងាត់បញ្ចូលតែម្តងគត់៖ តម្លៃដែលបានកំណត់មិនត្រូវបានបង្ហាញឡើយ គ្រាន់តែបង្ហាញស្ថានភាពរបស់វា។",
+      "save": "រក្សាទុកការផ្លាស់ប្តូរ",
+      "saving": "កំពុងរក្សាទុក…",
+      "saved": "បានរក្សាទុកការកំណត់។",
+      "configured": "បានកំណត់",
+      "clear": "លុបចោល",
+      "clearQueued": "នឹងលុបចោល",
+      "secretConfiguredPlaceholder": "••••••••",
+      "secretEmptyPlaceholder": "មិនទាន់កំណត់",
+      "envFallbackHint": "វិលទៅតម្លៃ {env} វិញ។",
+      "overriddenHint": "បានជំនួស — មិនប្រើតម្លៃ {env} ឡើយ។",
+      "rangeHint": "{min}–{max}។ ទុកឲ្យនៅទំនេរដើម្បីវិលទៅ {env} វិញ។"
+    }
   },
   "telegram": {
     "contacts": {

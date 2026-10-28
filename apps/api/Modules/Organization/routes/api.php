@@ -7,8 +7,18 @@ use Modules\Organization\Http\Controllers\DepartmentController;
 use Modules\Organization\Http\Controllers\DivisionController;
 use Modules\Organization\Http\Controllers\EntityController;
 use Modules\Organization\Http\Controllers\OrganizationImportController;
+use Modules\Organization\Http\Controllers\SystemSettingController;
 
 Route::get('v1/branding', BrandingController::class)->name('branding');
+
+Route::prefix('v1/system-settings')
+    ->name('system-settings.')
+    ->middleware(['auth:sanctum'])
+    ->whereIn('group', array_keys((array) config('system-settings', [])))
+    ->group(function () {
+        Route::get('{group}', [SystemSettingController::class, 'index'])->name('index');
+        Route::put('{group}', [SystemSettingController::class, 'update'])->name('update');
+    });
 
 Route::prefix('v1/entities')
     ->name('entities.')

@@ -54,6 +54,8 @@ class PermissionSeeder extends Seeder
         'approvals.manage',
         'telegram.view',
         'telegram.manage',
+        'settings.view',
+        'settings.manage',
     ];
 
     public function run(): void
