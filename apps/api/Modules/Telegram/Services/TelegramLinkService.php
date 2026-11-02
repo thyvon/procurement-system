@@ -201,11 +201,13 @@ class TelegramLinkService
      */
     private function linkedMessage(User $user, int $chatId): string
     {
-        $system = (string) config('app.name').' System';
+        // Deliveries ride parse_mode=HTML, so interpolated values must be
+        // escaped — a name like "R&D" would otherwise 400 every retry.
+        $system = e((string) config('app.name').' System');
 
         return sprintf(
             "Hey Dear, %s, you have successfully registered your chat ID to \"%s\".\nYour Chat ID is: %s\n\nThank you.",
-            $user->name,
+            e($user->name),
             $system,
             (string) $chatId,
         );

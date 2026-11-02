@@ -36,7 +36,7 @@ class ActionRequiredNotification extends Notification
     }
 
     /**
-     * Plain text for the Bot API channel; wording lives in the shared
+     * Telegram HTML for the Bot API channel; wording lives in the shared
      * builder so every future transport says the same thing.
      */
     public function toTelegram(object $notifiable): string

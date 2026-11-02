@@ -77,10 +77,11 @@ class TelegramWebhookService
         $this->call('setWebhook', [
             'url' => rtrim($origin, '/').self::WEBHOOK_PATH,
             'secret_token' => $secret,
-            // The bot only handles message updates (/start deep links and
-            // chat replies); anything else would bounce with a 422 and
-            // trigger Telegram's retry loop.
-            'allowed_updates' => json_encode(['message'], JSON_THROW_ON_ERROR),
+            // The bot handles message updates (/start deep links, chat
+            // replies) and the inline-button taps on approval alerts;
+            // anything else would bounce with a 422 and trigger Telegram's
+            // retry loop.
+            'allowed_updates' => json_encode(['message', 'callback_query'], JSON_THROW_ON_ERROR),
         ]);
 
         return $this->status();

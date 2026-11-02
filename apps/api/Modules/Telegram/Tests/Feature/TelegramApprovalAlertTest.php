@@ -10,6 +10,7 @@ use Modules\Approvals\Models\ApprovalRequest;
 use Modules\Approvals\Models\ApprovalSetting;
 use Modules\Approvals\Models\ApprovalStep;
 use Modules\Approvals\Models\TocaEntry;
+use Modules\Approvals\Services\ApprovalDocumentPrinter;
 use Modules\Organization\Models\Entity;
 use Modules\PurchaseOrders\Models\Evaluation;
 use Modules\Telegram\Jobs\SendTelegramAlert;
@@ -166,16 +167,19 @@ it('sends an action-required alert to the linked assignee on submit', function (
         ->and($message->telegram_message_id)->toBe(555)
         ->and($message->reference_type)->toBe('approval_request')
         ->and($message->reference_id)->toBe((string) $requestId)
-        ->and($message->body)->toContain('Approval action required')
+        ->and($message->body)->toContain('<b>🔔 Approval action required</b>')
+        ->and($message->body)->toContain('🔔 Approval action required')
         ->and($message->body)->toContain('EVAL-26-001')
         ->and($message->body)->toContain('44.00 USD')
         ->and($message->body)->toContain('Checked By')
+        ->and($message->body)->toContain('Document: EVAL-26-001')
         ->and($message->idempotency_key)->toStartWith('approval-alert:');
 
     Http::assertSent(function ($request) {
         return str_contains($request->url(), '/bottest-bot-token/sendMessage')
             && $request['chat_id'] === 777001
             && str_contains($request['text'], 'Checked By')
+            && $request['parse_mode'] === 'HTML'
             && $request->hasHeader('Authorization', 'Bearer test-bot-token');
     });
 
@@ -249,7 +253,7 @@ it('sends the result alert to the submitter when the round is approved', functio
     $message = TelegramMessage::sole();
 
     expect($message->telegram_chat_id)->toBe(888001)
-        ->and($message->body)->toContain('Approval result: approved')
+        ->and($message->body)->toContain('✅ Approval result: approved')
         ->and($message->body)->toContain('EVAL-26-001');
 
     expect($this->admin->notifications()->where('data', 'like', '%approval.result%')->count())->toBe(1);
@@ -335,4 +339,43 @@ it('never sends the same alert twice when delivery runs again', function () {
     expect($outcome->status)->toBe('sent');
 
     Http::assertSentCount(1);
+});
+
+it('attaches the print sheet as a document captioned with the alert', function () {
+    config(['services.telegram.alert_pdf_enabled' => true]);
+    $this->mock(ApprovalDocumentPrinter::class, fn ($printer) => $printer->shouldReceive('forRequest')
+        ->once()
+        ->andReturn(['binary' => '%PDF-1.4 test', 'filename' => 'EVAL-26-001.pdf']));
+    ($this->fakeTelegramOk)();
+    $this->firstApprover->telegram_chat_id = 777001;
+    $this->firstApprover->save();
+
+    tgSubmit(tgEvaluation(), tgAssignees());
+
+    expect(TelegramMessage::sole()->status)->toBe(TelegramMessage::STATUS_SENT);
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), '/bottest-bot-token/sendDocument')
+            && $request->isMultipart()
+            && str_contains($request->body(), 'filename="EVAL-26-001.pdf"')
+            && str_contains($request->body(), 'Approval action required')
+            && $request->hasHeader('Authorization', 'Bearer test-bot-token');
+    });
+});
+
+it('falls back to a plain message when the print sheet cannot be rendered', function () {
+    config(['services.telegram.alert_pdf_enabled' => true]);
+    $this->mock(ApprovalDocumentPrinter::class, fn ($printer) => $printer->shouldReceive('forRequest')
+        ->once()
+        ->andReturnNull());
+    ($this->fakeTelegramOk)();
+    $this->firstApprover->telegram_chat_id = 777001;
+    $this->firstApprover->save();
+
+    tgSubmit(tgEvaluation(), tgAssignees());
+
+    expect(TelegramMessage::sole()->status)->toBe(TelegramMessage::STATUS_SENT);
+
+    Http::assertSent(fn ($request): bool => str_contains($request->url(), '/sendMessage')
+        && ! $request->isMultipart());
 });

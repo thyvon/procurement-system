@@ -116,7 +116,7 @@ it('registers the webhook with the configured origin and secret', function () {
         return str_contains($request->url(), '/setWebhook')
             && $request['url'] === WEBHOOK_TEST_ORIGIN.'/api/internal/telegram/bot'
             && $request['secret_token'] === WEBHOOK_TEST_SECRET
-            && $request['allowed_updates'] === '["message"]';
+            && $request['allowed_updates'] === '["message","callback_query"]';
     });
 
     // Write-only secret never round-trips to the caller.

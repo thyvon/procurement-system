@@ -49,6 +49,10 @@ return [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         // Kill switch for approval alerts; database notifications always fire.
         'alerts_enabled' => env('TELEGRAM_ALERTS_ENABLED', true),
+        // Attach the subject's A4 print sheet (PDF) to the alert message.
+        'alert_pdf_enabled' => env('TELEGRAM_ALERT_PDF', true),
+        // Inline approve/reject/return buttons on action-required alerts.
+        'alert_actions_enabled' => env('TELEGRAM_ALERT_ACTIONS', true),
         // Outbound alert ceiling (jobs/minute), enforced by queue middleware.
         'alert_rate_per_minute' => env('TELEGRAM_ALERTS_RATE_PER_MINUTE', 30),
         // Bot public username for the /start deep link (https://t.me/<username>).

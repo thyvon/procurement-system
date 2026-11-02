@@ -7,6 +7,8 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Modules\Approvals\Models\ApprovalRequest;
+use Modules\Approvals\Services\ApprovalDocumentPrinter;
 use Modules\Telegram\Jobs\SendTelegramAlert;
 use Modules\Telegram\Jobs\SendTelegramMessage;
 use Modules\Telegram\Models\TelegramAccount;
@@ -222,6 +224,11 @@ class TelegramGateway
      * SendTelegramAlert inside the queue worker (no entity context — the
      * lookup is unscoped by ULID). A row already marked sent short-circuits
      * so an at-least-once queue retry can never send the alert twice.
+     * Approval alerts go as sendDocument with the alert text as caption and
+     * the subject's A4 print sheet attached; while the request is pending
+     * they also carry the inline approve/reject/return buttons, and
+     * reject/return prompts go out as force-reply messages with a Cancel
+     * button. Everything else is plain sendMessage text.
      *
      * The bot token rides in the request URL, so raw transport exceptions
      * are re-thrown with static messages only — no path can persist it.
@@ -246,14 +253,30 @@ class TelegramGateway
             return SendOutcome::failed('bot_token_not_configured');
         }
 
+        $approval = $this->alertApproval($message);
+        $document = $this->alertDocument($approval);
+        $markup = $this->alertMarkup($message, $approval);
+
+        $url = 'https://api.telegram.org/bot'.$token.($document === null ? '/sendMessage' : '/sendDocument');
+        $payload = [
+            'chat_id' => $message->telegram_chat_id,
+            'parse_mode' => 'HTML',
+        ];
+        $payload[$document === null ? 'text' : 'caption'] = $message->body;
+
+        if ($markup !== null) {
+            $payload['reply_markup'] = $markup;
+        }
+
         try {
-            $response = Http::withToken($token)
+            $http = Http::withToken($token)
                 ->timeout(15)
-                ->connectTimeout(5)
-                ->post('https://api.telegram.org/bot'.$token.'/sendMessage', [
-                    'chat_id' => $message->telegram_chat_id,
-                    'text' => $message->body,
-                ]);
+                ->connectTimeout(5);
+
+            $response = $document === null
+                ? $http->post($url, $payload)
+                : $http->attach('document', $document['binary'], $document['filename'])
+                    ->post($url, $payload);
         } catch (ConnectionException $exception) {
             throw new RuntimeException('telegram_api_unreachable:'.$exception->getCode());
         }
@@ -272,6 +295,8 @@ class TelegramGateway
                 'chat_id' => $message->telegram_chat_id,
                 'reference_type' => $message->reference_type,
                 'reference_id' => $message->reference_id,
+                'attached' => $document !== null,
+                'buttons' => $markup !== null,
             ]);
 
             return SendOutcome::sent();
@@ -293,6 +318,164 @@ class TelegramGateway
         $this->markFailed($messageId, (string) $error);
 
         return SendOutcome::failed((string) $error);
+    }
+
+    /**
+     * The approval request an alert row refers to, loaded unscoped (the
+     * worker has no entity context). Null for every other reference kind.
+     */
+    private function alertApproval(TelegramMessage $message): ?ApprovalRequest
+    {
+        if ($message->reference_type !== 'approval_request' || $message->reference_id === null) {
+            return null;
+        }
+
+        return ApprovalRequest::withoutGlobalScope('entity')->find($message->reference_id);
+    }
+
+    /**
+     * Print-sheet attachment for approval alerts: renders the subject's A4
+     * PDF in the worker. Null (plain text alert) when the flag is off, the
+     * row references nothing, or rendering fails — the printer already
+     * logged why.
+     *
+     * @return array{binary: string, filename: string}|null
+     */
+    private function alertDocument(?ApprovalRequest $approval): ?array
+    {
+        if (! (bool) config('services.telegram.alert_pdf_enabled', true)) {
+            return null;
+        }
+
+        if ($approval === null) {
+            return null;
+        }
+
+        return app(ApprovalDocumentPrinter::class)->forRequest($approval);
+    }
+
+    /**
+     * Inline keyboard for the delivery: action-required alerts of a still-
+     * pending request carry approve/reject/return taps (flagged), and the
+     * reject/return reason prompts force a reply with a Cancel button.
+     * Result alerts and everything else stay markup-free.
+     */
+    private function alertMarkup(TelegramMessage $message, ?ApprovalRequest $approval): ?string
+    {
+        if ($message->reference_type === 'telegram_action_prompt') {
+            return json_encode([
+                'force_reply' => true,
+                'input_field_placeholder' => 'Send the reason as a reply…',
+                'inline_keyboard' => [
+                    [['text' => '✖ Cancel', 'callback_data' => 'approval:discard']],
+                ],
+            ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        }
+
+        if (! (bool) config('services.telegram.alert_actions_enabled', true)) {
+            return null;
+        }
+
+        if ($approval === null || ! $approval->isPending()) {
+            return null;
+        }
+
+        $id = (string) $approval->getKey();
+
+        return json_encode([
+            'inline_keyboard' => [
+                [['text' => '✅ Approve', 'callback_data' => "approval:{$id}:approve"]],
+                [
+                    ['text' => '❌ Reject', 'callback_data' => "approval:{$id}:reject"],
+                    ['text' => '↩️ Return', 'callback_data' => "approval:{$id}:return"],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Acknowledge a button tap so the chat never shows a stuck spinner.
+     * Best-effort: a re-answer Telegram rejects is simply logged. Errors
+     * carry Telegram's description only — never the token from the URL.
+     */
+    public function answerCallbackQuery(string $callbackQueryId, ?string $text = null, bool $showAlert = false): bool
+    {
+        $token = (string) config('services.telegram.bot_token');
+
+        if ($token === '') {
+            return false;
+        }
+
+        $payload = [
+            'callback_query_id' => $callbackQueryId,
+            'show_alert' => $showAlert,
+        ];
+
+        if ($text !== null) {
+            $payload['text'] = Str::limit($text, 190);
+        }
+
+        try {
+            $response = Http::withToken($token)
+                ->timeout(15)
+                ->connectTimeout(5)
+                ->post('https://api.telegram.org/bot'.$token.'/answerCallbackQuery', $payload);
+        } catch (ConnectionException $exception) {
+            Log::warning('telegram.callback.answer_failed', ['error' => 'unreachable:'.$exception->getCode()]);
+
+            return false;
+        }
+
+        if ($response->status() !== 200 || $response->json('ok') !== true) {
+            Log::warning('telegram.callback.answer_failed', [
+                'status' => $response->status(),
+                'error' => $response->json('description'),
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Strip the inline buttons from an already-delivered message (used once
+     * an action lands so the keyboard can never be tapped twice). Best-
+     * effort with the same token-safe error handling as above.
+     */
+    public function editMessageReplyMarkup(int $chatId, int $messageId): bool
+    {
+        $token = (string) config('services.telegram.bot_token');
+
+        if ($token === '') {
+            return false;
+        }
+
+        try {
+            $response = Http::withToken($token)
+                ->timeout(15)
+                ->connectTimeout(5)
+                ->post('https://api.telegram.org/bot'.$token.'/editMessageReplyMarkup', [
+                    'chat_id' => $chatId,
+                    'message_id' => $messageId,
+                    'reply_markup' => json_encode(['inline_keyboard' => []], JSON_THROW_ON_ERROR),
+                ]);
+        } catch (ConnectionException $exception) {
+            Log::warning('telegram.callback.markup_edit_failed', ['error' => 'unreachable:'.$exception->getCode()]);
+
+            return false;
+        }
+
+        if ($response->status() !== 200 || $response->json('ok') !== true) {
+            Log::warning('telegram.callback.markup_edit_failed', [
+                'status' => $response->status(),
+                'error' => $response->json('description'),
+            ]);
+
+            return false;
+        }
+
+        return true;
     }
 
     public function markFailed(string $messageId, string $error): void

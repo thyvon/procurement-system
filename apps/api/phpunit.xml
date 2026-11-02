@@ -43,6 +43,8 @@
         <env name="TELEGRAM_WEBHOOK_SECRET" value="test-webhook-secret"/>
         <env name="TELEGRAM_JITTER_MAX_MS" value="0"/>
         <env name="TELEGRAM_RATE_PER_MINUTE" value="5"/>
+        <env name="TELEGRAM_ALERT_PDF" value="false"/>
+        <env name="TELEGRAM_ALERT_ACTIONS" value="false"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

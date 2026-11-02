@@ -25,7 +25,13 @@ class TelegramMessageResource extends JsonResource
             'telegramMessageId' => $this->telegram_message_id,
             'referenceType' => $this->reference_type,
             'referenceId' => $this->reference_id,
-            'body' => $this->body,
+            // Bot-alert rows store the Telegram HTML payload verbatim; the
+            // Messages tab is plain text, so present the rendered equivalent.
+            // TDLib/inbound rows hold raw user text and pass through as-is.
+            'body' => $this->direction === TelegramMessage::DIRECTION_OUT
+                && $this->telegram_account_id === null
+                ? html_entity_decode(strip_tags($this->body), ENT_QUOTES)
+                : $this->body,
             'filePath' => $this->file_path,
             'status' => $this->status,
             'parsedJson' => $this->parsed_json,
