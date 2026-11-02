@@ -23,6 +23,9 @@ apps/tdlib-service/session/
 # Root docker-compose env (secrets)
 /.env
 
+# Machine-specific dev startup script (Windows only, not shared)
+/start-dev.ps1
+
 # General
 .DS_Store
 Thumbs.db
