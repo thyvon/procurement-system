@@ -35,6 +35,11 @@ class SendTelegramAlert implements ShouldQueue
         public readonly int $chatId,
     ) {
         $this->onQueue('telegram');
+
+        // The audit row is created inside the approval transaction — push the
+        // job only after that commit so the worker can never observe a
+        // message_not_found row and fail the alert permanently.
+        $this->afterCommit();
     }
 
     /**

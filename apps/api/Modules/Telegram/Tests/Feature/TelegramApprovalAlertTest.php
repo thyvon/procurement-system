@@ -3,6 +3,7 @@
 namespace Modules\Telegram\Tests\Feature;
 
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Modules\Approvals\Models\ApprovalFlow;
@@ -239,6 +240,27 @@ it('dispatches the delivery job on the telegram queue', function () {
             && $job->queue === 'telegram'
             && TelegramMessage::query()->where('status', TelegramMessage::STATUS_QUEUED)->exists(),
     );
+});
+
+it('never delivers the alert when the approval transaction rolls back', function () {
+    ($this->fakeTelegramOk)();
+    $this->firstApprover->telegram_chat_id = 777001;
+    $this->firstApprover->save();
+
+    try {
+        DB::transaction(function () {
+            tgSubmit(tgEvaluation(), tgAssignees());
+
+            throw new \RuntimeException('simulated rollback');
+        });
+    } catch (\RuntimeException) {
+        // expected — the approval and its alert must vanish together
+    }
+
+    expect(TelegramMessage::query()->count())->toBe(0)
+        ->and($this->firstApprover->notifications()->count())->toBe(0);
+
+    Http::assertSentCount(0);
 });
 
 it('sends the result alert to the submitter when the round is approved', function () {

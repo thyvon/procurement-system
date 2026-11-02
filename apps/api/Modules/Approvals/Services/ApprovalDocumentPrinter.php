@@ -4,6 +4,7 @@ namespace Modules\Approvals\Services;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Modules\Approvals\Models\ApprovalRequest;
 use Modules\Payments\Services\PaymentPrintService;
@@ -17,9 +18,19 @@ use Throwable;
  * PDF the web's /print routes serve. Any failure — unknown subject, soft
  * deleted creator, Chrome down — logs once and returns null so the alert
  * falls back to a plain text message.
+ *
+ * Successful renders are cached briefly per request revision so N co-signer
+ * alerts and delivery retries reuse one headless-Chrome render instead of
+ * spawning Chrome each time. Failures are never cached.
  */
 class ApprovalDocumentPrinter
 {
+    /**
+     * Lifetime of a cached print sheet. Short enough that a subject edited
+     * after the approval row last changed still goes stale quickly.
+     */
+    private const CACHE_TTL_MINUTES = 10;
+
     public function __construct(
         private readonly ApprovalSubjectRegistry $registry,
         private readonly PaymentPrintService $payments,
@@ -31,7 +42,15 @@ class ApprovalDocumentPrinter
      */
     public function forRequest(ApprovalRequest $request): ?array
     {
+        $cacheKey = 'approval-print:'.$request->getKey().':'.$request->updated_at?->getTimestamp();
+
         try {
+            $cached = Cache::get($cacheKey);
+
+            if (is_array($cached)) {
+                return $cached;
+            }
+
             $user = $request->creator;
 
             if ($user === null) {
@@ -48,10 +67,14 @@ class ApprovalDocumentPrinter
 
             $code = (string) $subject->getAttribute($definition['code_column']);
 
-            return [
+            $sheet = [
                 'binary' => $builder->generatePdfContent(),
                 'filename' => ($code !== '' ? $code : $request->subject_type).'.pdf',
             ];
+
+            Cache::put($cacheKey, $sheet, now()->addMinutes(self::CACHE_TTL_MINUTES));
+
+            return $sheet;
         } catch (Throwable $exception) {
             Log::warning('approval.alert.print_failed', [
                 'approval_request_id' => $request->getKey(),

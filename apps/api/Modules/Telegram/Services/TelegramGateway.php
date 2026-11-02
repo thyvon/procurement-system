@@ -3,6 +3,7 @@
 namespace Modules\Telegram\Services;
 
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -57,20 +58,34 @@ class TelegramGateway
             abort(422, "Telegram account is not ready (state: {$account->state}).");
         }
 
-        $message = TelegramMessage::create([
-            'entity_id' => $contact->entity_id,
-            'direction' => TelegramMessage::DIRECTION_OUT,
-            'telegram_account_id' => $account->id,
-            'telegram_contact_id' => $contact->id,
-            'telegram_chat_id' => $contact->telegram_chat_id,
-            'reference_type' => $reference['reference_type'] ?? null,
-            'reference_id' => $reference['reference_id'] ?? null,
-            'body' => $body,
-            'status' => TelegramMessage::STATUS_QUEUED,
-            'idempotency_key' => $key,
-            'created_by' => $user?->getKey(),
-            'updated_by' => $user?->getKey(),
-        ]);
+        try {
+            $message = TelegramMessage::create([
+                'entity_id' => $contact->entity_id,
+                'direction' => TelegramMessage::DIRECTION_OUT,
+                'telegram_account_id' => $account->id,
+                'telegram_contact_id' => $contact->id,
+                'telegram_chat_id' => $contact->telegram_chat_id,
+                'reference_type' => $reference['reference_type'] ?? null,
+                'reference_id' => $reference['reference_id'] ?? null,
+                'body' => $body,
+                'status' => TelegramMessage::STATUS_QUEUED,
+                'idempotency_key' => $key,
+                'created_by' => $user?->getKey(),
+                'updated_by' => $user?->getKey(),
+            ]);
+        } catch (QueryException $exception) {
+            // A concurrent writer won the insert between our SELECT and
+            // INSERT — replay-safe: hand back their row instead of failing.
+            if ($this->isUniqueViolation($exception)) {
+                $existing = TelegramMessage::query()->where('idempotency_key', $key)->first();
+
+                if ($existing !== null) {
+                    return $existing;
+                }
+            }
+
+            throw $exception;
+        }
 
         SendTelegramMessage::dispatch($message->id, $account->id);
 
@@ -99,18 +114,32 @@ class TelegramGateway
             return $existing;
         }
 
-        $message = TelegramMessage::create([
-            'entity_id' => $entityId,
-            'direction' => TelegramMessage::DIRECTION_OUT,
-            'telegram_account_id' => null,
-            'telegram_contact_id' => null,
-            'telegram_chat_id' => $chatId,
-            'reference_type' => $reference['reference_type'] ?? null,
-            'reference_id' => $reference['reference_id'] ?? null,
-            'body' => $body,
-            'status' => TelegramMessage::STATUS_QUEUED,
-            'idempotency_key' => $idempotencyKey,
-        ]);
+        try {
+            $message = TelegramMessage::create([
+                'entity_id' => $entityId,
+                'direction' => TelegramMessage::DIRECTION_OUT,
+                'telegram_account_id' => null,
+                'telegram_contact_id' => null,
+                'telegram_chat_id' => $chatId,
+                'reference_type' => $reference['reference_type'] ?? null,
+                'reference_id' => $reference['reference_id'] ?? null,
+                'body' => $body,
+                'status' => TelegramMessage::STATUS_QUEUED,
+                'idempotency_key' => $idempotencyKey,
+            ]);
+        } catch (QueryException $exception) {
+            // A concurrent writer won the insert between our SELECT and
+            // INSERT — replay-safe: hand back their row instead of failing.
+            if ($this->isUniqueViolation($exception)) {
+                $existing = TelegramMessage::query()->where('idempotency_key', $idempotencyKey)->first();
+
+                if ($existing !== null) {
+                    return $existing;
+                }
+            }
+
+            throw $exception;
+        }
 
         SendTelegramAlert::dispatch($message->id, $chatId);
 
@@ -488,6 +517,16 @@ class TelegramGateway
                 'error' => Str::limit($error, 500),
                 'updated_at' => now(),
             ]);
+    }
+
+    /**
+     * SQLSTATE 23xxx integrity-constraint violation — what MySQL and SQLite
+     * raise for a duplicate unique key (idempotency_key racing a concurrent
+     * insert).
+     */
+    private function isUniqueViolation(QueryException $exception): bool
+    {
+        return (string) ($exception->errorInfo[0] ?? $exception->getCode()) === '23000';
     }
 
     /**
