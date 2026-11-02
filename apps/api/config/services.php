@@ -56,6 +56,9 @@ return [
         // secret_token Telegram echoes back in X-Telegram-Bot-Api-Secret-Token
         // on the bot webhook (VerifyTelegramBotWebhook).
         'bot_webhook_secret' => env('TELEGRAM_BOT_WEBHOOK_SECRET'),
+        // Public origin this deployment is reachable at — the base the
+        // setWebhook URL is built from (TelegramWebhookService).
+        'webhook_base_url' => env('TELEGRAM_WEBHOOK_BASE_URL'),
         // Lifetime of a /start deep-link code, in minutes.
         'link_code_ttl_minutes' => env('TELEGRAM_LINK_CODE_TTL_MINUTES', 10),
     ],

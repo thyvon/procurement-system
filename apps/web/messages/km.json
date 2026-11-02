@@ -1450,7 +1450,19 @@
       "secretEmptyPlaceholder": "មិនទាន់កំណត់",
       "envFallbackHint": "វិលទៅតម្លៃ {env} វិញ។",
       "overriddenHint": "បានជំនួស — មិនប្រើតម្លៃ {env} ឡើយ។",
-      "rangeHint": "{min}–{max}។ ទុកឲ្យនៅទំនេរដើម្បីវិលទៅ {env} វិញ។"
+      "rangeHint": "{min}–{max}។ ទុកឲ្យនៅទំនេរដើម្បីវិលទៅ {env} វិញ។",
+      "loadFailed": "មិនអាចផ្ទុកការកំណត់តេឡេក្រាមបានទេ។",
+      "webhookTitle": "Webhook នៃបូត",
+      "webhookHint": "តេឡេក្រាមផ្ញើបច្ចុប្បន្នភាពនៃបូតទៅ webhook នៃម៉ាស៊ីននេះ។ ការចុះឈ្មោះប្រើ URL មូលដ្ឋាន សម្ងាត់ដែលបានកំណត់ និងបច្ចុប្បន្នភាពប៉ុណ្ណោះ។",
+      "webhookRegisteredTo": "បានចុះឈ្មោះ — {url}",
+      "webhookNotRegistered": "មិនទាន់ចុះឈ្មោះជាមួយតេឡេក្រាមនៅឡើយ។",
+      "webhookMismatch": "URL ដែលបានចុះឈ្មោះខុសពី URL មូលដ្ឋាន ({url})។ ចុះឈ្មោះម្តងទៀតដើម្បីកែ។",
+      "webhookPending": "បច្ចុប្បន្នភាព {count} រង់ចាំ។",
+      "webhookLastError": "តេឡេក្រាមរាយការណ៍៖ {message}",
+      "webhookStatusError": "មិនអាចផ្ទុកស្ថានភាព webhook បានទេ។",
+      "registerWebhook": "ចុះឈ្មោះ webhook",
+      "registering": "កំពុងចុះឈ្មោះ…",
+      "webhookRegistered": "បានចុះឈ្មោះ webhook។"
     }
   },
   "telegram": {

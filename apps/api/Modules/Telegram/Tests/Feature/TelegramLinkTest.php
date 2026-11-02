@@ -170,7 +170,10 @@ it('binds the chat to the user on a valid start code', function () {
         ->and($message->reference_type)->toBe('telegram_link_code')
         ->and($message->reference_id)->toBe($link->getKey())
         ->and($message->idempotency_key)->toBe("telegram-link:linked:{$link->getKey()}")
-        ->and($message->body)->toContain('linked');
+        ->and($message->body)->toContain('you have successfully registered your chat ID')
+        ->and($message->body)->toContain($this->user->name)
+        ->and($message->body)->toContain((string) config('app.name'))
+        ->and($message->body)->toContain('777001');
 
     Http::assertSent(function ($request) {
         return str_contains($request->url(), '/bottest-bot-token/sendMessage')

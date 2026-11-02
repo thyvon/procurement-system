@@ -1451,7 +1451,19 @@
       "secretEmptyPlaceholder": "Not set",
       "envFallbackHint": "Falls back to {env}.",
       "overriddenHint": "Overridden — the {env} environment value is ignored.",
-      "rangeHint": "{min}–{max}. Leave empty to fall back to {env}."
+      "rangeHint": "{min}–{max}. Leave empty to fall back to {env}.",
+      "loadFailed": "Could not load Telegram settings.",
+      "webhookTitle": "Bot webhook",
+      "webhookHint": "Telegram pushes bot updates to this server's webhook route. Registering applies the base URL, the configured secret, and message-only updates.",
+      "webhookRegisteredTo": "Registered — {url}",
+      "webhookNotRegistered": "Not registered with Telegram yet.",
+      "webhookMismatch": "Registered URL differs from the configured base URL ({url}). Register again to fix it.",
+      "webhookPending": "{count} pending update(s).",
+      "webhookLastError": "Telegram reported: {message}",
+      "webhookStatusError": "Could not load webhook status.",
+      "registerWebhook": "Register webhook",
+      "registering": "Registering…",
+      "webhookRegistered": "Webhook registered."
     }
   },
   "telegram": {

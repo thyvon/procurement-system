@@ -46,6 +46,14 @@ return [
                 'secret' => true,
                 'max' => 256,
             ],
+            'webhook_base_url' => [
+                'label' => 'Webhook base URL',
+                'config' => 'services.telegram.webhook_base_url',
+                'env' => 'TELEGRAM_WEBHOOK_BASE_URL',
+                'type' => 'url',
+                'secret' => false,
+                'max' => 512,
+            ],
             'alerts_enabled' => [
                 'label' => 'Approval alerts enabled',
                 'config' => 'services.telegram.alerts_enabled',

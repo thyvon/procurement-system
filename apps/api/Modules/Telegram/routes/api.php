@@ -9,6 +9,7 @@ use Modules\Telegram\Http\Controllers\TelegramAccountController;
 use Modules\Telegram\Http\Controllers\TelegramContactController;
 use Modules\Telegram\Http\Controllers\TelegramLinkController;
 use Modules\Telegram\Http\Controllers\TelegramMessageController;
+use Modules\Telegram\Http\Controllers\TelegramWebhookController;
 
 // Internal webhook from the TDLib service — HMAC only, never public-auth.
 Route::prefix('internal/telegram')
@@ -31,6 +32,9 @@ Route::prefix('v1/telegram')
     ->middleware(['auth:sanctum'])
     ->group(function () {
         Route::get('link', TelegramLinkController::class)->name('link');
+
+        Route::get('webhook', [TelegramWebhookController::class, 'index'])->name('webhook.index');
+        Route::post('webhook', [TelegramWebhookController::class, 'store'])->name('webhook.store');
 
         Route::post('accounts/{account}/login-code', [TelegramAccountController::class, 'loginCode'])
             ->name('accounts.login-code');

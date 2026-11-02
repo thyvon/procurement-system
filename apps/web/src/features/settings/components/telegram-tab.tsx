@@ -9,7 +9,14 @@ import {
   systemSettingsIndex,
   systemSettingsUpdate,
 } from "@/lib/api/system-setting/system-setting";
-import type { UpdateSystemSettingRequest } from "@/lib/api/model";
+import {
+  telegramWebhookIndex,
+  telegramWebhookStore,
+} from "@/lib/api/telegram-webhook/telegram-webhook";
+import type {
+  TelegramWebhookIndex200Data,
+  UpdateSystemSettingRequest,
+} from "@/lib/api/model";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { useMe } from "@/hooks/use-me";
 import { Badge } from "@/components/ui/badge";
@@ -76,9 +83,10 @@ export function TelegramTab() {
       unwrap<SettingsGroup>(await systemSettingsIndex("telegram", withAuth())),
   });
 
-  // Only user edits are stored; untouched fields derive from the server
-  // payload, so a refetch after save resets the form without effect-driven
-  // state sync.
+  // Only user edits are stored; on save the drafts are cleared so the
+  // refetched server payload becomes the form again without effect-driven
+  // state sync. (Leaving them set would keep `hasChanges` true forever for
+  // secrets and queued clears, whose stored value never round-trips.)
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [secretDrafts, setSecretDrafts] = useState<Record<string, string>>({});
   const [clearing, setClearing] = useState<string[]>([]);
@@ -135,8 +143,33 @@ export function TelegramTab() {
         await systemSettingsUpdate("telegram", asRequest(values), withAuth())
       ),
     onSuccess: () => {
+      setDrafts({});
+      setSecretDrafts({});
+      setClearing([]);
+      setBooleans({});
       qc.invalidateQueries({ queryKey: ["systemSettings", "telegram"] });
       toast.success(t("saved"));
+    },
+  });
+
+  const webhookQuery = useQuery({
+    queryKey: ["telegramWebhook"],
+    queryFn: async () =>
+      unwrap<TelegramWebhookIndex200Data>(
+        await telegramWebhookIndex(withAuth())
+      ),
+    // 503 "bot not configured" is an answer, not a transient failure.
+    retry: false,
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: async () =>
+      unwrap<TelegramWebhookIndex200Data>(
+        await telegramWebhookStore(withAuth())
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["telegramWebhook"] });
+      toast.success(t("webhookRegistered"));
     },
   });
 
@@ -156,6 +189,16 @@ export function TelegramTab() {
           ))}
         </CardContent>
       </Card>
+    );
+  }
+
+  if (query.isError) {
+    return (
+      <div className="max-w-2xl rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        {query.error instanceof Error && query.error.message
+          ? query.error.message
+          : t("loadFailed")}
+      </div>
     );
   }
 
@@ -255,6 +298,69 @@ export function TelegramTab() {
             </p>
           </div>
         ))}
+
+        <div className="space-y-3 border-t border-border pt-4">
+          <div className="flex items-center justify-between gap-3">
+            <Label>{t("webhookTitle")}</Label>
+            {canManage ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => registerMutation.mutate()}
+                disabled={registerMutation.isPending}
+              >
+                {registerMutation.isPending
+                  ? t("registering")
+                  : t("registerWebhook")}
+              </Button>
+            ) : null}
+          </div>
+
+          <p className="text-xs text-muted-foreground">{t("webhookHint")}</p>
+
+          {webhookQuery.isPending ? (
+            <Skeleton className="h-4 w-72" />
+          ) : webhookQuery.isError ? (
+            <p className="text-xs text-destructive">
+              {webhookQuery.error instanceof Error && webhookQuery.error.message
+                ? webhookQuery.error.message
+                : t("webhookStatusError")}
+            </p>
+          ) : (
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <p>
+                {webhookQuery.data.registered
+                  ? t("webhookRegisteredTo", { url: webhookQuery.data.url })
+                  : t("webhookNotRegistered")}
+              </p>
+              {webhookQuery.data.expectedUrl &&
+              webhookQuery.data.registered &&
+              webhookQuery.data.url !== webhookQuery.data.expectedUrl ? (
+                <p className="text-destructive">
+                  {t("webhookMismatch", {
+                    url: webhookQuery.data.expectedUrl,
+                  })}
+                </p>
+              ) : null}
+              {webhookQuery.data.pendingUpdateCount > 0 ? (
+                <p>
+                  {t("webhookPending", {
+                    count: webhookQuery.data.pendingUpdateCount,
+                  })}
+                </p>
+              ) : null}
+              {webhookQuery.data.lastErrorMessage ? (
+                <p className="text-destructive">
+                  {t("webhookLastError", {
+                    message: webhookQuery.data.lastErrorMessage,
+                  })}
+                </p>
+              ) : null}
+            </div>
+          )}
+        </div>
 
         {canManage ? (
           <div className="flex justify-end border-t border-border pt-4">

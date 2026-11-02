@@ -142,7 +142,7 @@ class TelegramLinkService
             'chat_id' => $chatId,
         ]);
 
-        $this->reply($link, $chatId, 'linked', 'Your account is linked to this chat. You will receive approval alerts here.');
+        $this->reply($link, $chatId, 'linked', $this->linkedMessage($user, $chatId));
     }
 
     /**
@@ -167,7 +167,7 @@ class TelegramLinkService
             return;
         }
 
-        $this->reply($link, $chatId, 'linked', 'Your account is linked to this chat. You will receive approval alerts here.');
+        $this->reply($link, $chatId, 'linked', $user !== null ? $this->linkedMessage($user, $chatId) : 'Your account is linked to this chat.');
     }
 
     /**
@@ -192,6 +192,23 @@ class TelegramLinkService
         }
 
         return true;
+    }
+
+    /**
+     * Confirmation sent to a freshly linked chat: greets the user by name,
+     * names the system (APP_NAME) the chat was registered to, and echoes
+     * the chat id back so it can be cross-checked in the app.
+     */
+    private function linkedMessage(User $user, int $chatId): string
+    {
+        $system = (string) config('app.name').' System';
+
+        return sprintf(
+            "Hey Dear, %s, you have successfully registered your chat ID to \"%s\".\nYour Chat ID is: %s\n\nThank you.",
+            $user->name,
+            $system,
+            (string) $chatId,
+        );
     }
 
     /**
