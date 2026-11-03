@@ -716,6 +716,40 @@ it('returns the document and resets the evaluation to draft', function () {
         ->and($request->fresh()->current_position)->toBeNull();
 });
 
+it('hands the submitted approvers back as the draft when the document is returned', function () {
+    $evaluation = approvalsEvaluation();
+    $request = approvalsPending($evaluation);
+
+    approvalsAct($request, 'return', 'Missing quotation attachment.', $this->firstApprover)->assertOk();
+
+    // Submit consumed the saved draft; the return re-seeds it from the frozen
+    // snapshot so the owner's submit panel opens pre-filled again.
+    expect(ApprovalDraft::query()->count())->toBe(1);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$evaluation->getKey()}")
+        ->assertOk()
+        ->assertJsonPath('data.assignees.2.0', $this->firstApprover->getKey())
+        ->assertJsonPath('data.assignees.3.0', $this->secondApprover->getKey());
+});
+
+it('hands the submitted approvers back as the draft when the request is cancelled', function () {
+    $evaluation = approvalsEvaluation();
+    $request = approvalsPending($evaluation);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->postJson("/api/v1/approvals/requests/{$request->getKey()}/cancel")
+        ->assertOk();
+
+    expect(ApprovalDraft::query()->count())->toBe(1);
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->getJson("/api/v1/approvals/preview?subject_type=evaluation&subject_id={$evaluation->getKey()}")
+        ->assertOk()
+        ->assertJsonPath('data.assignees.2.0', $this->firstApprover->getKey())
+        ->assertJsonPath('data.assignees.3.0', $this->secondApprover->getKey());
+});
+
 it('never allows resubmitting an evaluation that was fully approved', function () {
     $evaluation = approvalsEvaluation();
     $request = approvalsPending($evaluation);

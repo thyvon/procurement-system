@@ -174,6 +174,9 @@ it('sends an action-required alert to the linked assignee on submit', function (
         ->and($message->body)->toContain('44.00 USD')
         ->and($message->body)->toContain('Checked By')
         ->and($message->body)->toContain('Document: EVAL-26-001')
+        ->and($message->body)->toContain('Subject: Supplier Evaluation')
+        ->and($message->body)->toContain('Submitted By: '.$this->admin->name)
+        ->and($message->body)->not->toContain('Review this request')
         ->and($message->idempotency_key)->toStartWith('approval-alert:');
 
     Http::assertSent(function ($request) {
@@ -279,6 +282,25 @@ it('sends the result alert to the submitter when the round is approved', functio
         ->and($message->body)->toContain('EVAL-26-001');
 
     expect($this->admin->notifications()->where('data', 'like', '%approval.result%')->count())->toBe(1);
+});
+
+it('notifies the owner on return without Submitted By and with who returned it', function () {
+    ($this->fakeTelegramOk)();
+    $this->admin->telegram_chat_id = 888001;
+    $this->admin->save();
+    $this->firstApprover->telegram_chat_id = 777001;
+    $this->firstApprover->save();
+
+    $request = tgPending(tgEvaluation());
+    tgAct($request, 'return', $this->firstApprover);
+
+    $ownerMessage = TelegramMessage::query()->where('telegram_chat_id', 888001)->sole();
+
+    expect($ownerMessage->body)->toContain('↩️ Approval result: returned')
+        ->and($ownerMessage->body)->toContain('EVAL-26-001')
+        ->and($ownerMessage->body)->toContain('Returned by: '.$this->firstApprover->name)
+        ->and($ownerMessage->body)->toContain('Reason: Needs work.')
+        ->and($ownerMessage->body)->not->toContain('Submitted By');
 });
 
 it('alerts the assignee their task is gone when the request is cancelled', function () {

@@ -2,6 +2,8 @@
 
 namespace Modules\Approvals\Services;
 
+use Modules\Approvals\Models\ApprovalRequest;
+
 /**
  * Single source of truth for approval alert wording. Every transport
  * (Telegram now, email/SMS/webhook later) renders from these strings —
@@ -20,15 +22,22 @@ final class ApprovalAlertMessage
      */
     public static function actionRequired(array $context): string
     {
+        $fields = [
+            '📄 Document: '.self::document($context),
+            '📑 Subject: '.self::subject($context),
+            '💵 Amount: '.e((string) ($context['amount'] ?? '-')).' USD',
+            '📋 Step: '.e((string) ($context['stepLabel'] ?? '-')),
+        ];
+
+        $submittedBy = self::submittedBy($context);
+
+        if ($submittedBy !== null) {
+            $fields[] = $submittedBy;
+        }
+
         return implode("\n\n", [
             '<b>🔔 Approval action required</b>',
-            implode("\n", [
-                '📄 Document: '.self::document($context),
-                '💵 Amount: '.e((string) ($context['amount'] ?? '-')).' USD',
-                '📋 Step: '.e((string) ($context['stepLabel'] ?? '-')),
-                '🆔 Request: <code>'.e((string) ($context['requestId'] ?? '-')).'</code>',
-            ]),
-            '👉 Review this request in the app.',
+            implode("\n", $fields),
         ]);
     }
 
@@ -41,14 +50,23 @@ final class ApprovalAlertMessage
 
         $fields = [
             '📄 Document: '.self::document($context),
+            '📑 Subject: '.self::subject($context),
             '💵 Amount: '.e((string) ($context['amount'] ?? '-')).' USD',
-            '🆔 Request: <code>'.e((string) ($context['requestId'] ?? '-')).'</code>',
         ];
+
+        // Owner-bound results omit Submitted By — the recipient is the
+        // submitter; assignee-facing rewrites still pass the line.
+        $submittedBy = self::submittedBy($context);
+
+        if ($submittedBy !== null) {
+            $fields[] = $submittedBy;
+        }
 
         $decidedBy = $context['decidedBy'] ?? null;
 
         if (is_string($decidedBy) && $decidedBy !== '') {
-            $fields[] = '👤 Decided by: '.e($decidedBy);
+            $label = $status === ApprovalRequest::STATUS_RETURNED ? '👤 Returned by: ' : '👤 Decided by: ';
+            $fields[] = $label.e($decidedBy);
         }
 
         $reason = $context['reason'] ?? null;
@@ -72,14 +90,22 @@ final class ApprovalAlertMessage
      */
     public static function acted(array $context): string
     {
+        $fields = [
+            '📄 Document: '.self::document($context),
+            '📑 Subject: '.self::subject($context),
+            '💵 Amount: '.e((string) ($context['amount'] ?? '-')).' USD',
+            '📋 Step: '.e((string) ($context['stepLabel'] ?? '-')),
+        ];
+
+        $submittedBy = self::submittedBy($context);
+
+        if ($submittedBy !== null) {
+            $fields[] = $submittedBy;
+        }
+
         return implode("\n\n", [
             '<b>✅ You approved this request</b>',
-            implode("\n", [
-                '📄 Document: '.self::document($context),
-                '💵 Amount: '.e((string) ($context['amount'] ?? '-')).' USD',
-                '📋 Step: '.e((string) ($context['stepLabel'] ?? '-')),
-                '🆔 Request: <code>'.e((string) ($context['requestId'] ?? '-')).'</code>',
-            ]),
+            implode("\n", $fields),
             '⏳ Awaiting the next decision on this request.',
         ]);
     }
@@ -100,6 +126,39 @@ final class ApprovalAlertMessage
         }
 
         return e((string) ($context['subjectType'] ?? 'document'));
+    }
+
+    /**
+     * Human subject-type label (e.g. "Supplier Evaluation") beside the code.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    private static function subject(array $context): string
+    {
+        $subjectType = (string) ($context['subjectType'] ?? '');
+
+        if ($subjectType === '') {
+            return '-';
+        }
+
+        return e(ApprovalSubjectRegistry::label($subjectType));
+    }
+
+    /**
+     * Pre-formatted "Name, Position, Campus, Department" from the submitter —
+     * null when unknown so the line is omitted rather than shown empty.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    private static function submittedBy(array $context): ?string
+    {
+        $value = $context['submittedBy'] ?? null;
+
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+
+        return '👤 Submitted By: '.e($value);
     }
 
     private static function statusIcon(string $status): string

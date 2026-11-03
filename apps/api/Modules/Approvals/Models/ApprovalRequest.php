@@ -96,6 +96,36 @@ class ApprovalRequest extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * Alert copy for who recorded the request: "Name, Position, Campus,
+     * Department". Missing profile parts are omitted; campus/department
+     * prefer short_code (CEN, PROD) and fall back to the full name.
+     */
+    public function submittedByLine(): ?string
+    {
+        $this->loadMissing([
+            'creator.currentEmployeeProfile.campus',
+            'creator.currentEmployeeProfile.department',
+        ]);
+
+        $creator = $this->creator;
+
+        if ($creator === null) {
+            return null;
+        }
+
+        $profile = $creator->currentEmployeeProfile;
+
+        $parts = array_values(array_filter([
+            $creator->name,
+            $profile?->position,
+            ($profile?->campus?->short_code ?: null) ?? $profile?->campus?->name,
+            ($profile?->department?->short_code ?: null) ?? $profile?->department?->name,
+        ], fn (mixed $part): bool => is_string($part) && $part !== ''));
+
+        return $parts === [] ? null : implode(', ', $parts);
+    }
+
     public function isPending(): bool
     {
         return $this->status === self::STATUS_PENDING;

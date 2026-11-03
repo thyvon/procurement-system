@@ -99,6 +99,20 @@ class ApprovalSubjectRegistry
     ];
 
     /**
+     * Display names for alert/UI copy (same wording as web `approvals.subjects`).
+     *
+     * @var array<string, string>
+     */
+    private const LABELS = [
+        'evaluation' => 'Supplier Evaluation',
+        'petty_cash_request' => 'Petty Cash Request',
+        'advance_request' => 'Advance Request',
+        'cash_request' => 'Cash Request',
+        'cash_clearance' => 'Cash Clearance',
+        'advance_liquidation' => 'Advance Liquidation',
+    ];
+
+    /**
      * @return array{model: class-string<Model>, amount_column: string, code_column: string, permission: string, currency_column?: string, exchange_rate_column?: string, submittable_statuses?: array<int, string>, type_value?: string}
      */
     public function definition(string $subjectType): array
@@ -344,6 +358,16 @@ class ApprovalSubjectRegistry
     public static function permission(string $subjectType): ?string
     {
         return self::SUBJECTS[$subjectType]['permission'] ?? null;
+    }
+
+    /**
+     * Human label for a subject type in alert copy — mirrors the web's
+     * `approvals.subjects.*` wording. Unknown types fall back to the raw
+     * value so a message never renders blank.
+     */
+    public static function label(string $subjectType): string
+    {
+        return self::LABELS[$subjectType] ?? $subjectType;
     }
 
     /**

@@ -97,17 +97,7 @@ class ApprovalService
 
         $normalized = $this->normalizeAssignees($assignees);
 
-        $draft = ApprovalDraft::query()->firstOrNew([
-            'entity_id' => $user->entity_id,
-            'subject_type' => $subjectType,
-            'subject_id' => (string) $subject->getKey(),
-        ]);
-        $draft->assignees = $normalized;
-        $draft->updated_by = $user->getKey();
-        if (! $draft->exists) {
-            $draft->created_by = $user->getKey();
-        }
-        $draft->save();
+        $this->storeDraft($user->entity_id, $subjectType, (string) $subject->getKey(), $normalized, $user);
 
         return [
             'subjectType' => $subjectType,
@@ -334,6 +324,10 @@ class ApprovalService
                 'updated_by' => $user->getKey(),
             ]);
 
+            // Freed back to draft — keep the withdrawn round's approvers as
+            // the selection for the next submission.
+            $this->restoreDraft($request, $user);
+
             $this->dispatchStatusChanged($request, (int) $user->getKey());
 
             return $request->refresh();
@@ -439,7 +433,13 @@ class ApprovalService
                 'updated_by' => $user->getKey(),
             ]);
 
-            $this->notifySubmitter($request, $status);
+            // A returned document is editable again — hand the owner back the
+            // approver selection the round actually ran with.
+            if ($action === 'return') {
+                $this->restoreDraft($request, $user);
+            }
+
+            $this->notifySubmitter($request, $status, $user, $comment);
             $this->dispatchStatusChanged($request, (int) $user->getKey());
 
             return $request->refresh();
@@ -473,6 +473,63 @@ class ApprovalService
         }
 
         return $assignees;
+    }
+
+    /**
+     * One shared row write for every draft path (Save button, round unwind) —
+     * firstOrNew keeps a repeat write per document a replace, never a second
+     * draft.
+     *
+     * @param  array<string, array<int, int>>  $normalized
+     */
+    private function storeDraft(string $entityId, string $subjectType, string $subjectId, array $normalized, User $user): void
+    {
+        $draft = ApprovalDraft::query()->firstOrNew([
+            'entity_id' => $entityId,
+            'subject_type' => $subjectType,
+            'subject_id' => $subjectId,
+        ]);
+        $draft->assignees = $normalized;
+        $draft->updated_by = $user->getKey();
+        if (! $draft->exists) {
+            $draft->created_by = $user->getKey();
+        }
+        $draft->save();
+    }
+
+    /**
+     * Re-seeds the approver selection from the frozen snapshot once the
+     * document is editable again (returned or cancelled round). submit()
+     * consumed the saved draft, so without this the owner would reopen an
+     * empty submit panel and lose the users the round actually ran with.
+     */
+    private function restoreDraft(ApprovalRequest $request, User $actor): void
+    {
+        $byPosition = [];
+
+        foreach ((array) $request->snapshot['steps'] as $step) {
+            if (! isset($step['position'])) {
+                continue;
+            }
+
+            $ids = array_column((array) ($step['assignees'] ?? []), 'id');
+
+            if ($ids !== []) {
+                $byPosition[(int) $step['position']] = $ids;
+            }
+        }
+
+        if ($byPosition === []) {
+            return;
+        }
+
+        $this->storeDraft(
+            (string) $request->entity_id,
+            $request->subject_type,
+            $request->subject_id,
+            $this->normalizeAssignees($byPosition),
+            $actor,
+        );
     }
 
     /**
@@ -536,7 +593,7 @@ class ApprovalService
             'updated_by' => $actor->getKey(),
         ]);
 
-        $this->notifySubmitter($request, ApprovalRequest::STATUS_APPROVED);
+        $this->notifySubmitter($request, ApprovalRequest::STATUS_APPROVED, $actor);
         $this->dispatchStatusChanged($request, (int) $actor->getKey());
     }
 
@@ -602,6 +659,7 @@ class ApprovalService
                 'documentCode' => $request->snapshot['documentCode'] ?? null,
                 'stepLabel' => $step['label'],
                 'amount' => number_format((float) $request->amount_snapshot, 2, '.', ''),
+                'submittedBy' => $request->submittedByLine(),
             ]));
         }
     }
@@ -646,7 +704,11 @@ class ApprovalService
         ]);
     }
 
-    private function notifySubmitter(ApprovalRequest $request, string $status): void
+    /**
+     * Result notice to the document owner. No Submitted By — they are the
+     * submitter. Reject/return carry who decided and the comment.
+     */
+    private function notifySubmitter(ApprovalRequest $request, string $status, ?User $actor = null, ?string $comment = null): void
     {
         $submitter = User::query()->find($request->created_by);
 
@@ -658,6 +720,8 @@ class ApprovalService
             'documentCode' => $request->snapshot['documentCode'] ?? null,
             'status' => $status,
             'amount' => number_format((float) $request->amount_snapshot, 2, '.', ''),
+            'decidedBy' => $actor?->name,
+            'reason' => $comment,
         ]));
     }
 
@@ -677,6 +741,7 @@ class ApprovalService
             'documentCode' => $request->snapshot['documentCode'] ?? null,
             'status' => ApprovalRequest::STATUS_CANCELLED,
             'amount' => number_format((float) $request->amount_snapshot, 2, '.', ''),
+            'submittedBy' => $request->submittedByLine(),
         ]));
     }
 

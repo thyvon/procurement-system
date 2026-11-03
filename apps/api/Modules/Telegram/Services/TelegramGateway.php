@@ -492,6 +492,7 @@ class TelegramGateway
             'documentCode' => $approval->snapshot['documentCode'] ?? null,
             'amount' => number_format((float) $approval->amount_snapshot, 2, '.', ''),
             'requestId' => (string) $approval->getKey(),
+            'submittedBy' => $approval->submittedByLine(),
         ];
 
         if ($approval->status === ApprovalRequest::STATUS_PENDING) {
