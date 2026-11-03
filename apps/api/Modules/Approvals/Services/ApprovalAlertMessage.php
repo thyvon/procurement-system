@@ -39,13 +39,48 @@ final class ApprovalAlertMessage
     {
         $status = (string) ($context['status'] ?? 'updated');
 
+        $fields = [
+            '📄 Document: '.self::document($context),
+            '💵 Amount: '.e((string) ($context['amount'] ?? '-')).' USD',
+            '🆔 Request: <code>'.e((string) ($context['requestId'] ?? '-')).'</code>',
+        ];
+
+        $decidedBy = $context['decidedBy'] ?? null;
+
+        if (is_string($decidedBy) && $decidedBy !== '') {
+            $fields[] = '👤 Decided by: '.e($decidedBy);
+        }
+
+        $reason = $context['reason'] ?? null;
+
+        if (is_string($reason) && $reason !== '') {
+            $fields[] = '💬 Reason: '.e($reason);
+        }
+
         return implode("\n\n", [
             '<b>'.self::statusIcon($status).' Approval result: '.e($status).'</b>',
+            implode("\n", $fields),
+        ]);
+    }
+
+    /**
+     * In-place replacement for an action-required alert once its recipient
+     * approved but the round continues (co-signer or next step still owes a
+     * decision) — the request is not final yet, so no result wording.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    public static function acted(array $context): string
+    {
+        return implode("\n\n", [
+            '<b>✅ You approved this request</b>',
             implode("\n", [
                 '📄 Document: '.self::document($context),
                 '💵 Amount: '.e((string) ($context['amount'] ?? '-')).' USD',
+                '📋 Step: '.e((string) ($context['stepLabel'] ?? '-')),
                 '🆔 Request: <code>'.e((string) ($context['requestId'] ?? '-')).'</code>',
             ]),
+            '⏳ Awaiting the next decision on this request.',
         ]);
     }
 

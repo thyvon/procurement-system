@@ -53,6 +53,9 @@ return [
         'alert_pdf_enabled' => env('TELEGRAM_ALERT_PDF', true),
         // Inline approve/reject/return buttons on action-required alerts.
         'alert_actions_enabled' => env('TELEGRAM_ALERT_ACTIONS', true),
+        // Rewrite an already-delivered alert in place once its request is
+        // decided (status, decided-by, reason; buttons cleared).
+        'alert_edits_enabled' => env('TELEGRAM_ALERT_EDITS_ENABLED', true),
         // Outbound alert ceiling (jobs/minute), enforced by queue middleware.
         'alert_rate_per_minute' => env('TELEGRAM_ALERTS_RATE_PER_MINUTE', 30),
         // Bot public username for the /start deep link (https://t.me/<username>).

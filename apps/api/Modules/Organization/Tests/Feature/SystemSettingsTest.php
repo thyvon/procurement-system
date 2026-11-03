@@ -59,7 +59,7 @@ it('returns the telegram settings with environment fallbacks for staff readers',
         ->assertJsonPath('data.group', 'telegram')
         ->assertJsonPath('data.label', 'Telegram integration');
 
-    expect($response->json('data.items'))->toHaveCount(12);
+    expect($response->json('data.items'))->toHaveCount(13);
 
     $username = systemSettingItem($response, 'bot_username');
     expect($username['value'])->toBe('EnvBot')

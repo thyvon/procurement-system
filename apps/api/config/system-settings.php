@@ -70,6 +70,13 @@ return [
                 'min' => 1,
                 'max' => 600,
             ],
+            'alert_edits_enabled' => [
+                'label' => 'Edit alerts after decision',
+                'config' => 'services.telegram.alert_edits_enabled',
+                'env' => 'TELEGRAM_ALERT_EDITS_ENABLED',
+                'type' => 'boolean',
+                'secret' => false,
+            ],
             'link_code_ttl_minutes' => [
                 'label' => 'Deep-link code lifetime (minutes)',
                 'config' => 'services.telegram.link_code_ttl_minutes',

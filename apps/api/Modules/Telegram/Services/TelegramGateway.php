@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Modules\Approvals\Models\ApprovalRequest;
+use Modules\Approvals\Services\ApprovalAlertMessage;
 use Modules\Approvals\Services\ApprovalDocumentPrinter;
 use Modules\Telegram\Jobs\SendTelegramAlert;
 use Modules\Telegram\Jobs\SendTelegramMessage;
@@ -317,6 +318,11 @@ class TelegramGateway
                 'status' => TelegramMessage::STATUS_SENT,
                 'telegram_message_id' => (int) $response->json('result.message_id') ?: null,
                 'error' => null,
+                // Which edit endpoint this row answers to later: alerts sent
+                // as sendDocument carry a caption, plain alerts a text body.
+                'parsed_json' => array_merge($message->parsed_json ?? [], [
+                    'delivery' => $document === null ? 'text' : 'document',
+                ]),
             ]);
 
             Log::info('telegram.alert.sent', [
@@ -360,6 +366,165 @@ class TelegramGateway
         }
 
         return ApprovalRequest::withoutGlobalScope('entity')->find($message->reference_id);
+    }
+
+    /**
+     * In-place rewrite of an already-delivered approval alert once its
+     * request is decided — the single transport both the Telegram button
+     * path and the web app go through, so the chat always reflects the
+     * committed outcome. The new body replaces the old one and the inline
+     * keyboard is cleared in the same call; the audit row's body is only
+     * updated after Telegram confirms (or reports "message is not
+     * modified", meaning the chat already shows this exact content).
+     *
+     * $context carries the decision: requestId/action/actorId/comment/
+     * stepLabel (see ApprovalActed). A still-pending request only has the
+     * actor's own alert rewritten — every other co-signer's "action
+     * required" message must keep its buttons.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    public function editAlertMessage(string $messageId, array $context): SendOutcome
+    {
+        $message = TelegramMessage::withoutGlobalScope('entity')->find($messageId);
+
+        if ($message === null) {
+            return SendOutcome::failed('message_not_found');
+        }
+
+        if ($message->telegram_message_id === null || $message->telegram_chat_id === null) {
+            return SendOutcome::failed('not_delivered_yet');
+        }
+
+        $token = (string) config('services.telegram.bot_token');
+
+        if ($token === '') {
+            return SendOutcome::failed('bot_token_not_configured');
+        }
+
+        $body = $this->editedAlertBody($message, $context);
+
+        if ($body === null) {
+            // Another co-signer still owes a decision — their message stays.
+            return SendOutcome::sent();
+        }
+
+        $asDocument = ($message->parsed_json['delivery'] ?? 'text') === 'document';
+        $method = $asDocument ? 'editMessageCaption' : 'editMessageText';
+        $payload = [
+            'chat_id' => $message->telegram_chat_id,
+            'message_id' => $message->telegram_message_id,
+            'parse_mode' => 'HTML',
+            'reply_markup' => json_encode(['inline_keyboard' => []], JSON_THROW_ON_ERROR),
+        ];
+        $payload[$asDocument ? 'caption' : 'text'] = $body;
+
+        try {
+            $response = Http::withToken($token)
+                ->timeout(15)
+                ->connectTimeout(5)
+                ->post('https://api.telegram.org/bot'.$token.'/'.$method, $payload);
+        } catch (ConnectionException $exception) {
+            throw new RuntimeException('telegram_api_unreachable:'.$exception->getCode());
+        }
+
+        $status = $response->status();
+
+        if ($status === 200 && $response->json('ok') === true) {
+            $this->syncEditedBody($message, $body);
+
+            Log::info('telegram.alert.edited', [
+                'message_id' => $message->getKey(),
+                'chat_id' => $message->telegram_chat_id,
+                'method' => $method,
+                'request_id' => $context['requestId'] ?? null,
+                'action' => $context['action'] ?? null,
+            ]);
+
+            return SendOutcome::sent();
+        }
+
+        if ($status === 429) {
+            $retryAfter = (int) $response->json('parameters.retry_after')
+                ?: (int) $response->header('Retry-After')
+                ?: 60;
+
+            return SendOutcome::throttled($retryAfter);
+        }
+
+        if ($status >= 500) {
+            throw new RuntimeException("telegram_api_unavailable:{$status}");
+        }
+
+        $description = (string) $response->json('description', "edit_failed:{$status}");
+
+        // Idempotent retry: the chat already shows this exact content.
+        if (str_contains(strtolower($description), 'message is not modified')) {
+            $this->syncEditedBody($message, $body);
+
+            return SendOutcome::sent();
+        }
+
+        return SendOutcome::failed($description);
+    }
+
+    /**
+     * The replacement copy for one alert row: the final result once the
+     * request is no longer pending, the "you approved" state while the
+     * round continues (actor's row only), or null to leave the row alone.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    private function editedAlertBody(TelegramMessage $message, array $context): ?string
+    {
+        $approval = $this->alertApproval($message);
+
+        if ($approval === null) {
+            return null;
+        }
+
+        $actor = (int) ($context['actorId'] ?? 0) > 0
+            ? User::withoutGlobalScope('entity')->find((int) $context['actorId'])
+            : null;
+
+        $fields = [
+            'subjectType' => $approval->subject_type,
+            'documentCode' => $approval->snapshot['documentCode'] ?? null,
+            'amount' => number_format((float) $approval->amount_snapshot, 2, '.', ''),
+            'requestId' => (string) $approval->getKey(),
+        ];
+
+        if ($approval->status === ApprovalRequest::STATUS_PENDING) {
+            $actorChat = $actor?->telegram_chat_id;
+
+            if ($actorChat === null || (int) $actorChat !== (int) $message->telegram_chat_id) {
+                return null;
+            }
+
+            return ApprovalAlertMessage::acted($fields + [
+                'stepLabel' => $context['stepLabel'] ?? null,
+            ]);
+        }
+
+        return ApprovalAlertMessage::result($fields + [
+            'status' => $approval->status,
+            'decidedBy' => $actor?->name,
+            'reason' => $context['comment'] ?? null,
+        ]);
+    }
+
+    /**
+     * Keep the audit row truthful after a confirmed edit: the chat now
+     * shows $body, and edited_at marks the in-place rewrite.
+     */
+    private function syncEditedBody(TelegramMessage $message, string $body): void
+    {
+        $message->update([
+            'body' => $body,
+            'parsed_json' => array_merge($message->parsed_json ?? [], [
+                'edited_at' => now()->toIso8601String(),
+            ]),
+        ]);
     }
 
     /**

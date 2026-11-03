@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Modules\Approvals\Events\ApprovalActed;
 use Modules\Approvals\Events\ApprovalStatusChanged;
 use Modules\Approvals\Models\ApprovalAction;
 use Modules\Approvals\Models\ApprovalDraft;
@@ -308,6 +309,14 @@ class ApprovalService
                 'label' => $current['label'] ?? 'Cancelled',
             ], 'cancel', $user);
 
+            // Before notifyCancelled() so same-transaction result rows are
+            // never mistaken for stale action-required alerts to edit.
+            event(new ApprovalActed(
+                requestId: (string) $request->getKey(),
+                action: 'cancel',
+                actorId: (int) $user->getKey(),
+            ));
+
             // Read the assignee before the update clears the step.
             $this->notifyCancelled($request);
 
@@ -375,6 +384,17 @@ class ApprovalService
             }
 
             $this->recordAction($request, $current, $action, $user, $comment);
+
+            // Before any notify*() so same-transaction result rows are never
+            // mistaken for stale action-required alerts to edit; jobs run
+            // afterCommit and re-read the committed decision.
+            event(new ApprovalActed(
+                requestId: (string) $request->getKey(),
+                action: $action,
+                actorId: (int) $user->getKey(),
+                comment: $comment,
+                stepLabel: is_string($current['label'] ?? null) ? $current['label'] : null,
+            ));
 
             if ($action === 'approve') {
                 $assigneeRow?->update(['acted_at' => now()]);
