@@ -79,6 +79,7 @@ function EmailLoginForm() {
       const payload = unwrap<{
         access_token?: string;
         refresh_token?: string;
+        expires_in?: number | string;
       }>(await authLogin(data));
 
       if (!payload.access_token || !payload.refresh_token) {
@@ -88,7 +89,7 @@ function EmailLoginForm() {
       return payload;
     },
     onSuccess: (payload) => {
-      saveTokens(payload.access_token!, payload.refresh_token!);
+      saveTokens(payload.access_token!, payload.refresh_token!, payload.expires_in);
       queryClient.clear();
       router.push("/");
     },

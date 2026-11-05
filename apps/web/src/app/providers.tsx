@@ -6,7 +6,12 @@ import { NextIntlClientProvider } from "next-intl";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { RouteProgressBar } from "@/components/layout/route-progress-bar";
+import { installAuthRefresh } from "@/lib/auth/refresh";
 import { timeZone } from "@/i18n/config";
+
+// Module scope (not an effect): runs before any component mounts, so even
+// the first request of a page load is covered by the 401 replay.
+installAuthRefresh();
 
 export default function Providers({
   children,

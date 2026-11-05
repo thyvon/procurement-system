@@ -48,7 +48,7 @@ export function CompanyLoginForm() {
       return payload;
     },
     onSuccess: (payload) => {
-      saveTokens(payload.access_token, payload.refresh_token);
+      saveTokens(payload.access_token, payload.refresh_token, payload.expires_in);
       queryClient.clear();
       router.push("/");
     },
