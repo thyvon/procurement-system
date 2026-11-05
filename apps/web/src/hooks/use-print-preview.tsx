@@ -154,12 +154,12 @@ export function usePrintPreview(): PrintPreview {
         }
       }}
     >
-      <DialogContent className="sm:max-w-4xl">
+      <DialogContent className="flex h-dvh max-h-[100dvh] w-full max-w-none flex-col rounded-none sm:max-w-none">
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
-        <div className="relative h-[70vh] w-full">
+        <div className="relative min-h-0 w-full flex-1">
           {objectUrl ? (
             <iframe
               src={objectUrl}
