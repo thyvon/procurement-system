@@ -41,7 +41,7 @@
     </div>
 
     <div class="min-w-0 space-y-3">
-        <div class="w-full max-w-full overflow-x-auto border border-border">
+        <div class="w-full max-w-full overflow-x-auto">
             <table class="w-full border-collapse text-sm table-fixed" style="width: 100%; min-width: {{ $tableWidth }}px">
                 <colgroup>
                     <col class="w-8">
@@ -169,13 +169,7 @@
                             </td>
                             @foreach($quotations as $panel)
                                 <td class="{{ $cell }}" colspan="3">
-                                    <div class="flex h-full min-h-7 items-center justify-center whitespace-pre-wrap break-words text-center">
-                                        @if($panel['criteria'][$criteriaKey] !== '')
-                                            {{ $panel['criteria'][$criteriaKey] }}
-                                        @else
-                                            <span class="text-muted-foreground">—</span>
-                                        @endif
-                                    </div>
+                                    <div class="flex h-full min-h-7 items-center justify-center whitespace-pre-wrap break-words text-center">{{ $panel['criteria'][$criteriaKey] !== '' ? $panel['criteria'][$criteriaKey] : '—' }}</div>
                                 </td>
                             @endforeach
                         </tr>
