@@ -272,3 +272,16 @@ it('omits the watermark on an approved evaluation', function () {
 
     Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => ! str_contains($pdf->getHtml(), 'class="print-watermark"'));
 });
+
+it('keeps the page-number footer off single-page sheets', function () {
+    $evaluation = printableEvaluation();
+
+    Pdf::fake();
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->get("/api/v1/purchase-orders/evaluations/{$evaluation->getKey()}/print")
+        ->assertOk();
+
+    // The fake renderer always yields one page, so no footer may be attached.
+    Pdf::assertRespondedWithPdf(fn (PdfBuilder $pdf) => $pdf->getFooterHtml() === null);
+});

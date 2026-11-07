@@ -4,6 +4,7 @@ namespace Modules\PurchaseOrders\Services;
 
 use App\Models\User;
 use App\Support\PrintFormatter;
+use App\Support\PrintPageFooter;
 use App\Support\PrintStylesheet;
 use App\Support\PrintWatermark;
 use Modules\Approvals\Services\PrintSignatureService;
@@ -107,7 +108,7 @@ class EvaluationPrintService
             ];
         }
 
-        return Pdf::view('purchase-orders::print.evaluation', [
+        $pdf = Pdf::view('purchase-orders::print.evaluation', [
             'css' => PrintStylesheet::load(),
             'logo' => $this->logos->forUser($user),
             'watermark' => PrintWatermark::for($evaluation->status),
@@ -123,7 +124,12 @@ class EvaluationPrintService
             ->format('a4')
             ->landscape()
             ->margins(8, 8, 8, 8, 'mm')
+            ->cache()
             ->name($evaluation->code.'-price-evaluation.pdf');
+
+        PrintPageFooter::attach($pdf);
+
+        return $pdf;
     }
 
     /**
