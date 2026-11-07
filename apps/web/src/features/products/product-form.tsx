@@ -52,7 +52,17 @@ import { VariationTemplateDialog } from "./components/variation-template-dialog"
 
 type ProductType = "single" | "variable";
 
-type CategoryOption = { id: string; name: string; code: string; parentId: string | null };
+type CategoryOption = {
+  id: string;
+  name: string;
+  code: string;
+  shortCode: string | null;
+  parentId: string | null;
+};
+
+function categoryLabel(c: CategoryOption): string {
+  return c.shortCode ? `${c.shortCode} — ${c.name}` : c.name;
+}
 
 interface ProductFormProps {
   mode: "create" | "edit";
@@ -573,7 +583,7 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
                       <Combobox
                         items={ComboboxNS.createItems(parentCategories, {
                           getValue: (c) => c.id,
-                          getLabel: (c) => `${c.code} — ${c.name}`,
+                          getLabel: categoryLabel,
                         })}
                         value={categoryId}
                         onValueChange={(val) => {
@@ -588,7 +598,7 @@ function ProductFormInner({ mode, productId, categories, initial }: ProductFormI
                           <ComboboxList>
                             {(c) => (
                               <ComboboxItem key={c.id} value={c.id}>
-                                {c.code} — {c.name}
+                                {categoryLabel(c)}
                               </ComboboxItem>
                             )}
                           </ComboboxList>
