@@ -77,7 +77,7 @@ export function CompanyLoginForm() {
               autoComplete="username"
               placeholder={t("employeeIdPlaceholder")}
               aria-invalid={!!errors.employee_id}
-              className="pl-9"
+              className="h-11 rounded-xl pl-9 md:h-10"
               autoFocus
               {...register("employee_id", {
                 required: t("employeeIdRequired"),
@@ -101,7 +101,7 @@ export function CompanyLoginForm() {
               autoComplete="current-password"
               placeholder={t("passwordPlaceholder")}
               aria-invalid={!!errors.password}
-              className="pl-9 pr-9"
+              className="h-11 rounded-xl pl-9 pr-11 md:h-10"
               {...register("password", { required: t("passwordRequired") })}
             />
             <button
@@ -109,7 +109,7 @@ export function CompanyLoginForm() {
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? t("hidePassword") : t("showPassword")}
               aria-pressed={showPassword}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-1.5 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground"
             >
               {showPassword ? (
                 <EyeOff className="size-4" />
@@ -136,7 +136,7 @@ export function CompanyLoginForm() {
           <Button
             type="submit"
             disabled={loginMutation.isPending}
-            className="w-full"
+            className="h-11 w-full rounded-xl md:h-10"
             size="lg"
           >
             {loginMutation.isPending && <Loader2 className="animate-spin" />}

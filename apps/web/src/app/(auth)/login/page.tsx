@@ -44,7 +44,7 @@ function LoginForm() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="gap-4">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-2 h-10! md:h-8!">
           <TabsTrigger value="email">{t("tabEmail")}</TabsTrigger>
           <TabsTrigger value="company">{t("tabEPurchase")}</TabsTrigger>
         </TabsList>
@@ -118,7 +118,7 @@ function EmailLoginForm() {
               autoComplete="email"
               placeholder={t("emailPlaceholder")}
               aria-invalid={!!errors.email}
-              className="pl-9"
+              className="h-11 rounded-xl pl-9 md:h-10"
               autoFocus
               {...register("email", {
                 required: t("emailRequired"),
@@ -144,7 +144,7 @@ function EmailLoginForm() {
               autoComplete="current-password"
               placeholder={t("passwordPlaceholder")}
               aria-invalid={!!errors.password}
-              className="pl-9 pr-9"
+              className="h-11 rounded-xl pl-9 pr-11 md:h-10"
               {...register("password", { required: t("passwordRequired") })}
             />
             <button
@@ -152,7 +152,7 @@ function EmailLoginForm() {
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? t("hidePassword") : t("showPassword")}
               aria-pressed={showPassword}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-1.5 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground"
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
@@ -175,7 +175,7 @@ function EmailLoginForm() {
           <Button
             type="submit"
             disabled={loginMutation.isPending}
-            className="w-full"
+            className="h-11 w-full rounded-xl md:h-10"
             size="lg"
           >
             {loginMutation.isPending && <Loader2 className="animate-spin" />}
@@ -259,7 +259,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right — Form panel */}
-      <div className="flex flex-col p-6 md:p-10">
+      <div className="flex flex-col p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:p-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5 font-semibold">
             {logo ? (
