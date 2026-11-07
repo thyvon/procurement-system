@@ -8,6 +8,9 @@
 @php
     $head = 'border border-border bg-muted/60 px-2 py-1.5 text-center text-sm font-medium align-middle';
     $cell = 'border border-border p-1 align-middle text-sm';
+    // Item line rows run one step smaller than the totals/criteria rows so a
+    // long matrix fits fewer pages.
+    $lineCell = 'border border-border p-1 align-middle text-xs';
     $criteriaCell = 'border-y border-border bg-muted/40 px-2 py-1 text-left text-sm font-bold align-middle';
     $printCols = count($quotations) <= 2
         ? ['brand' => 'print:w-[140px]', 'unit' => 'print:w-[70px]', 'total' => 'print:w-[80px]']
@@ -69,7 +72,7 @@
                     <tr>
                         @foreach($quotations as $panel)
                             <th class="{{ $cell }}" colspan="3">
-                                <div class="space-y-0.5 text-left text-sm">
+                                <div class="space-y-0.5 text-left text-xs">
                                     <p class="flex whitespace-pre-wrap">
                                         <span class="min-w-9 shrink-0 font-semibold">Name</span>
                                         <span class="min-w-0 flex-1 break-words font-normal">: {{ PrintFormatter::orDash($panel['supplierName']) }}</span>
@@ -97,32 +100,32 @@
                 <tbody>
                     @foreach($items as $itemIndex => $item)
                         <tr class="border-b border-border hover:bg-muted/30">
-                            <td class="{{ $cell }} text-center text-sm text-muted-foreground">
+                            <td class="{{ $lineCell }} text-center text-muted-foreground">
                                 <div class="flex h-7 items-center justify-center">{{ $itemIndex + 1 }}</div>
                             </td>
-                            <td class="{{ $cell }}">
+                            <td class="{{ $lineCell }}">
                                 <div class="flex h-7 items-center justify-center">{{ PrintFormatter::orDash($item['itemCode']) }}</div>
                             </td>
-                            <td class="{{ $cell }}">
+                            <td class="{{ $lineCell }}">
                                 <div class="flex min-h-[56px] items-center whitespace-pre-wrap break-words">{{ PrintFormatter::orDash($item['description']) }}</div>
                             </td>
-                            <td class="{{ $cell }}">
+                            <td class="{{ $lineCell }}">
                                 <div class="flex h-7 items-center justify-center tabular-nums">{{ PrintFormatter::numeric($item['qty']) }}</div>
                             </td>
-                            <td class="{{ $cell }}">
+                            <td class="{{ $lineCell }}">
                                 <div class="flex h-7 items-center justify-center">{{ PrintFormatter::orDash($item['uom']) }}</div>
                             </td>
                             @foreach($quotations as $panel)
                                 @php($pricing = $panel['pricing'][$item['uid']] ?? [])
-                                <td class="{{ $cell }}{{ ($pricing['selected'] ?? false) ? ' bg-green-600/10' : '' }}">
+                                <td class="{{ $lineCell }}{{ ($pricing['selected'] ?? false) ? ' bg-green-600/10' : '' }}">
                                     <div class="flex h-7 items-center">{{ PrintFormatter::orDash($pricing['brand'] ?? null) }}</div>
                                 </td>
-                                <td class="{{ $cell }}{{ ($pricing['selected'] ?? false) ? ' bg-green-600/10' : '' }}">
+                                <td class="{{ $lineCell }}{{ ($pricing['selected'] ?? false) ? ' bg-green-600/10' : '' }}">
                                     <div class="flex h-7 items-center justify-end tabular-nums">
                                         {{ ($pricing['unitCost'] ?? null) !== null ? PrintFormatter::money($pricing['unitCost'], $currency) : '—' }}
                                     </div>
                                 </td>
-                                <td class="{{ $cell }}{{ ($pricing['selected'] ?? false) ? ' bg-green-600/10' : '' }}">
+                                <td class="{{ $lineCell }}{{ ($pricing['selected'] ?? false) ? ' bg-green-600/10' : '' }}">
                                     <div class="flex h-7 items-center justify-end tabular-nums">
                                         {{ ($pricing['lineTotal'] ?? null) !== null ? PrintFormatter::money($pricing['lineTotal'], $currency) : '—' }}
                                     </div>
@@ -161,8 +164,9 @@
                         @php($criteriaNo++)
                         <tr>
                             <td class="{{ $criteriaCell }} border-l w-10"></td>
-                            <td class="{{ $criteriaCell }} min-w-[120px]"></td>
-                            <td class="{{ $criteriaCell }}" colspan="3">
+                            {{-- Label absorbs the Item Code column too: one less
+                                 empty cell, more room for long criteria text. --}}
+                            <td class="{{ $criteriaCell }}" colspan="4">
                                 <div class="text-left">
                                     <span>{{ $criteriaNo }}. {{ $criteriaLabel }}</span>
                                 </div>
