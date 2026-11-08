@@ -4,7 +4,6 @@ namespace Modules\Approvals\Services;
 
 use App\Support\DataUri;
 use App\Support\PrintFormatter;
-use Illuminate\Support\Facades\Storage;
 use Modules\Approvals\Models\ApprovalAction;
 use Modules\Approvals\Models\ApprovalRequest;
 use Modules\Approvals\Repositories\ApprovalRequestRepositoryInterface;
@@ -164,8 +163,10 @@ class PrintSignatureService
 
     /**
      * Snapshots freeze the signature path at submit time; inline it as a
-     * data-URI (PDF rendering must not fetch over the network) and fall back
-     * to the public URL when the file cannot be read locally.
+     * data-URI (PDF rendering must not fetch over the network). A path the
+     * public disk cannot read prints nothing — handing the renderer a URL
+     * instead would stall the sheet on a host the Gotenberg container
+     * cannot reach.
      */
     private function signature(mixed $path): ?string
     {
@@ -173,10 +174,6 @@ class PrintSignatureService
             return null;
         }
 
-        if (str_contains($path, '://')) {
-            return $path;
-        }
-
-        return DataUri::fromPublic($path) ?? Storage::disk('public')->url($path);
+        return DataUri::fromPublic($path);
     }
 }

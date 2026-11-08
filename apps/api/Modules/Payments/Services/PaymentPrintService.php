@@ -81,6 +81,7 @@ class PaymentPrintService
             ->margins($margin, $margin, $margin, $margin, 'mm');
 
         return ($isPortraitForm ? $pdf->portrait() : $pdf->landscape())
+            ->cache()
             ->name($cashRequest->code.'-'.$sheet.'.pdf');
     }
 
@@ -124,6 +125,7 @@ class PaymentPrintService
             ->format('a4')
             ->landscape()
             ->margins(8, 8, 8, 8, 'mm')
+            ->cache()
             ->name($cashClearance->code.'-cash-clearance.pdf');
     }
 
@@ -163,6 +165,7 @@ class PaymentPrintService
             ->format('a4')
             ->portrait()
             ->margins(12, 12, 12, 12, 'mm')
+            ->cache()
             ->name($liquidation->code.'-advance-liquidation.pdf');
     }
 

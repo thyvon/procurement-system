@@ -26,6 +26,9 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
+        <!-- Rendered sheets stay in memory: the file store would write PDF
+             blobs to storage/framework/cache during tests. -->
+        <env name="LARAVEL_PDF_CACHE_STORE" value="array"/>
         <!-- foundation.md §9: integration tests run against real MariaDB, never SQLite.
              Override locally with a procurement_test database. -->
         <env name="DB_CONNECTION" value="mysql"/>
