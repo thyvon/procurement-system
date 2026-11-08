@@ -46,9 +46,44 @@ services:
       - minio_data:/data
 
   gotenberg:
-    image: gotenberg/gotenberg:8
+    # Chromium-only variant: this app only converts HTML, so the LibreOffice
+    # payload in the full image is pure weight on disk and on pull time.
+    image: gotenberg/gotenberg:8-chromium
     ports:
-      - "3005:3000"
+      # Gotenberg has no authentication — keep it off the LAN; only processes
+      # on this host (artisan serve, the dev API) may reach it.
+      - "127.0.0.1:3005:3000"
+    command:
+      - gotenberg
+      # Warm Chromium at boot so the first print of the day doesn't pay the
+      # cold start.
+      - --chromium-auto-start=true
+      # The print blades are static HTML — no script to run, so don't pay
+      # for a JS runtime per render.
+      - --chromium-disable-javascript=true
+      # Two renders at a time: the default of six concurrent Chromium
+      # contexts is what makes the container spike into multi-GB territory.
+      - --chromium-max-concurrency=2
+      # Fail cleanly before the PHP client's 30s abort and the 60s
+      # `telegram` queue timeout — otherwise both sides race and the error
+      # body is lost.
+      - --api-timeout=25s
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   mariadb_data:
