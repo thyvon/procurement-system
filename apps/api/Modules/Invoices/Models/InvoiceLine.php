@@ -30,7 +30,8 @@ use Modules\Invoices\Database\Factories\InvoiceLineFactory;
     'source_type',
     'source_header_id',
     'source_line_id',
-    'source_ref',
+    'pr_ref',
+    'po_ref',
     'item_code',
 ])]
 class InvoiceLine extends Model

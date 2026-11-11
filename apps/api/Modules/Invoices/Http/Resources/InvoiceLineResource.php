@@ -34,7 +34,8 @@ class InvoiceLineResource extends JsonResource
             'sourceType' => $this->source_type,
             'sourceHeaderId' => $this->source_header_id,
             'sourceLineId' => $this->source_line_id,
-            'sourceRef' => $this->source_ref,
+            'prRef' => $this->pr_ref,
+            'poRef' => $this->po_ref,
             'itemCode' => $this->item_code,
         ];
     }

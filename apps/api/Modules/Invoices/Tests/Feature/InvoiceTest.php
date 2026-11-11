@@ -79,10 +79,11 @@ function sourcedInvoiceLine(array $overrides = []): array
         'source_type' => 'pr',
         'source_header_id' => 101,
         'source_line_id' => 1001,
-        'source_ref' => 'PR-CCV-20260915-001',
+        'pr_ref' => 'PR-CCV-20260915-001',
+        'po_ref' => null,
         'item_code' => 'STA-A4-001',
     ], array_intersect_key($overrides, array_flip([
-        'source_type', 'source_header_id', 'source_line_id', 'source_ref', 'item_code',
+        'source_type', 'source_header_id', 'source_line_id', 'pr_ref', 'po_ref', 'item_code',
     ])));
 }
 
@@ -98,7 +99,8 @@ function proInvoicePayload(array $overrides = []): array
                 'source_type' => 'po',
                 'source_header_id' => 202,
                 'source_line_id' => 2002,
-                'source_ref' => 'PO-202608-00124',
+                'pr_ref' => 'PR-CCV-202608-0100',
+                'po_ref' => 'PO-202608-00124',
                 'item_code' => 'STP-STD-010',
                 'description' => 'Stapler',
                 'qty' => 2,
@@ -1209,7 +1211,8 @@ it('creates a pro purchase invoice with pr and po sourced lines plus a manual li
                 'source_type' => 'po',
                 'source_header_id' => 202,
                 'source_line_id' => 2002,
-                'source_ref' => 'PO-202608-00124',
+                'pr_ref' => 'PR-CCV-202608-0100',
+                'po_ref' => 'PO-202608-00124',
                 'item_code' => 'STP-STD-010',
                 'description' => 'Stapler',
                 'qty' => 2,
@@ -1227,12 +1230,18 @@ it('creates a pro purchase invoice with pr and po sourced lines plus a manual li
         ->assertJsonPath('data.lines.0.sourceType', 'pr')
         ->assertJsonPath('data.lines.0.sourceHeaderId', 101)
         ->assertJsonPath('data.lines.0.sourceLineId', 1001)
-        ->assertJsonPath('data.lines.0.sourceRef', 'PR-CCV-20260915-001')
+        ->assertJsonPath('data.lines.0.prRef', 'PR-CCV-20260915-001')
+        ->assertJsonPath('data.lines.0.poRef', null)
         ->assertJsonPath('data.lines.0.itemCode', 'STA-A4-001')
         ->assertJsonPath('data.lines.1.sourceType', 'po')
-        ->assertJsonPath('data.lines.1.sourceRef', 'PO-202608-00124')
+        ->assertJsonPath('data.lines.1.prRef', 'PR-CCV-202608-0100')
+        ->assertJsonPath('data.lines.1.poRef', 'PO-202608-00124')
+        ->assertJsonPath('data.lines.1.itemCode', 'STP-STD-010')
         ->assertJsonPath('data.lines.2.sourceType', null)
-        ->assertJsonPath('data.lines.2.sourceLineId', null);
+        ->assertJsonPath('data.lines.2.sourceLineId', null)
+        ->assertJsonPath('data.lines.2.prRef', null)
+        ->assertJsonPath('data.lines.2.poRef', null)
+        ->assertJsonPath('data.lines.2.itemCode', null);
 
     $lines = Invoice::query()->findOrFail($response->json('data.id'))
         ->lines()->orderBy('position')->get();
@@ -1240,11 +1249,17 @@ it('creates a pro purchase invoice with pr and po sourced lines plus a manual li
     expect($lines[0]->source_type)->toBe('pr')
         ->and($lines[0]->source_header_id)->toBe(101)
         ->and($lines[0]->source_line_id)->toBe(1001)
-        ->and($lines[0]->source_ref)->toBe('PR-CCV-20260915-001')
+        ->and($lines[0]->pr_ref)->toBe('PR-CCV-20260915-001')
+        ->and($lines[0]->po_ref)->toBeNull()
         ->and($lines[0]->item_code)->toBe('STA-A4-001')
         ->and($lines[1]->source_type)->toBe('po')
+        ->and($lines[1]->pr_ref)->toBe('PR-CCV-202608-0100')
+        ->and($lines[1]->po_ref)->toBe('PO-202608-00124')
+        ->and($lines[1]->item_code)->toBe('STP-STD-010')
         ->and($lines[2]->source_type)->toBeNull()
-        ->and($lines[2]->source_line_id)->toBeNull();
+        ->and($lines[2]->source_line_id)->toBeNull()
+        ->and($lines[2]->pr_ref)->toBeNull()
+        ->and($lines[2]->po_ref)->toBeNull();
 });
 
 it('requires at least one sourced line on a pro purchase invoice', function () {

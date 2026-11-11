@@ -355,15 +355,16 @@ class InvoiceService
     }
 
     /**
-     * A line's ePurchase source link is all-or-nothing: either none of the
-     * five snapshot fields is present (a manually entered line) or all of
-     * them are, so a half-filled bundle is never persisted as history. The
-     * snapshot is client-supplied — the source system is an external proxy
-     * whose integer ids no local FK could target — and kept for
-     * traceability only, never as authority.
+     * A line's ePurchase source link: the link identity
+     * (source_type + source_header_id + source_line_id + item_code) is
+     * all-or-nothing so a half-filled bundle is never persisted as
+     * history. The two document refs (pr_ref/po_ref) are descriptive and
+     * may be blank. The snapshot is client-supplied — the source system
+     * is an external proxy whose integer ids no local FK could target —
+     * and kept for traceability only, never as authority.
      *
      * @param  array<string, mixed>  $line
-     * @return array{source_type: string|null, source_header_id: int|null, source_line_id: int|null, source_ref: string|null, item_code: string|null}
+     * @return array{source_type: string|null, source_header_id: int|null, source_line_id: int|null, pr_ref: string|null, po_ref: string|null, item_code: string|null}
      */
     private function normalizeSource(array $line, int $position): array
     {
@@ -371,15 +372,19 @@ class InvoiceService
             'source_type' => $line['source_type'] ?? null,
             'source_header_id' => $line['source_header_id'] ?? null,
             'source_line_id' => $line['source_line_id'] ?? null,
-            'source_ref' => $line['source_ref'] ?? null,
+            'pr_ref' => $line['pr_ref'] ?? null,
+            'po_ref' => $line['po_ref'] ?? null,
             'item_code' => $line['item_code'] ?? null,
         ];
 
-        $present = array_filter($source, static fn ($value) => $value !== null);
+        $identity = array_filter(
+            [$source['source_type'], $source['source_header_id'], $source['source_line_id'], $source['item_code']],
+            static fn ($value) => $value !== null
+        );
 
-        if ($present !== [] && count($present) !== count($source)) {
+        if ($identity !== [] && count($identity) !== 4) {
             throw ValidationException::withMessages([
-                "lines.{$position}" => 'A source link must be complete: source_type, source_header_id, source_line_id, source_ref and item_code are required together.',
+                "lines.{$position}" => 'A source link must be complete: source_type, source_header_id, source_line_id and item_code are required together.',
             ]);
         }
 

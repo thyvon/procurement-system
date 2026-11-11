@@ -61,7 +61,8 @@ export type PickedSourceLine = {
   sourceType: "pr" | "po";
   sourceHeaderId: number;
   sourceLineId: number;
-  sourceRef: string;
+  prRef: string;
+  poRef: string | null;
   itemCode: string;
 };
 
@@ -212,7 +213,8 @@ export function SourceItemPicker({
               sourceType: "pr",
               sourceHeaderId: doc.id,
               sourceLineId: line.id,
-              sourceRef: doc.ref,
+              prRef: doc.ref,
+              poRef: null,
               itemCode: line.itemCode,
             }))
         : (poLinesQuery.data ?? [])
@@ -232,7 +234,8 @@ export function SourceItemPicker({
               sourceType: "po" as const,
               sourceHeaderId: doc.id,
               sourceLineId: line.id,
-              sourceRef: doc.ref,
+              prRef: line.prRefNum,
+              poRef: doc.ref,
               itemCode: line.itemCode,
             }));
 

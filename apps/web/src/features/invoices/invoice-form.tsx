@@ -75,11 +75,12 @@ type LineForm = {
   unitPrice: string;
   discount: string;
   /** ePurchase source snapshot — null on manual (and all direct-branch) lines. */
-  sourceType: "pr" | "po" | null;
-  sourceHeaderId: number | null;
-  sourceLineId: number | null;
-  sourceRef: string | null;
-  itemCode: string | null;
+            sourceType: "pr" | "po" | null;
+            sourceHeaderId: number | null;
+            sourceLineId: number | null;
+            prRef: string | null;
+            poRef: string | null;
+            itemCode: string | null;
 };
 
 type TransactionType = "petty_cash" | "advance" | "credit";
@@ -120,7 +121,8 @@ const EMPTY_LINE: LineForm = {
   sourceType: null,
   sourceHeaderId: null,
   sourceLineId: null,
-  sourceRef: null,
+  prRef: null,
+  poRef: null,
   itemCode: null,
 };
 
@@ -258,6 +260,23 @@ function isPristineLine(line: LineForm): boolean {
   );
 }
 
+function sourceCell(value: string | null) {
+  return (
+    <div className="flex h-8 min-w-0 items-center">
+      {value ? (
+        <span
+          className="block truncate font-mono text-[11px] text-muted-foreground"
+          title={value}
+        >
+          {value}
+        </span>
+      ) : (
+        <span className="text-sm text-muted-foreground">—</span>
+      )}
+    </div>
+  );
+}
+
 function round(value: number, decimals: number): number {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
@@ -320,7 +339,8 @@ function toForm(resource?: InvoiceResource | null): InvoiceFormValue {
                 : null,
             sourceHeaderId: line.sourceHeaderId ?? null,
             sourceLineId: line.sourceLineId ?? null,
-            sourceRef: line.sourceRef ?? null,
+            prRef: line.prRef ?? null,
+            poRef: line.poRef ?? null,
             itemCode: line.itemCode ?? null,
           }))
         : [{ ...EMPTY_LINE }],
@@ -530,8 +550,8 @@ export function InvoiceForm({ branch, invoiceId, onBack }: InvoiceFormProps) {
     setForm((current) => ({
       ...current,
       lines: current.lines.every(isPristineLine)
-        ? picked
-        : [...current.lines, ...picked],
+        ? (picked as LineForm[])
+        : [...current.lines, ...(picked as LineForm[])],
     }));
 
   const subtotal = form.lines.reduce((sum, line) => sum + lineTotalOf(line), 0);
@@ -608,7 +628,8 @@ export function InvoiceForm({ branch, invoiceId, onBack }: InvoiceFormProps) {
           source_type: line.sourceType,
           source_header_id: line.sourceHeaderId,
           source_line_id: line.sourceLineId,
-          source_ref: line.sourceRef,
+          pr_ref: line.prRef,
+          po_ref: line.poRef,
           item_code: line.itemCode,
         })),
       };
@@ -943,6 +964,30 @@ export function InvoiceForm({ branch, invoiceId, onBack }: InvoiceFormProps) {
           <CardContent className="min-w-0">
             <LineItemsTable
               columns={[
+                // Pro branch: PR ref / PO ref / item code for lines linked
+                // to ePurchase documents — blank on manual lines.
+                ...(sourcedLines
+                  ? [
+                      {
+                        key: "prRef",
+                        label: t("prRef"),
+                        width: "w-40",
+                        cell: (line: LineForm) => sourceCell(line.prRef),
+                      },
+                      {
+                        key: "poRef",
+                        label: t("poRef"),
+                        width: "w-40",
+                        cell: (line: LineForm) => sourceCell(line.poRef),
+                      },
+                      {
+                        key: "itemCode",
+                        label: t("itemCode"),
+                        width: "w-36",
+                        cell: (line: LineForm) => sourceCell(line.itemCode),
+                      },
+                    ]
+                  : []),
                 {
                   key: "description",
                   label: t("description"),
@@ -960,36 +1005,6 @@ export function InvoiceForm({ branch, invoiceId, onBack }: InvoiceFormProps) {
                     />
                   ),
                 },
-                // Pro branch: the ePurchase PR/PO each line came from —
-                // item code · document ref, or an em dash on manual lines.
-                ...(sourcedLines
-                  ? [
-                      {
-                        key: "source",
-                        label: t("sourceColumn"),
-                        width: "w-44",
-                        cell: (line: LineForm) => (
-                          <div className="flex h-8 min-w-0 items-center">
-                            {line.sourceRef ? (
-                              <span
-                                className="block truncate font-mono text-[11px] text-muted-foreground"
-                                title={`${
-                                  line.itemCode ? `${line.itemCode} · ` : ""
-                                }${line.sourceRef}`}
-                              >
-                                {line.itemCode ? `${line.itemCode} · ` : ""}
-                                {line.sourceRef}
-                              </span>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">
-                                —
-                              </span>
-                            )}
-                          </div>
-                        ),
-                      },
-                    ]
-                  : []),
                 {
                   key: "campus",
                   label: t("campus"),

@@ -50,5 +50,15 @@ export type StoreInvoiceRequestLinesItem = {
      * @maxLength 64
      * @nullable
      */
+  pr_ref?: string | null;
+  /**
+     * @maxLength 64
+     * @nullable
+     */
+  po_ref?: string | null;
+  /**
+     * @maxLength 64
+     * @nullable
+     */
   item_code?: string | null;
 };

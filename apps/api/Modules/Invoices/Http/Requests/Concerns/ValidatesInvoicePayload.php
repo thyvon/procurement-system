@@ -69,6 +69,8 @@ trait ValidatesInvoicePayload
             'lines.*.source_header_id' => ['nullable', 'integer', 'min:1'],
             'lines.*.source_line_id' => ['nullable', 'integer', 'min:1'],
             'lines.*.source_ref' => ['nullable', 'string', 'max:64'],
+            'lines.*.pr_ref' => ['nullable', 'string', 'max:64'],
+            'lines.*.po_ref' => ['nullable', 'string', 'max:64'],
             'lines.*.item_code' => ['nullable', 'string', 'max:64'],
         ];
     }

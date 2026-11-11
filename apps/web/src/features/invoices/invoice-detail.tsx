@@ -224,33 +224,64 @@ export function InvoiceDetail({ branch, invoiceId }: InvoiceDetailProps) {
         <CardContent className="min-w-0">
           <LineItemsTable
             columns={[
-              {
-                key: "description",
-                label: tf("description"),
-                cell: (line) => (
-                  <span className="block truncate" title={line.description}>
-                    {line.description}
-                  </span>
-                ),
-              },
-              // Pro branch: where the line came from — item code · ref.
+              // Pro branch: PR ref / PO ref / item code for lines linked to
+              // ePurchase documents — blank on manual lines.
               ...(sourcedLines
                 ? [
                     {
-                      key: "source",
-                      label: tf("sourceColumn"),
+                      key: "prRef",
+                      label: tf("prRef"),
                       width: "w-40",
                       cell: (line: InvoiceLineResource) => (
                         <div className="flex h-8 min-w-0 items-center">
-                          {line.sourceRef ? (
+                          {line.prRef ? (
                             <span
                               className="block truncate font-mono text-[11px] text-muted-foreground"
-                              title={`${
-                                line.itemCode ? `${line.itemCode} · ` : ""
-                              }${line.sourceRef}`}
+                              title={line.prRef}
                             >
-                              {line.itemCode ? `${line.itemCode} · ` : ""}
-                              {line.sourceRef}
+                              {line.prRef}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              —
+                            </span>
+                          )}
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "poRef",
+                      label: tf("poRef"),
+                      width: "w-40",
+                      cell: (line: InvoiceLineResource) => (
+                        <div className="flex h-8 min-w-0 items-center">
+                          {line.poRef ? (
+                            <span
+                              className="block truncate font-mono text-[11px] text-muted-foreground"
+                              title={line.poRef}
+                            >
+                              {line.poRef}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              —
+                            </span>
+                          )}
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "itemCode",
+                      label: tf("itemCode"),
+                      width: "w-36",
+                      cell: (line: InvoiceLineResource) => (
+                        <div className="flex h-8 min-w-0 items-center">
+                          {line.itemCode ? (
+                            <span
+                              className="block truncate font-mono text-[11px] text-muted-foreground"
+                              title={line.itemCode}
+                            >
+                              {line.itemCode}
                             </span>
                           ) : (
                             <span className="text-sm text-muted-foreground">
@@ -262,6 +293,15 @@ export function InvoiceDetail({ branch, invoiceId }: InvoiceDetailProps) {
                     },
                   ]
                 : []),
+              {
+                key: "description",
+                label: tf("description"),
+                cell: (line) => (
+                  <span className="block truncate" title={line.description}>
+                    {line.description}
+                  </span>
+                ),
+              },
               {
                 key: "campus",
                 label: tf("campus"),

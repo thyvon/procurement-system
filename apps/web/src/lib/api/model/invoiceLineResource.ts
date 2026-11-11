@@ -33,7 +33,9 @@ export interface InvoiceLineResource {
   /** @nullable */
   sourceLineId: number | null;
   /** @nullable */
-  sourceRef: string | null;
+  prRef: string | null;
+  /** @nullable */
+  poRef: string | null;
   /** @nullable */
   itemCode: string | null;
 }
