@@ -445,10 +445,7 @@ export function SourceItemPicker({
                           {line.itemCode || "—"}
                         </td>
                         <td className="px-2 py-1.5">
-                          <span
-                            className="block truncate text-sm"
-                            title={line.description}
-                          >
+                          <span className="whitespace-normal break-words text-sm">
                             {line.description || "—"}
                           </span>
                         </td>
