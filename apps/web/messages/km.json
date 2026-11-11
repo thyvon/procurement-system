@@ -982,6 +982,7 @@
       "sourceDocumentEmpty": "រកមិនឃើញឯកសារ",
       "sourceSelectDocument": "ជ្រើសរើស PR ឬ PO ជាមុនសិនដើម្បីមើលវត្ថុរបស់វា។",
       "sourceSelectAll": "ជ្រើសរើសវត្ថុទាំងអស់",
+      "sourceOrg": "ផ្នែក",
       "sourceLoading": "កំពុងផ្ទុក...",
       "sourceLoadFailed": "មិនអាចផ្ទុកវត្ថុរបស់ឯកសារបានទេ។",
       "sourceNoLines": "ឯកសារនេះគ្មានវត្ថុទេ។",

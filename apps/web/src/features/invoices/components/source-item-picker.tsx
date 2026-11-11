@@ -374,7 +374,7 @@ export function SourceItemPicker({
                         />
                       </th>
                       <th className="min-w-[110px] px-2 py-2 text-left text-xs font-medium text-muted-foreground">
-                        {t("sourceItemCode")}
+                        {t("itemCode")}
                       </th>
                       <th className="min-w-[180px] px-2 py-2 text-left text-xs font-medium text-muted-foreground">
                         {t("description")}

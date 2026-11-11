@@ -983,6 +983,7 @@
       "sourceDocumentEmpty": "No documents found",
       "sourceSelectDocument": "Select a PR or PO to see its items.",
       "sourceSelectAll": "Select all items",
+      "sourceOrg": "Org",
       "sourceLoading": "Loading...",
       "sourceLoadFailed": "We couldn't load the document items.",
       "sourceNoLines": "This document has no items.",
