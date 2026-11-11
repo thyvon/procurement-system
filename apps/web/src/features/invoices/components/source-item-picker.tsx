@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import { Loader2 } from "lucide-react";
 import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
 import {
   epurchasePosIndex,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/api/epurchase-pr/epurchase-pr";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Combobox as ComboboxNS } from "@base-ui/react/combobox";
 import {
   Combobox,
   ComboboxContent,
@@ -102,16 +104,18 @@ export function SourceItemPicker({
   const t = useTranslations("invoices.form");
   const [sourceType, setSourceType] = useState<SourceType>("pr");
   const [search, setSearch] = useState("");
+  const [inputValue, setInputValue] = useState("");
   const [doc, setDoc] = useState<SelectedDoc | null>(null);
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<number>>(new Set());
 
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const debouncedSearch = useDebouncedValue(search.trim(), 300);
 
   const handleClose = (next: boolean) => {
     if (!next) {
       setDoc(null);
       setSelectedIds(new Set());
       setSearch("");
+      setInputValue("");
     }
     onOpenChange(next);
   };
@@ -166,13 +170,30 @@ export function SourceItemPicker({
   const linesQuery = sourceType === "pr" ? prLinesQuery : poLinesQuery;
   const docLines: (EPurchasePrLine | EPurchasePoLine)[] =
     sourceType === "pr" ? prLinesQuery.data ?? [] : poLinesQuery.data ?? [];
-  const docs: (EPurchasePr | EPurchasePo)[] =
-    sourceType === "pr" ? prsQuery.data?.data ?? [] : posQuery.data?.data ?? [];
-  const docOptions = docs.map((d) => ({
-    value: String(d.id),
-    label: "refNum" in d ? d.refNum : d.poRefNum,
-    purpose: d.purpose,
-  }));
+  const docs = useMemo(
+    () =>
+      (sourceType === "pr"
+        ? prsQuery.data?.data ?? []
+        : posQuery.data?.data ?? []) as (EPurchasePr | EPurchasePo)[],
+    [sourceType, prsQuery.data, posQuery.data]
+  );
+  const docOptions = useMemo(
+    () =>
+      docs.map((d) => ({
+        value: String(d.id),
+        label: "refNum" in d ? d.refNum : d.poRefNum,
+        purpose: d.purpose,
+      })),
+    [docs]
+  );
+  const items = useMemo(
+    () =>
+      ComboboxNS.createItems(docOptions, {
+        getValue: (d) => d.value,
+        getLabel: (d) => d.label,
+      }),
+    [docOptions]
+  );
 
   const loginRequired =
     requiresEPurchaseLogin(listQuery.error) ||
@@ -282,16 +303,21 @@ export function SourceItemPicker({
               </Select>
 
               <Combobox
-                items={docOptions}
+                items={items}
                 value={doc ? String(doc.id) : null}
-                itemToStringLabel={(value) =>
-                  docOptions.find((option) => option.value === value)?.label ?? ""
-                }
-                onValueChange={(value) => {
-                  const option = docOptions.find((o) => o.value === value);
+                inputValue={inputValue}
+                onInputValueChange={(next) => {
+                  const text = String(next ?? "");
+                  setInputValue(text);
+                  setSearch(text);
+                }}
+                onValueChange={(next) => {
+                  const text = String(next ?? "");
+                  const option = docOptions.find((d) => d.value === text);
                   if (!option) {
                     setDoc(null);
                     setSelectedIds(new Set());
+                    setInputValue("");
                     return;
                   }
                   setDoc({
@@ -300,6 +326,13 @@ export function SourceItemPicker({
                     purpose: option.purpose,
                   });
                   setSelectedIds(new Set());
+                  setInputValue(option.label);
+                  setSearch("");
+                }}
+                filter={null}
+                itemToStringLabel={(value) => {
+                  const option = docOptions.find((d) => d.value === value);
+                  return option ? option.label : "";
                 }}
               >
                 <ComboboxInput
@@ -309,12 +342,18 @@ export function SourceItemPicker({
                       : t("sourceDocumentPlaceholderPo")
                   }
                   className="w-full"
-                  onChange={(event) => setSearch(event.target.value)}
                 />
-                <ComboboxContent>
-                  <ComboboxEmpty>
-                    {listQuery.isPending ? t("sourceLoading") : t("sourceDocumentEmpty")}
-                  </ComboboxEmpty>
+                {listQuery.isFetching && (
+                  <div
+                    role="status"
+                    className="absolute inset-0 z-10 flex items-center justify-center bg-background/60"
+                  >
+                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                    <span className="sr-only">{t("sourceLoading")}</span>
+                  </div>
+                )}
+                <ComboboxContent className="min-w-80">
+                  <ComboboxEmpty>{t("sourceDocumentEmpty")}</ComboboxEmpty>
                   <ComboboxList>
                     {(option) => (
                       <ComboboxItem key={option.value} value={option.value}>
