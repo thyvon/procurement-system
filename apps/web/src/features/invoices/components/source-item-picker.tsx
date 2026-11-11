@@ -247,7 +247,7 @@ export function SourceItemPicker({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>{t("sourcePickerTitle")}</DialogTitle>
           <DialogDescription>{t("sourcePickerDescription")}</DialogDescription>
