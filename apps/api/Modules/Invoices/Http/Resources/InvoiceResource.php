@@ -17,6 +17,7 @@ class InvoiceResource extends JsonResource
      * @return array{
      *     id: string,
      *     code: string,
+     *     type: string,
      *     invoiceNumber: string,
      *     status: string,
      *     supplierName: string,
@@ -50,6 +51,7 @@ class InvoiceResource extends JsonResource
         return [
             'id' => $this->id,
             'code' => $this->code,
+            'type' => $this->type,
             'invoiceNumber' => $this->invoice_number,
             'status' => $this->status,
             'supplierName' => $this->supplier_name,

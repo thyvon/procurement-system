@@ -4,6 +4,7 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
+import type { UpdateInvoiceRequestLinesItemSourceType } from './updateInvoiceRequestLinesItemSourceType';
 
 export type UpdateInvoiceRequestLinesItem = {
   /** @maxLength 255 */
@@ -28,4 +29,26 @@ export type UpdateInvoiceRequestLinesItem = {
      * @nullable
      */
   discount?: number | null;
+  /** @nullable */
+  source_type?: UpdateInvoiceRequestLinesItemSourceType;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  source_header_id?: number | null;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  source_line_id?: number | null;
+  /**
+     * @maxLength 64
+     * @nullable
+     */
+  source_ref?: string | null;
+  /**
+     * @maxLength 64
+     * @nullable
+     */
+  item_code?: string | null;
 };

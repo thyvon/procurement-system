@@ -7,5 +7,5 @@ export default async function InvoiceDetailRoute({
 }) {
   const { id } = await params;
 
-  return <InvoiceDetail invoiceId={id} />;
+  return <InvoiceDetail branch="direct-purchase-inv" invoiceId={id} />;
 }

@@ -48,6 +48,7 @@
     "evaluations": "បញ្ជីការវាយតម្លៃ",
     "invoices": "វិក្កយបត្រ",
     "directPurchaseInvoices": "វិក្កយបត្រទិញផ្ទាល់",
+    "proPurchaseInvoices": "វិក្កយបត្រទិញដោយផ្នែកទិញ",
     "payments": "ការទូទាត់ប្រាក់",
     "pettyCashRequests": "សំណើប្រាក់តូច",
     "advanceRequests": "សំណើលុយទុកមុន",
@@ -453,7 +454,159 @@
     "statusInactive": "អសកម្ម",
     "entityId": "លេខសម្គាល់អង្គភាព",
     "email": "អ៊ីមែល",
-    "status": "ស្ថានភាព"
+    "status": "ស្ថានភាព",
+    "welcomeTitle": "សូមស្វាគមន៍មកវិញ, {name}",
+    "defaultUser": "អ្នកប្រើប្រាស់",
+    "mockBadge": "ទិន្នន័យគំរូ",
+    "subtitle": "ទិដ្ឋភាពទូទៅនៃការចំណាយលទ្ធកម្ម លំហូរការអនុម័ត ការបញ្ជាទិញ និងសំណើទូទាត់ប្រាក់។",
+    "periods": {
+      "month": "ខែនេះ",
+      "quarter": "ត្រីមាសនេះ",
+      "year": "ឆ្នាំនេះ"
+    },
+    "quickActions": {
+      "newEvaluation": "បង្កើតការវាយតម្លៃ",
+      "newCashRequest": "សំណើសាច់ប្រាក់",
+      "reviewApprovals": "ប្រអប់ការអនុម័ត"
+    },
+    "kpis": {
+      "totalSpend": {
+        "title": "ការចំណាយលទ្ធកម្មសរុប",
+        "vsPrevious": "ធៀបនឹងរយៈពេលមុន",
+        "poLabel": "ការបញ្ជាទិញ (PO)",
+        "invoiceLabel": "វិក្កយបត្រទិញផ្ទាល់"
+      },
+      "pendingApprovals": {
+        "title": "រង់ចាំការអនុម័ត",
+        "urgentCount": "បន្ទាន់ {count}",
+        "requiresAttention": "កំពុងរង់ចាំហត្ថលេខា",
+        "totalValue": "ទឹកប្រាក់សរុប"
+      },
+      "activeProcurements": {
+        "title": "PO និងការវាយតម្លៃសកម្ម",
+        "poCount": "{count} PO កំពុងដំណើរការ",
+        "evalCount": "{count} ការវាយតម្លៃ",
+        "epurchaseSynced": "ភ្ជាប់ពី E-Purchase"
+      },
+      "openPayments": {
+        "title": "សំណើសាច់ប្រាក់ និងបុរេប្រទាន",
+        "activeRequests": "{count} សកម្ម",
+        "acrossBranches": "ប្រាក់តូច និងបុរេប្រទាន",
+        "pendingClearance": "រង់ចាំការទូទាត់ជម្រះ",
+        "clearanceCount": "{count} ឯកសារ"
+      }
+    },
+    "months": {
+      "jun": "មិថុនា",
+      "jul": "កក្កដា",
+      "aug": "សីហា",
+      "sep": "កញ្ញា",
+      "oct": "តុលា",
+      "nov": "វិច្ឆិកា"
+    },
+    "spendTrend": {
+      "title": "និន្នាការចំណាយលទ្ធកម្មប្រចាំខែ",
+      "description": "ការប្រៀបធៀបរយៈពេល ៦ ខែ រវាងការបញ្ជាទិញ វិក្កយបត្រទិញផ្ទាល់ និងសំណើសាច់ប្រាក់។",
+      "selectedMonth": "ខែដែលបានជ្រើសរើស",
+      "series": {
+        "purchaseOrders": "ការបញ្ជាទិញ",
+        "directInvoices": "វិក្កយបត្រទិញផ្ទាល់",
+        "cashRequests": "សាច់ប្រាក់ និងបុរេប្រទាន"
+      }
+    },
+    "spendBreakdown": {
+      "title": "ការចំណាយតាមប្រភេទ និងសាខា",
+      "description": "សមាមាត្រនៃការចំណាយតាមប្រភេទឯកសារ និងសាខា។",
+      "byCampus": "សាខាសំខាន់ៗ",
+      "share": "សមាមាត្រ",
+      "channels": {
+        "purchaseOrders": "ការបញ្ជាទិញ (PO)",
+        "directInvoices": "វិក្កយបត្រទិញផ្ទាល់",
+        "advanceRequests": "សំណើលុយទុកមុន",
+        "pettyCash": "សំណើប្រាក់តូច"
+      }
+    },
+    "docTypes": {
+      "purchaseOrder": "ការបញ្ជាទិញ",
+      "evaluation": "ការវាយតម្លៃអ្នកផ្គត់ផ្គង់",
+      "directInvoice": "វិក្កយបត្រទិញផ្ទាល់",
+      "pettyCash": "សំណើប្រាក់តូច",
+      "advanceRequest": "សំណើលុយទុកមុន",
+      "cashClearance": "ការទូទាត់សាច់ប្រាក់",
+      "advanceLiquidation": "ការទូទាត់ប្រាក់ជាមុន"
+    },
+    "statuses": {
+      "approved": "បានអនុម័ត",
+      "pending": "រង់ចាំ",
+      "returned": "បានប្រគល់វិញ",
+      "rejected": "បានបដិសេធ"
+    },
+    "pendingTable": {
+      "title": "សំណើរង់ចាំការអនុម័តពីអ្នក",
+      "description": "ឯកសារដែលកំពុងស្ថិតក្នុងជំហានអនុម័ត TOCA របស់អ្នក។",
+      "urgent": "បន្ទាន់",
+      "reviewBtn": "ពិនិត្យ",
+      "showingCount": "បង្ហាញ {shown} ក្នុងចំណោម {total} សំណើ",
+      "openInbox": "បើកប្រអប់ការអនុម័តទាំងអស់",
+      "filters": {
+        "all": "ទាំងអស់",
+        "evaluation": "ការវាយតម្លៃ",
+        "payment": "ការទូទាត់",
+        "invoice": "វិក្កយបត្រ"
+      },
+      "columns": {
+        "code": "លេខកូដ",
+        "subject": "បរិយាយ និងសាខា",
+        "step": "ជំហានបច្ចុប្បន្ន",
+        "submitted": "ដាក់ស្នើដោយ",
+        "amount": "ទឹកប្រាក់",
+        "action": "សកម្មភាព"
+      }
+    },
+    "pipeline": {
+      "title": "ដំណើរការអនុម័ត និងផ្លូវកាត់",
+      "description": "បន្ទុកការងារតាមជំហាន TOCA និងរយៈពេលអនុម័ត។",
+      "avgTurnaround": "រយៈពេលមធ្យម",
+      "days": "ថ្ងៃ",
+      "approvalRate": "អត្រាអនុម័ត",
+      "byStepHeading": "ចំនួនឯកសារតាមជំហានអនុម័ត",
+      "pending": "រង់ចាំ",
+      "steps": {
+        "deptHead": "ប្រធាននាយកដ្ឋាន",
+        "procurement": "ផ្នែកលទ្ធកម្ម",
+        "finance": "ផ្នែកហិរញ្ញវត្ថុ",
+        "executive": "គណៈកម្មាធិការប្រតិបត្តិ"
+      },
+      "shortcutsHeading": "ផ្លូវកាត់រហ័ស",
+      "shortcuts": {
+        "clearances": "ការទូទាត់សាច់ប្រាក់",
+        "liquidations": "ការទូទាត់ប្រាក់ជាមុន",
+        "directInvoices": "វិក្កយបត្រទិញផ្ទាល់",
+        "epurchasePrs": "បញ្ជី PR E-Purchase"
+      }
+    },
+    "recentDocs": {
+      "title": "ឯកសារលទ្ធកម្មថ្មីៗ",
+      "description": "សកម្មភាពចុងក្រោយនៃការបញ្ជាទិញ ការវាយតម្លៃ វិក្កយបត្រ និងការទូទាត់។",
+      "viewAllPos": "មើលការបញ្ជាទិញទាំងអស់",
+      "columns": {
+        "document": "ឯកសារ",
+        "party": "អ្នកផ្គត់ផ្គង់ / អ្នកស្នើ",
+        "date": "កាលបរិច្ឆេទ",
+        "status": "ស្ថានភាព",
+        "amount": "ទឹកប្រាក់"
+      }
+    },
+    "suppliers": {
+      "title": "អ្នកផ្គត់ផ្គង់សំខាន់ៗ និងបញ្ជីទំនិញ",
+      "description": "អ្នកផ្គត់ផ្គង់ដែលមានទឹកប្រាក់ខ្ពស់បំផុត និងទិន្នន័យផលិតផល។",
+      "ordersCount": "{count} បញ្ជាទិញ",
+      "catalogTitle": "បញ្ជីផលិតផលគោល",
+      "manageCatalog": "គ្រប់គ្រង",
+      "products": "ផលិតផល",
+      "categories": "ប្រភេទ",
+      "brands": "ម៉ាក"
+    }
   },
   "breadcrumb": {
     "create": "បង្កើត",
@@ -814,6 +967,25 @@
       "save": "រក្សាទុក",
       "saving": "កំពុងរក្សាទុក...",
       "cancel": "បោះបង់",
+      "linkItems": "ភ្ជាប់វត្ថុពី PR/PO",
+      "sourceHint": "យ៉ាងហោចណាស់មួយបន្តារត្រូវតែភ្ជាប់ទៅវត្ថុ PR ឬ PO មុនពេលរក្សាទុក។",
+      "sourceColumn": "ប្រភព",
+      "sourcePickerTitle": "ភ្ជាប់វត្ថុពី ePurchase",
+      "sourcePickerDescription": "ជ្រើសរើស PR ឬ PO រួចធីកវត្ថុដែលចង់បន្ថែមជាបន្តារវិក្កយបត្រ។",
+      "sourceTypeLabel": "ប្រភព",
+      "sourceTypePr": "សំណើទិញ (PR)",
+      "sourceTypePo": "ការបញ្ជាទិញ (PO)",
+      "sourceDocumentPlaceholderPr": "ស្វែងរកលេខយោង PR...",
+      "sourceDocumentPlaceholderPo": "ស្វែងរកលេខយោង PO...",
+      "sourceDocumentEmpty": "រកមិនឃើញឯកសារ",
+      "sourceSelectDocument": "ជ្រើសរើស PR ឬ PO ជាមុនសិនដើម្បីមើលវត្ថុរបស់វា។",
+      "sourceSelectAll": "ជ្រើសរើសវត្ថុទាំងអស់",
+      "sourceItemCode": "លេខវត្ថុ",
+      "sourceOrg": "ផ្នែក",
+      "sourceLoading": "កំពុងផ្ទុក...",
+      "sourceLoadFailed": "មិនអាចផ្ទុកវត្ថុរបស់ឯកសារបានទេ។",
+      "sourceNoLines": "ឯកសារនេះគ្មានវត្ថុទេ។",
+      "addSelected": "បន្ថែមដែលបានជ្រើស ({count})",
       "created": "បានបង្កើតវិក្កយបត្រ។",
       "updated": "បានកែវិក្កយបត្រ។"
     },

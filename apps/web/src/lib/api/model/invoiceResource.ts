@@ -9,6 +9,7 @@ import type { InvoiceLineResource } from './invoiceLineResource';
 export interface InvoiceResource {
   id: string;
   code: string;
+  type: string;
   invoiceNumber: string;
   status: string;
   supplierName: string;

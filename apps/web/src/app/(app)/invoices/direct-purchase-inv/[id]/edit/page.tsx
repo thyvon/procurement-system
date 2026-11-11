@@ -7,5 +7,5 @@ export default async function InvoiceEditRoute({
 }) {
   const { id } = await params;
 
-  return <InvoiceFormPage invoiceId={id} />;
+  return <InvoiceFormPage branch="direct-purchase-inv" invoiceId={id} />;
 }

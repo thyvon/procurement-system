@@ -13,7 +13,7 @@ import {
   requiresEPurchaseLogin,
 } from "@/features/epurchase/components/login-required"
 
-type EPurchasePrLine = {
+export type EPurchasePrLine = {
   id: number
   itemCode: string
   description: string

@@ -7,7 +7,6 @@ import { useTranslations } from "next-intl";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { formatDate, formatDateTime, formatMoney } from "@/lib/utils";
-import { invoicesInvoicesShow } from "@/lib/api/invoice/invoice";
 import type { InvoiceResource } from "@/lib/api/model/invoiceResource";
 import type { InvoiceLineResource } from "@/lib/api/model/invoiceLineResource";
 import { Button } from "@/components/ui/button";
@@ -28,6 +27,7 @@ import {
   txTypeLabel,
 } from "./invoice-helpers";
 import { useMe } from "@/hooks/use-me";
+import { INVOICE_BRANCHES, type InvoiceBranch } from "./invoice-branches";
 
 function MetaRow({ label, value }: { label: string; value: ReactNode }) {
   return (
@@ -41,21 +41,23 @@ function MetaRow({ label, value }: { label: string; value: ReactNode }) {
 }
 
 interface InvoiceDetailProps {
+  branch: InvoiceBranch;
   invoiceId: string;
 }
 
-export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
+export function InvoiceDetail({ branch, invoiceId }: InvoiceDetailProps) {
   const router = useRouter();
   const tf = useTranslations("invoices.form");
   const td = useTranslations("invoices.detail");
   const tt = useTranslations("invoices.table");
   const tc = useTranslations("invoices.columns");
+  const { client, sourcedLines } = INVOICE_BRANCHES[branch];
   const meQuery = useMe();
 
   const showQuery = useQuery({
     queryKey: ["invoices", "detail", invoiceId],
     queryFn: async (): Promise<InvoiceResource> =>
-      unwrap(await invoicesInvoicesShow(invoiceId, withAuth())),
+      unwrap(await client.show(invoiceId, withAuth())),
   });
 
   if (showQuery.isPending) {
@@ -65,7 +67,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   if (showQuery.isError || !showQuery.data) {
     return (
       <div className="mt-1 min-w-0 space-y-4">
-        <Button variant="outline" onClick={() => router.push("/invoices/direct-purchase-inv")}>
+        <Button variant="outline" onClick={() => router.push(`/invoices/${branch}`)}>
           {tf("back")}
         </Button>
         <p className="text-sm text-destructive">{tf("loadFailed")}</p>
@@ -104,7 +106,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => router.push("/invoices/direct-purchase-inv")}
+            onClick={() => router.push(`/invoices/${branch}`)}
             aria-label={tf("back")}
           >
             <ArrowLeft />
@@ -121,7 +123,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
         </div>
         {canEdit ? (
           <Button
-            onClick={() => router.push(`/invoices/direct-purchase-inv/${invoice.id}/edit`)}
+            onClick={() => router.push(`/invoices/${branch}/${invoice.id}/edit`)}
           >
             <Pencil />
             {tt("edit")}
@@ -231,6 +233,35 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
                   </span>
                 ),
               },
+              // Pro branch: where the line came from — item code · ref.
+              ...(sourcedLines
+                ? [
+                    {
+                      key: "source",
+                      label: tf("sourceColumn"),
+                      width: "w-40",
+                      cell: (line: InvoiceLineResource) => (
+                        <div className="flex h-8 min-w-0 items-center">
+                          {line.sourceRef ? (
+                            <span
+                              className="block truncate font-mono text-[11px] text-muted-foreground"
+                              title={`${
+                                line.itemCode ? `${line.itemCode} · ` : ""
+                              }${line.sourceRef}`}
+                            >
+                              {line.itemCode ? `${line.itemCode} · ` : ""}
+                              {line.sourceRef}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              —
+                            </span>
+                          )}
+                        </div>
+                      ),
+                    },
+                  ]
+                : []),
               {
                 key: "campus",
                 label: tf("campus"),

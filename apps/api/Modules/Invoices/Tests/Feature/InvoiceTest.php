@@ -40,6 +40,7 @@ function invoiceLine(array $overrides = []): array
 function invoicePayload(array $overrides = []): array
 {
     return array_replace_recursive([
+        'type' => Invoice::TYPE_DIRECT_PURCHASE,
         'invoice_number' => 'SUP-INV-1001',
         'supplier_name' => 'Acme Trading',
         'supplier_code' => 'SUP-00056',
@@ -59,12 +60,62 @@ function invoicePayload(array $overrides = []): array
     ], $overrides);
 }
 
-function storeInvoice(array $overrides = [], ?User $user = null): TestResponse
+function storeInvoiceTo(string $url, array $overrides = [], ?User $user = null): TestResponse
 {
     $user ??= test()->admin;
 
     return test()->actingAs($user, 'sanctum')
-        ->postJson('/api/v1/invoices', invoicePayload($overrides));
+        ->postJson($url, invoicePayload($overrides));
+}
+
+function storeInvoice(array $overrides = [], ?User $user = null): TestResponse
+{
+    return storeInvoiceTo('/api/v1/direct-purchase-invoices', $overrides, $user);
+}
+
+function sourcedInvoiceLine(array $overrides = []): array
+{
+    return array_replace(invoiceLine($overrides), [
+        'source_type' => 'pr',
+        'source_header_id' => 101,
+        'source_line_id' => 1001,
+        'source_ref' => 'PR-CCV-20260915-001',
+        'item_code' => 'STA-A4-001',
+    ], array_intersect_key($overrides, array_flip([
+        'source_type', 'source_header_id', 'source_line_id', 'source_ref', 'item_code',
+    ])));
+}
+
+function proInvoicePayload(array $overrides = []): array
+{
+    $payload = invoicePayload($overrides);
+    $payload['type'] = Invoice::TYPE_PRO_PURCHASE_INVOICE;
+
+    if (! array_key_exists('lines', $overrides)) {
+        $payload['lines'] = [
+            sourcedInvoiceLine(),
+            sourcedInvoiceLine([
+                'source_type' => 'po',
+                'source_header_id' => 202,
+                'source_line_id' => 2002,
+                'source_ref' => 'PO-202608-00124',
+                'item_code' => 'STP-STD-010',
+                'description' => 'Stapler',
+                'qty' => 2,
+                'unit_price' => 5,
+            ]),
+        ];
+    }
+
+    return $payload;
+}
+
+function storeProInvoice(array $overrides = [], ?User $user = null): TestResponse
+{
+    $user ??= test()->admin;
+
+    return test()->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/pro-purchase-invoices', proInvoicePayload($overrides));
 }
 
 function linkedCashRequest(string $type, string $code, array $overrides = []): CashRequest
@@ -80,14 +131,14 @@ function linkedCashRequest(string $type, string $code, array $overrides = []): C
 }
 
 it('requires authentication', function () {
-    $this->getJson('/api/v1/invoices')->assertStatus(401);
+    $this->getJson('/api/v1/direct-purchase-invoices')->assertStatus(401);
 
     $invoice = Invoice::factory()->create([
         'entity_id' => $this->entity->getKey(),
         'created_by' => $this->admin->getKey(),
     ]);
 
-    $this->getJson("/api/v1/invoices/{$invoice->getKey()}")->assertStatus(401);
+    $this->getJson("/api/v1/direct-purchase-invoices/{$invoice->getKey()}")->assertStatus(401);
 });
 
 it('creates an invoice with a server-generated code and recomputed totals', function () {
@@ -255,7 +306,7 @@ it('rejects an invoice without lines with a 422 envelope', function () {
     $payload['lines'] = [];
 
     $response = $this->actingAs($this->admin, 'sanctum')
-        ->postJson('/api/v1/invoices', $payload)
+        ->postJson('/api/v1/direct-purchase-invoices', $payload)
         ->assertStatus(422)
         ->assertJsonPath('statusCode', 422)
         ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
@@ -311,7 +362,7 @@ it('lets staff list invoices with pagination meta', function () {
     storeInvoice();
 
     $response = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/invoices')
+        ->getJson('/api/v1/direct-purchase-invoices')
         ->assertOk()
         ->assertJsonPath('meta.page', 1)
         ->assertJsonPath('meta.perPage', 20)
@@ -327,7 +378,7 @@ it('pages the list with page and per_page', function () {
     storeInvoice(['invoice_number' => 'SUP-INV-1002']);
 
     $page1 = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/invoices?per_page=1&page=1')
+        ->getJson('/api/v1/direct-purchase-invoices?per_page=1&page=1')
         ->assertOk()
         ->assertJsonPath('meta.page', 1)
         ->assertJsonPath('meta.perPage', 1)
@@ -335,7 +386,7 @@ it('pages the list with page and per_page', function () {
         ->json('data.*.code');
 
     $page2 = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/invoices?per_page=1&page=2')
+        ->getJson('/api/v1/direct-purchase-invoices?per_page=1&page=2')
         ->assertOk()
         ->assertJsonPath('meta.page', 2)
         ->json('data.*.code');
@@ -349,25 +400,25 @@ it('searches the list by code, invoice number and supplier', function () {
     storeInvoice();
 
     $byCode = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/invoices?search=INV')
+        ->getJson('/api/v1/direct-purchase-invoices?search=INV')
         ->assertOk()
         ->assertJsonPath('meta.total', 1)
         ->json('data.*.code');
 
     $byInvoiceNumber = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/invoices?search=SUP-INV-1001')
+        ->getJson('/api/v1/direct-purchase-invoices?search=SUP-INV-1001')
         ->assertOk()
         ->assertJsonPath('meta.total', 1)
         ->json('data.*.code');
 
     $bySupplier = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/invoices?search=Acme')
+        ->getJson('/api/v1/direct-purchase-invoices?search=Acme')
         ->assertOk()
         ->assertJsonPath('meta.total', 1)
         ->json('data.*.code');
 
     $noHit = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/invoices?search=NoSuchSupplier')
+        ->getJson('/api/v1/direct-purchase-invoices?search=NoSuchSupplier')
         ->assertOk()
         ->assertJsonPath('meta.total', 0);
 
@@ -380,24 +431,24 @@ it('searches the list by code, invoice number and supplier', function () {
 it('filters the list by status', function () {
     $recordedId = storeInvoice()->json('data.id');
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$recordedId}/status", ['status' => 'recorded'])
+        ->patchJson("/api/v1/direct-purchase-invoices/{$recordedId}/status", ['status' => 'recorded'])
         ->assertOk();
     $draftId = storeInvoice(['invoice_number' => 'SUP-INV-1002'])->json('data.id');
 
     $recorded = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/invoices?status=recorded')
+        ->getJson('/api/v1/direct-purchase-invoices?status=recorded')
         ->assertOk()
         ->assertJsonPath('meta.total', 1)
         ->assertJsonPath('data.0.id', $recordedId);
 
     $drafts = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/invoices?status=draft')
+        ->getJson('/api/v1/direct-purchase-invoices?status=draft')
         ->assertOk()
         ->assertJsonPath('meta.total', 1)
         ->assertJsonPath('data.0.id', $draftId);
 
     $none = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/invoices?status=cancelled')
+        ->getJson('/api/v1/direct-purchase-invoices?status=cancelled')
         ->assertOk()
         ->assertJsonPath('meta.total', 0);
 
@@ -408,7 +459,7 @@ it('filters the list by status', function () {
 
 it('rejects an unknown status filter with a 422 envelope', function () {
     $response = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/invoices?status=unknown')
+        ->getJson('/api/v1/direct-purchase-invoices?status=unknown')
         ->assertStatus(422)
         ->assertJsonPath('statusCode', 422)
         ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
@@ -420,7 +471,7 @@ it('shows an invoice with its lines', function () {
     $id = storeInvoice()->json('data.id');
 
     $response = $this->actingAs($this->staff, 'sanctum')
-        ->getJson("/api/v1/invoices/{$id}")
+        ->getJson("/api/v1/direct-purchase-invoices/{$id}")
         ->assertOk()
         ->assertJsonPath('data.id', $id)
         ->assertJsonPath('data.invoiceNumber', 'SUP-INV-1001')
@@ -436,7 +487,7 @@ it('updates a draft by replacing the lines and recomputing totals', function () 
     $id = storeInvoice()->json('data.id');
 
     $response = $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}", invoicePayload([
             'invoice_number' => 'SUP-INV-1001-R1',
             'vat_amount' => 0,
             'discount_amount' => 0,
@@ -525,7 +576,7 @@ it('recomputes the vat amount and replaces the head fields on update', function 
     // so an update must swap them for new values; the cash link is only
     // clearable by moving the invoice to credit (where it is not required).
     $response = $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}", invoicePayload([
             'transaction_type' => Invoice::TRANSACTION_TYPE_CREDIT,
             'payment_term' => Invoice::PAYMENT_TERM_CREDIT_1W,
             'cash_request_id' => null,
@@ -656,7 +707,7 @@ it('frees the budget when a linked invoice is cancelled', function () {
     ])->assertStatus(422);
 
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}/status", ['status' => 'cancelled'])
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}/status", ['status' => 'cancelled'])
         ->assertOk();
 
     storeInvoice([
@@ -675,7 +726,7 @@ it('excludes the invoice itself from the budget check on update', function () {
 
     // Re-saving at its own total passes: the invoice is its own budget use.
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}", invoicePayload([
             'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
             'cash_request_id' => $cashRequest->getKey(),
         ]))
@@ -683,7 +734,7 @@ it('excludes the invoice itself from the budget check on update', function () {
 
     // Growing past the request amount is refused.
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}", invoicePayload([
             'transaction_type' => Invoice::TRANSACTION_TYPE_ADVANCE,
             'cash_request_id' => $cashRequest->getKey(),
             'discount_amount' => 0,
@@ -759,7 +810,7 @@ it('re-stamps paid_at on update when the transaction type changes', function () 
     ])->json('data.id');
 
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}", invoicePayload([
             'transaction_type' => Invoice::TRANSACTION_TYPE_PETTY_CASH,
             'cash_request_id' => $pettyRequest->getKey(),
             'invoice_date' => '2026-10-15',
@@ -773,7 +824,7 @@ it('re-stamps paid_at on update when the transaction type changes', function () 
 
     // Moving to credit clears the stamp and the cash link again.
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}", invoicePayload([
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}", invoicePayload([
             'transaction_type' => Invoice::TRANSACTION_TYPE_CREDIT,
             'cash_request_id' => null,
         ]))
@@ -873,7 +924,7 @@ it('cannot be modified once it is no longer a draft', function (string $status) 
     Invoice::query()->whereKey($id)->update(['status' => $status]);
 
     $response = $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}", invoicePayload())
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}", invoicePayload())
         ->assertStatus(422)
         ->assertJsonPath('statusCode', 422)
         ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
@@ -887,7 +938,7 @@ it('records a draft invoice', function () {
     $id = storeInvoice()->json('data.id');
 
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}/status", ['status' => 'recorded'])
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}/status", ['status' => 'recorded'])
         ->assertOk()
         ->assertJsonPath('data.status', 'recorded');
 
@@ -898,11 +949,11 @@ it('cancels a recorded invoice', function () {
     $id = storeInvoice()->json('data.id');
 
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}/status", ['status' => 'recorded'])
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}/status", ['status' => 'recorded'])
         ->assertOk();
 
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}/status", ['status' => 'cancelled'])
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}/status", ['status' => 'cancelled'])
         ->assertOk()
         ->assertJsonPath('data.status', 'cancelled');
 
@@ -914,7 +965,7 @@ it('blocks an invalid status transition', function (string $from) {
     Invoice::query()->whereKey($id)->update(['status' => $from]);
 
     $response = $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}/status", ['status' => 'recorded'])
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}/status", ['status' => 'recorded'])
         ->assertStatus(422)
         ->assertJsonPath('statusCode', 422)
         ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
@@ -928,7 +979,7 @@ it('rejects an unknown target status with a 422 envelope', function () {
     $id = storeInvoice()->json('data.id');
 
     $response = $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}/status", ['status' => 'draft'])
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}/status", ['status' => 'draft'])
         ->assertStatus(422)
         ->assertJsonPath('statusCode', 422)
         ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
@@ -940,7 +991,7 @@ it('forbids staff from changing status', function () {
     $id = storeInvoice()->json('data.id');
 
     $this->actingAs($this->staff, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}/status", ['status' => 'recorded'])
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}/status", ['status' => 'recorded'])
         ->assertStatus(403);
 });
 
@@ -948,7 +999,7 @@ it('soft-deletes an invoice', function () {
     $id = storeInvoice()->json('data.id');
 
     $this->actingAs($this->admin, 'sanctum')
-        ->deleteJson("/api/v1/invoices/{$id}")
+        ->deleteJson("/api/v1/direct-purchase-invoices/{$id}")
         ->assertOk()
         ->assertJsonPath('data.deleted', true);
 
@@ -956,7 +1007,7 @@ it('soft-deletes an invoice', function () {
         ->and($invoice->deleted_at)->not->toBeNull();
 
     $this->actingAs($this->staff, 'sanctum')
-        ->getJson("/api/v1/invoices/{$id}")
+        ->getJson("/api/v1/direct-purchase-invoices/{$id}")
         ->assertNotFound();
 });
 
@@ -965,7 +1016,7 @@ it('blocks deleting an invoice that is no longer a draft', function (string $sta
     Invoice::query()->find($id)->update(['status' => $status]);
 
     $this->actingAs($this->admin, 'sanctum')
-        ->deleteJson("/api/v1/invoices/{$id}")
+        ->deleteJson("/api/v1/direct-purchase-invoices/{$id}")
         ->assertStatus(422)
         ->assertJsonPath('statusCode', 422)
         ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors'])
@@ -979,7 +1030,7 @@ it('forbids staff from deleting invoices', function () {
     $id = storeInvoice()->json('data.id');
 
     $this->actingAs($this->staff, 'sanctum')
-        ->deleteJson("/api/v1/invoices/{$id}")
+        ->deleteJson("/api/v1/direct-purchase-invoices/{$id}")
         ->assertStatus(403);
 });
 
@@ -989,11 +1040,11 @@ it('forbids the owner without the manage permission from editing or deleting the
     Invoice::query()->find($id)->update(['created_by' => $this->staff->getKey()]);
 
     $this->actingAs($this->staff, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}", invoicePayload())
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}", invoicePayload())
         ->assertStatus(403);
 
     $this->actingAs($this->staff, 'sanctum')
-        ->deleteJson("/api/v1/invoices/{$id}")
+        ->deleteJson("/api/v1/direct-purchase-invoices/{$id}")
         ->assertStatus(403);
 
     expect(Invoice::query()->find($id))->not->toBeNull()
@@ -1005,11 +1056,11 @@ it('forbids a manage holder from editing or deleting a draft owned by someone el
     Invoice::query()->find($id)->update(['created_by' => $this->staff->getKey()]);
 
     $this->actingAs($this->admin, 'sanctum')
-        ->patchJson("/api/v1/invoices/{$id}", invoicePayload())
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}", invoicePayload())
         ->assertStatus(403);
 
     $this->actingAs($this->admin, 'sanctum')
-        ->deleteJson("/api/v1/invoices/{$id}")
+        ->deleteJson("/api/v1/direct-purchase-invoices/{$id}")
         ->assertStatus(403);
 
     expect(Invoice::query()->find($id))->not->toBeNull()
@@ -1025,14 +1076,14 @@ it('never returns other entities invoices', function () {
     $foreignCode = $foreign->json('data.code');
 
     $codes = $this->actingAs($this->staff, 'sanctum')
-        ->getJson('/api/v1/invoices')
+        ->getJson('/api/v1/direct-purchase-invoices')
         ->assertOk()
         ->json('data.*.code');
 
     expect($codes)->not->toContain($foreignCode);
 
     $this->actingAs($this->staff, 'sanctum')
-        ->getJson("/api/v1/invoices/{$foreignId}")
+        ->getJson("/api/v1/direct-purchase-invoices/{$foreignId}")
         ->assertNotFound();
 });
 
@@ -1055,4 +1106,196 @@ it('builds invoices from the factory with a matching code', function () {
     expect($invoice->code)->toMatch('/^INV-\d{2}-\d{3}$/')
         ->and($invoice->status)->toBe('draft')
         ->and($invoice->lines)->toHaveCount(1);
+});
+
+it('scopes each branch to its own invoice type', function () {
+    $proDraftId = storeProInvoice([
+        'invoice_number' => 'SUP-PRO-2001',
+    ])->json('data.id');
+
+    $proCancelledId = storeProInvoice([
+        'invoice_number' => 'SUP-PRO-2002',
+    ])->json('data.id');
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/pro-purchase-invoices/{$proCancelledId}/status", ['status' => 'cancelled'])
+        ->assertOk();
+
+    $directId = storeInvoice()->json('data.id');
+
+    // The status filter still works — inside the branch's own type.
+    $this->actingAs($this->staff, 'sanctum')
+        ->getJson('/api/v1/pro-purchase-invoices?status=draft')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.id', $proDraftId)
+        ->assertJsonPath('data.0.type', 'pro_purchase_invoice')
+        ->assertJsonPath('data.0.status', 'draft');
+
+    $this->actingAs($this->staff, 'sanctum')
+        ->getJson('/api/v1/pro-purchase-invoices')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 2);
+
+    $this->actingAs($this->staff, 'sanctum')
+        ->getJson('/api/v1/direct-purchase-invoices')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.id', $directId)
+        ->assertJsonPath('data.0.type', 'direct_purchase');
+});
+
+it('hides an invoice from every other branch', function () {
+    $directId = storeInvoice()->json('data.id');
+
+    foreach (['pro-purchase-invoices'] as $branch) {
+        $this->actingAs($this->admin, 'sanctum')
+            ->getJson("/api/v1/{$branch}/{$directId}")
+            ->assertNotFound();
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->patchJson("/api/v1/{$branch}/{$directId}", invoicePayload())
+            ->assertNotFound();
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->patchJson("/api/v1/{$branch}/{$directId}/status", ['status' => 'cancelled'])
+            ->assertNotFound();
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->deleteJson("/api/v1/{$branch}/{$directId}")
+            ->assertNotFound();
+    }
+
+    expect(Invoice::query()->count())->toBe(1);
+});
+
+it('rejects a payload whose type contradicts the branch', function () {
+    $direct = storeInvoice(['type' => Invoice::TYPE_PRO_PURCHASE_INVOICE])
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors' => ['type']]);
+
+    $pro = storeInvoiceTo('/api/v1/pro-purchase-invoices', [
+        'type' => Invoice::TYPE_DIRECT_PURCHASE,
+    ])
+        ->assertStatus(422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors' => ['type']]);
+
+    expect($direct->json('errors.type'))->not->toBeEmpty()
+        ->and($pro->json('errors.type'))->not->toBeEmpty()
+        ->and(Invoice::query()->count())->toBe(0);
+});
+
+it('creates a direct and a pro purchase invoice under their own branches', function () {
+    $direct = storeInvoice()
+        ->assertStatus(201)
+        ->assertJsonPath('data.type', 'direct_purchase');
+
+    $pro = storeProInvoice([
+        'invoice_number' => 'SUP-PRO-3001',
+    ])
+        ->assertStatus(201)
+        ->assertJsonPath('data.type', 'pro_purchase_invoice');
+
+    expect($direct->json('data.code'))->toMatch('/^INV-\d{2}-\d{3}$/')
+        ->and($pro->json('data.code'))->toMatch('/^PI-\d{2}-\d{3}$/');
+});
+
+it('creates a pro purchase invoice with pr and po sourced lines plus a manual line', function () {
+    $response = storeProInvoice([
+        'lines' => [
+            sourcedInvoiceLine(),
+            sourcedInvoiceLine([
+                'source_type' => 'po',
+                'source_header_id' => 202,
+                'source_line_id' => 2002,
+                'source_ref' => 'PO-202608-00124',
+                'item_code' => 'STP-STD-010',
+                'description' => 'Stapler',
+                'qty' => 2,
+                'unit_price' => 5,
+            ]),
+            invoiceLine(['description' => 'Bulbs', 'qty' => 4, 'unit_price' => 2]),
+        ],
+    ])->assertStatus(201);
+
+    // The source snapshot rides the resource as camelCase fields; the manual
+    // line stays unsourced.
+    $response
+        ->assertJsonPath('data.type', 'pro_purchase_invoice')
+        ->assertJsonCount(3, 'data.lines')
+        ->assertJsonPath('data.lines.0.sourceType', 'pr')
+        ->assertJsonPath('data.lines.0.sourceHeaderId', 101)
+        ->assertJsonPath('data.lines.0.sourceLineId', 1001)
+        ->assertJsonPath('data.lines.0.sourceRef', 'PR-CCV-20260915-001')
+        ->assertJsonPath('data.lines.0.itemCode', 'STA-A4-001')
+        ->assertJsonPath('data.lines.1.sourceType', 'po')
+        ->assertJsonPath('data.lines.1.sourceRef', 'PO-202608-00124')
+        ->assertJsonPath('data.lines.2.sourceType', null)
+        ->assertJsonPath('data.lines.2.sourceLineId', null);
+
+    $lines = Invoice::query()->findOrFail($response->json('data.id'))
+        ->lines()->orderBy('position')->get();
+
+    expect($lines[0]->source_type)->toBe('pr')
+        ->and($lines[0]->source_header_id)->toBe(101)
+        ->and($lines[0]->source_line_id)->toBe(1001)
+        ->and($lines[0]->source_ref)->toBe('PR-CCV-20260915-001')
+        ->and($lines[0]->item_code)->toBe('STA-A4-001')
+        ->and($lines[1]->source_type)->toBe('po')
+        ->and($lines[2]->source_type)->toBeNull()
+        ->and($lines[2]->source_line_id)->toBeNull();
+});
+
+it('requires at least one sourced line on a pro purchase invoice', function () {
+    $response = storeInvoiceTo('/api/v1/pro-purchase-invoices', [
+        'type' => Invoice::TYPE_PRO_PURCHASE_INVOICE,
+        'invoice_number' => 'SUP-PRO-4001',
+    ])
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
+
+    expect($response->json('errors.lines.0'))
+        ->toContain('at least one line linked to a PR or PO item')
+        ->and(Invoice::query()->count())->toBe(0);
+
+    // The same rule guards updates: replacing sourced lines with manual-only
+    // lines is refused, and the stored invoice keeps its original lines.
+    $id = storeProInvoice()->json('data.id');
+
+    $this->actingAs($this->admin, 'sanctum')
+        ->patchJson("/api/v1/pro-purchase-invoices/{$id}", proInvoicePayload([
+            'lines' => [invoiceLine()],
+        ]))
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['lines']);
+
+    $invoice = Invoice::query()->with('lines')->findOrFail($id);
+
+    expect($invoice->lines)->toHaveCount(2)
+        ->and($invoice->lines->pluck('source_line_id')->all())->not->toContain(null);
+});
+
+it('rejects a partially filled source bundle', function () {
+    $response = storeInvoice([
+        'lines' => [sourcedInvoiceLine(['source_line_id' => null])],
+    ])
+        ->assertStatus(422)
+        ->assertJsonPath('statusCode', 422)
+        ->assertJsonStructure(['statusCode', 'message', 'error', 'correlationId', 'errors']);
+
+    expect($response->json('errors')['lines.0'][0])
+        ->toContain('required together')
+        ->and(Invoice::query()->count())->toBe(0);
+});
+
+it('rejects an unknown source type', function () {
+    storeInvoice([
+        'lines' => [sourcedInvoiceLine(['source_type' => 'requisition'])],
+    ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['lines.0.source_type']);
+
+    expect(Invoice::query()->count())->toBe(0);
 });

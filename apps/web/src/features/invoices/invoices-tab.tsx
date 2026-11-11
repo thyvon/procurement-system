@@ -7,13 +7,7 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { Ban, CheckCircle2, Eye, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
-import {
-  invoicesInvoicesDestroy,
-  invoicesInvoicesIndex,
-  invoicesStatus,
-} from "@/lib/api/invoice/invoice";
 import type { InvoiceResource } from "@/lib/api/model/invoiceResource";
-import type { InvoicesInvoicesIndexStatus } from "@/lib/api/model/invoicesInvoicesIndexStatus";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableSkeleton } from "@/components/ui/data-table-skeleton";
@@ -39,6 +33,7 @@ import { formatDate, formatDateTime, formatMoney } from "@/lib/utils";
 import { type DataTableFeatures } from "@/components/ui/data-table-features";
 import { useMe } from "@/hooks/use-me";
 import { InvoiceStatusBadge } from "./components/invoice-status-badge";
+import { INVOICE_BRANCHES, type InvoiceBranch, type InvoiceIndexStatus } from "./invoice-branches";
 import { paymentTermLabel, txTypeLabel } from "./invoice-helpers";
 
 type InvoiceRow = {
@@ -286,11 +281,12 @@ function useInvoiceColumns({
   ] as ColumnDef<DataTableFeatures, InvoiceRow>[];
 }
 
-export function InvoicesTab() {
+export function InvoicesTab({ branch }: { branch: InvoiceBranch }) {
   const t = useTranslations("invoices.list");
   const tt = useTranslations("invoices.table");
   const router = useRouter();
   const qc = useQueryClient();
+  const { client } = INVOICE_BRANCHES[branch];
   const meQuery = useMe();
   const permissions = (meQuery.data?.permissions ?? []) as string[];
   const canManage = permissions.includes("invoices.manage");
@@ -305,7 +301,7 @@ export function InvoicesTab() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) =>
-      unwrap(await invoicesInvoicesDestroy(id, withAuth())),
+      unwrap(await client.destroy(id, withAuth())),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["invoices"] });
       setDeleteTarget(null);
@@ -320,7 +316,7 @@ export function InvoicesTab() {
     }: {
       id: string;
       status: "recorded" | "cancelled";
-    }) => unwrap(await invoicesStatus(id, { status }, withAuth())),
+    }) => unwrap(await client.status(id, { status }, withAuth())),
     onSuccess: (_result, variables) => {
       qc.invalidateQueries({ queryKey: ["invoices"] });
       toast.success(
@@ -330,15 +326,15 @@ export function InvoicesTab() {
   });
 
   const query = useQuery({
-    queryKey: ["invoices", debouncedSearch, statusFilter, page, perPage],
+    queryKey: ["invoices", branch, debouncedSearch, statusFilter, page, perPage],
     queryFn: async (): Promise<InvoicesPage> => {
-      const response = await invoicesInvoicesIndex(
+      const response = await client.index(
         {
           search: debouncedSearch || undefined,
           status:
             statusFilter === "all"
               ? undefined
-              : (statusFilter as InvoicesInvoicesIndexStatus),
+              : (statusFilter as InvoiceIndexStatus),
           page: page + 1,
           per_page: perPage,
         },
@@ -360,8 +356,8 @@ export function InvoicesTab() {
   const columns = useInvoiceColumns({
     canManage,
     currentUserId,
-    onViewRequest: (invoice) => router.push(`/invoices/direct-purchase-inv/${invoice.id}`),
-    onEditRequest: (invoice) => router.push(`/invoices/direct-purchase-inv/${invoice.id}/edit`),
+    onViewRequest: (invoice) => router.push(`/invoices/${branch}/${invoice.id}`),
+    onEditRequest: (invoice) => router.push(`/invoices/${branch}/${invoice.id}/edit`),
     onRecordRequest: (invoice) =>
       statusMutation.mutate({ id: invoice.id, status: "recorded" }),
     onCancelRequest: (invoice) =>
@@ -410,7 +406,7 @@ export function InvoicesTab() {
         searchPlaceholder={tt("searchPlaceholder")}
         toolbar={
           canManage ? (
-            <Button type="button" onClick={() => router.push("/invoices/direct-purchase-inv/new")}>
+            <Button type="button" onClick={() => router.push(`/invoices/${branch}/new`)}>
               <Plus className="mr-2 size-4" />
               {t("newTitle")}
             </Button>

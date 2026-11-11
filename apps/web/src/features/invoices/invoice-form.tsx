@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Save } from "lucide-react";
+import { ArrowLeft, Link2, Plus, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -41,11 +41,6 @@ import {
 } from "@/components/ui/combobox";
 import { unwrap, unwrapWithMeta, withAuth } from "@/lib/api-client";
 import { cn, formatMoney } from "@/lib/utils";
-import {
-  invoicesInvoicesShow,
-  invoicesInvoicesStore,
-  invoicesInvoicesUpdate,
-} from "@/lib/api/invoice/invoice";
 import { paymentsAdvanceRequestsIndex } from "@/lib/api/advance-request/advance-request";
 import { paymentsPettyCashRequestsIndex } from "@/lib/api/petty-cash-request/petty-cash-request";
 import { organizationCampusesIndex } from "@/lib/api/campus/campus";
@@ -56,6 +51,11 @@ import type { InvoiceResource } from "@/lib/api/model/invoiceResource";
 import type { CashRequestResource } from "@/lib/api/model/cashRequestResource";
 import { useMe } from "@/hooks/use-me";
 import { InvoiceFormSkeleton } from "./components/invoice-form-skeleton";
+import {
+  SourceItemPicker,
+  type PickedSourceLine,
+} from "./components/source-item-picker";
+import { INVOICE_BRANCHES, type InvoiceBranch } from "./invoice-branches";
 import {
   paymentTermOptions,
   resolveLineDiscounts,
@@ -74,6 +74,12 @@ type LineForm = {
   qty: string;
   unitPrice: string;
   discount: string;
+  /** ePurchase source snapshot — null on manual (and all direct-branch) lines. */
+  sourceType: "pr" | "po" | null;
+  sourceHeaderId: number | null;
+  sourceLineId: number | null;
+  sourceRef: string | null;
+  itemCode: string | null;
 };
 
 type TransactionType = "petty_cash" | "advance" | "credit";
@@ -111,6 +117,11 @@ const EMPTY_LINE: LineForm = {
   qty: "",
   unitPrice: "",
   discount: "",
+  sourceType: null,
+  sourceHeaderId: null,
+  sourceLineId: null,
+  sourceRef: null,
+  itemCode: null,
 };
 
 const EMPTY_FORM: InvoiceFormValue = {
@@ -232,6 +243,21 @@ function hasLineError(line: LineForm): boolean {
   );
 }
 
+/** True while a row still holds no officer-entered content (source snapshot aside). */
+function isPristineLine(line: LineForm): boolean {
+  return (
+    !line.description.trim() &&
+    !line.uom.trim() &&
+    !line.campus.trim() &&
+    !line.division.trim() &&
+    !line.department.trim() &&
+    !line.location.trim() &&
+    !line.purpose.trim() &&
+    !line.qty.trim() &&
+    !line.unitPrice.trim()
+  );
+}
+
 function round(value: number, decimals: number): number {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
@@ -288,31 +314,42 @@ function toForm(resource?: InvoiceResource | null): InvoiceFormValue {
             qty: String(line.qty),
             unitPrice: String(line.unitPrice),
             discount: String(line.discount ?? ""),
+            sourceType:
+              line.sourceType === "pr" || line.sourceType === "po"
+                ? line.sourceType
+                : null,
+            sourceHeaderId: line.sourceHeaderId ?? null,
+            sourceLineId: line.sourceLineId ?? null,
+            sourceRef: line.sourceRef ?? null,
+            itemCode: line.itemCode ?? null,
           }))
         : [{ ...EMPTY_LINE }],
   };
 }
 
 interface InvoiceFormProps {
+  branch: InvoiceBranch;
   invoiceId?: string;
   onBack: () => void;
 }
 
-export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
+export function InvoiceForm({ branch, invoiceId, onBack }: InvoiceFormProps) {
   const t = useTranslations("invoices.form");
   const txTypeSelectOptions = txTypeOptions(t);
   const paymentTermSelectOptions = paymentTermOptions(t);
   const isEdit = Boolean(invoiceId);
+  const { type, client, sourcedLines } = INVOICE_BRANCHES[branch];
   const qc = useQueryClient();
   const router = useRouter();
   const meQuery = useMe();
   const [form, setForm] = useState<InvoiceFormValue>(() => toForm(null));
   const [hydratedId, setHydratedId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const showQuery = useQuery({
     queryKey: ["invoices", "detail", invoiceId],
     queryFn: async (): Promise<InvoiceResource> =>
-      unwrap(await invoicesInvoicesShow(invoiceId!, withAuth())),
+      unwrap(await client.show(invoiceId!, withAuth())),
     enabled: isEdit,
   });
 
@@ -487,6 +524,16 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
       };
     });
 
+  // Sourced lines from the picker land as whole rows; the untouched starter
+  // row is only scaffolding, so it is replaced instead of left blocking save.
+  const appendPickedLines = (picked: PickedSourceLine[]) =>
+    setForm((current) => ({
+      ...current,
+      lines: current.lines.every(isPristineLine)
+        ? picked
+        : [...current.lines, ...picked],
+    }));
+
   const subtotal = form.lines.reduce((sum, line) => sum + lineTotalOf(line), 0);
   // When lines carry their own discounts, the summary shows their sum as a
   // read-only figure; the header discount input is only for legacy invoices.
@@ -508,6 +555,10 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
 
   // UX-only gate: the API's 422 is the source of truth.
   const missingLines = form.lines.some(hasLineError);
+  // Pro-branch mirror of the API rule: at least one line must carry a
+  // PR/PO source link before a save is attempted.
+  const missingSource =
+    sourcedLines && !form.lines.some((line) => line.sourceLineId != null);
   const canSave =
     !!form.invoiceNumber.trim() &&
     !!form.supplierName.trim() &&
@@ -517,11 +568,13 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
     !!form.paymentTerm &&
     !!form.invoiceDate &&
     form.lines.length > 0 &&
-    !missingLines;
+    !missingLines &&
+    !missingSource;
 
   const saveMutation = useMutation({
     mutationFn: async (): Promise<string> => {
       const payload: StoreInvoiceRequest = {
+        type,
         invoice_number: form.invoiceNumber.trim(),
         supplier_name: form.supplierName.trim(),
         supplier_code: form.supplierCode.trim() || null,
@@ -552,15 +605,20 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
           qty: toNumber(line.qty),
           unit_price: toNumber(line.unitPrice),
           discount: toNumber(line.discount),
+          source_type: line.sourceType,
+          source_header_id: line.sourceHeaderId,
+          source_line_id: line.sourceLineId,
+          source_ref: line.sourceRef,
+          item_code: line.itemCode,
         })),
       };
 
       if (isEdit) {
-        unwrap(await invoicesInvoicesUpdate(invoiceId!, payload, withAuth()));
+        unwrap(await client.update(invoiceId!, payload, withAuth()));
         return invoiceId!;
       }
       const created = unwrap<{ id: string }>(
-        await invoicesInvoicesStore(payload, withAuth())
+        await client.store(payload, withAuth())
       );
       return created.id;
     },
@@ -568,7 +626,7 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
       qc.invalidateQueries({ queryKey: ["invoices"] });
       toast.success(isEdit ? t("updated") : t("created"));
       if (!isEdit) {
-        router.push(`/invoices/direct-purchase-inv/${id}/edit`);
+        router.push(`/invoices/${branch}/${id}/edit`);
       }
     },
   });
@@ -902,6 +960,36 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                     />
                   ),
                 },
+                // Pro branch: the ePurchase PR/PO each line came from —
+                // item code · document ref, or an em dash on manual lines.
+                ...(sourcedLines
+                  ? [
+                      {
+                        key: "source",
+                        label: t("sourceColumn"),
+                        width: "w-44",
+                        cell: (line: LineForm) => (
+                          <div className="flex h-8 min-w-0 items-center">
+                            {line.sourceRef ? (
+                              <span
+                                className="block truncate font-mono text-[11px] text-muted-foreground"
+                                title={`${
+                                  line.itemCode ? `${line.itemCode} · ` : ""
+                                }${line.sourceRef}`}
+                              >
+                                {line.itemCode ? `${line.itemCode} · ` : ""}
+                                {line.sourceRef}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">
+                                —
+                              </span>
+                            )}
+                          </div>
+                        ),
+                      },
+                    ]
+                  : []),
                 {
                   key: "campus",
                   label: t("campus"),
@@ -1172,12 +1260,31 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
                   : []),
               ]}
               footerLeading={
-                <Button type="button" size="xs" onClick={addLine}>
-                  <Plus className="size-3" />
-                  {t("addLine")}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" size="xs" onClick={addLine}>
+                    <Plus className="size-3" />
+                    {t("addLine")}
+                  </Button>
+                  {sourcedLines ? (
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="outline"
+                      onClick={() => setPickerOpen(true)}
+                    >
+                      <Link2 className="size-3" />
+                      {t("linkItems")}
+                    </Button>
+                  ) : null}
+                </div>
               }
             />
+
+            {missingSource && !locked ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t("sourceHint")}
+              </p>
+            ) : null}
 
             <div className="mt-3 flex items-center gap-2">
               <Label htmlFor="inv-notes" className={fieldLabelClass}>
@@ -1195,6 +1302,14 @@ export function InvoiceForm({ invoiceId, onBack }: InvoiceFormProps) {
           </CardContent>
         </Card>
       </fieldset>
+
+      {sourcedLines ? (
+        <SourceItemPicker
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+          onAdd={appendPickedLines}
+        />
+      ) : null}
 
       {locked ? null : (
         <div className="flex items-center justify-end gap-2">

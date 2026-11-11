@@ -26,4 +26,14 @@ export interface InvoiceLineResource {
   lineTotal: number;
   grandTotalUsd: number;
   position: number;
+  /** @nullable */
+  sourceType: string | null;
+  /** @nullable */
+  sourceHeaderId: number | null;
+  /** @nullable */
+  sourceLineId: number | null;
+  /** @nullable */
+  sourceRef: string | null;
+  /** @nullable */
+  itemCode: string | null;
 }

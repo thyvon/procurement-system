@@ -5,13 +5,17 @@ namespace Modules\Invoices\Http\Requests\Concerns;
 use App\Support\Currency;
 use Illuminate\Validation\Rule;
 use Modules\Invoices\Models\Invoice;
+use Modules\Invoices\Models\InvoiceLine;
 
 /**
  * Shared invoice payload rules for Store/Update invoice requests. The line
  * list is always submitted whole (full-replace semantics); money columns
  * (subtotal, total) and `code`/`status`/`cash_reference` are server-owned
  * and never accepted — the cash link is submitted as `cash_request_id` and
- * the service derives the reference code from it.
+ * the service derives the reference code from it. Line source fields
+ * (source_type/source_header_id/source_line_id/source_ref/item_code) only
+ * constrain shape here; the service enforces bundle completeness and the
+ * pro-invoice "at least one sourced line" rule.
  */
 trait ValidatesInvoicePayload
 {
@@ -21,6 +25,7 @@ trait ValidatesInvoicePayload
     protected function invoiceRules(): array
     {
         return [
+            'type' => ['required', 'string', Rule::in(Invoice::TYPES)],
             'invoice_number' => ['required', 'string', 'max:64'],
             'supplier_name' => ['required', 'string', 'max:255'],
             'supplier_code' => ['nullable', 'string', 'max:64'],
@@ -60,6 +65,11 @@ trait ValidatesInvoicePayload
             'lines.*.qty' => ['required', 'numeric', 'gt:0'],
             'lines.*.unit_price' => ['required', 'numeric', 'min:0'],
             'lines.*.discount' => ['nullable', 'numeric', 'min:0'],
+            'lines.*.source_type' => ['nullable', 'string', Rule::in(InvoiceLine::SOURCE_TYPES)],
+            'lines.*.source_header_id' => ['nullable', 'integer', 'min:1'],
+            'lines.*.source_line_id' => ['nullable', 'integer', 'min:1'],
+            'lines.*.source_ref' => ['nullable', 'string', 'max:64'],
+            'lines.*.item_code' => ['nullable', 'string', 'max:64'],
         ];
     }
 
@@ -71,6 +81,7 @@ trait ValidatesInvoicePayload
     public function invoiceData(): array
     {
         return [
+            'type' => $this->validated('type'),
             'invoice_number' => $this->validated('invoice_number'),
             'supplier_name' => $this->validated('supplier_name'),
             'supplier_code' => $this->validated('supplier_code'),

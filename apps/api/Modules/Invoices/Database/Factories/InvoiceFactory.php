@@ -22,6 +22,7 @@ class InvoiceFactory extends Factory
         return [
             'entity_id' => $this->resolveEntity(),
             'code' => 'INV-'.date('y').'-'.fake()->unique()->numerify('###'),
+            'type' => Invoice::TYPE_DIRECT_PURCHASE,
             'invoice_number' => 'INV-'.fake()->unique()->numerify('######'),
             'status' => Invoice::STATUS_DRAFT,
             'supplier_name' => fake()->company(),
@@ -52,6 +53,14 @@ class InvoiceFactory extends Factory
     {
         return $this->state(fn (array $attributes): array => [
             'status' => Invoice::STATUS_RECORDED,
+        ]);
+    }
+
+    public function proPurchaseInvoice(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'type' => Invoice::TYPE_PRO_PURCHASE_INVOICE,
+            'code' => 'PI-'.date('y').'-'.fake()->unique()->numerify('###'),
         ]);
     }
 

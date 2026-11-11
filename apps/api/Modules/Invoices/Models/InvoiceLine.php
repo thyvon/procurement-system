@@ -27,10 +27,24 @@ use Modules\Invoices\Database\Factories\InvoiceLineFactory;
     'line_total',
     'grand_total_usd',
     'position',
+    'source_type',
+    'source_header_id',
+    'source_line_id',
+    'source_ref',
+    'item_code',
 ])]
 class InvoiceLine extends Model
 {
     use BelongsToEntity, HasFactory, HasUlids, SoftDeletes;
+
+    /**
+     * The ePurchase document a line's items came from. The reference is a
+     * client-supplied snapshot (the source system is an external proxy with
+     * integer ids no local FK could target) kept for traceability only.
+     *
+     * @var array<int, string>
+     */
+    public const SOURCE_TYPES = ['pr', 'po'];
 
     protected static function newFactory(): InvoiceLineFactory
     {
@@ -45,6 +59,8 @@ class InvoiceLine extends Model
             'discount' => 'decimal:2',
             'line_total' => 'decimal:2',
             'grand_total_usd' => 'decimal:2',
+            'source_header_id' => 'integer',
+            'source_line_id' => 'integer',
         ];
     }
 

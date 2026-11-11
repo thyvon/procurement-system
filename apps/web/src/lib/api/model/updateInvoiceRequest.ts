@@ -8,8 +8,10 @@ import type { UpdateInvoiceRequestCurrency } from './updateInvoiceRequestCurrenc
 import type { UpdateInvoiceRequestLinesItem } from './updateInvoiceRequestLinesItem';
 import type { UpdateInvoiceRequestPaymentTerm } from './updateInvoiceRequestPaymentTerm';
 import type { UpdateInvoiceRequestTransactionType } from './updateInvoiceRequestTransactionType';
+import type { UpdateInvoiceRequestType } from './updateInvoiceRequestType';
 
 export interface UpdateInvoiceRequest {
+  type: UpdateInvoiceRequestType;
   /** @maxLength 64 */
   invoice_number: string;
   /** @maxLength 255 */

@@ -60,6 +60,23 @@ export const ROUTE_CRUMBS: Record<string, (string | null)[]> = {
     null,
     "breadcrumb.edit",
   ],
+  "/invoices/pro-purchase-inv": ["nav.invoices", "nav.proPurchaseInvoices"],
+  "/invoices/pro-purchase-inv/new": [
+    "nav.invoices",
+    "nav.proPurchaseInvoices",
+    "breadcrumb.create",
+  ],
+  "/invoices/pro-purchase-inv/[id]": [
+    "nav.invoices",
+    "nav.proPurchaseInvoices",
+    "breadcrumb.details",
+  ],
+  "/invoices/pro-purchase-inv/[id]/edit": [
+    "nav.invoices",
+    "nav.proPurchaseInvoices",
+    null,
+    "breadcrumb.edit",
+  ],
   "/payments/petty-cash-requests": ["nav.payments", "nav.pettyCashRequests"],
   "/payments/petty-cash-requests/new": [
     "nav.payments",
@@ -169,6 +186,7 @@ const SEGMENT_FALLBACKS: Record<string, string> = {
   evaluations: "nav.evaluations",
   invoices: "nav.invoices",
   "direct-purchase-inv": "nav.directPurchaseInvoices",
+  "pro-purchase-inv": "nav.proPurchaseInvoices",
   payments: "nav.payments",
   "petty-cash-requests": "nav.pettyCashRequests",
   "advance-requests": "nav.advanceRequests",

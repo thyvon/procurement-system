@@ -8,8 +8,10 @@ import type { StoreInvoiceRequestCurrency } from './storeInvoiceRequestCurrency'
 import type { StoreInvoiceRequestLinesItem } from './storeInvoiceRequestLinesItem';
 import type { StoreInvoiceRequestPaymentTerm } from './storeInvoiceRequestPaymentTerm';
 import type { StoreInvoiceRequestTransactionType } from './storeInvoiceRequestTransactionType';
+import type { StoreInvoiceRequestType } from './storeInvoiceRequestType';
 
 export interface StoreInvoiceRequest {
+  type: StoreInvoiceRequestType;
   /** @maxLength 64 */
   invoice_number: string;
   /** @maxLength 255 */

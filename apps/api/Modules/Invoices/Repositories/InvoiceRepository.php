@@ -33,6 +33,10 @@ class InvoiceRepository extends BaseRepository implements InvoiceRepositoryInter
             $query->where('status', $filters['status']);
         }
 
+        if (! empty($filters['type'])) {
+            $query->where('type', $filters['type']);
+        }
+
         return $query
             ->orderByDesc('code')
             ->paginate($perPage, ['*'], 'page', $page);

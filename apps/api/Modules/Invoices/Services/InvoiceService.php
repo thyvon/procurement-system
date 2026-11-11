@@ -31,6 +31,17 @@ class InvoiceService
         Invoice::STATUS_CANCELLED => [],
     ];
 
+    /**
+     * Code prefix per invoice type: direct purchase → INV, procurement
+     * officer processed → PI.
+     *
+     * @var array<string, string>
+     */
+    private const PREFIXES = [
+        Invoice::TYPE_DIRECT_PURCHASE => 'INV',
+        Invoice::TYPE_PRO_PURCHASE_INVOICE => 'PI',
+    ];
+
     public function __construct(private readonly CodeGenerationService $codes) {}
 
     /**
@@ -38,10 +49,13 @@ class InvoiceService
      */
     public function create(array $data, User $user): Invoice
     {
+        $this->ensureProInvoiceIsSourced($data);
+
         return DB::transaction(function () use ($data, $user): Invoice {
             $invoice = Invoice::create([
                 'entity_id' => $user->entity_id,
-                'code' => $this->codes->next('INV', Invoice::class, $user->entity_id),
+                'code' => $this->codes->next(self::PREFIXES[$data['type']], Invoice::class, $user->entity_id),
+                'type' => $data['type'],
                 'status' => Invoice::STATUS_DRAFT,
                 'invoice_number' => $data['invoice_number'],
                 'supplier_name' => $data['supplier_name'],
@@ -80,6 +94,8 @@ class InvoiceService
     public function update(Invoice $invoice, array $data, User $user): Invoice
     {
         $this->ensureEditable($invoice);
+
+        $this->ensureProInvoiceIsSourced($data);
 
         return DB::transaction(function () use ($invoice, $data, $user): Invoice {
             $invoice->update([
@@ -153,6 +169,31 @@ class InvoiceService
                 'status' => "Only a draft invoice can be deleted, this one is '{$invoice->status}'.",
             ]);
         }
+    }
+
+    /**
+     * Traceability minimum for the procurement branch: a pro purchase
+     * invoice must contain at least one line linked to a PR or PO item.
+     * Manual lines may accompany sourced ones, and the direct branch is
+     * unaffected.
+     *
+     * @param  array<string, mixed>  $data  from invoiceData()
+     */
+    private function ensureProInvoiceIsSourced(array $data): void
+    {
+        if ($data['type'] !== Invoice::TYPE_PRO_PURCHASE_INVOICE) {
+            return;
+        }
+
+        foreach ($data['lines'] as $line) {
+            if (($line['source_line_id'] ?? null) !== null) {
+                return;
+            }
+        }
+
+        throw ValidationException::withMessages([
+            'lines' => 'A pro purchase invoice must include at least one line linked to a PR or PO item.',
+        ]);
     }
 
     /**
@@ -271,6 +312,8 @@ class InvoiceService
                 ]);
             }
 
+            $source = $this->normalizeSource($line, $position);
+
             // line_total is net of the per-line discount; the header discount
             // is applied once more on the invoice total.
             $lineTotal = round($gross - $discount, 2);
@@ -292,6 +335,7 @@ class InvoiceService
                 'line_total' => $lineTotal,
                 'grand_total_usd' => $this->convertToUsd($invoice, $lineTotal),
                 'position' => $position,
+                ...$source,
             ]);
         }
 
@@ -308,6 +352,38 @@ class InvoiceService
             'grand_total_usd' => $this->convertToUsd($invoice, $total),
             'updated_by' => $user->getKey(),
         ]);
+    }
+
+    /**
+     * A line's ePurchase source link is all-or-nothing: either none of the
+     * five snapshot fields is present (a manually entered line) or all of
+     * them are, so a half-filled bundle is never persisted as history. The
+     * snapshot is client-supplied — the source system is an external proxy
+     * whose integer ids no local FK could target — and kept for
+     * traceability only, never as authority.
+     *
+     * @param  array<string, mixed>  $line
+     * @return array{source_type: string|null, source_header_id: int|null, source_line_id: int|null, source_ref: string|null, item_code: string|null}
+     */
+    private function normalizeSource(array $line, int $position): array
+    {
+        $source = [
+            'source_type' => $line['source_type'] ?? null,
+            'source_header_id' => $line['source_header_id'] ?? null,
+            'source_line_id' => $line['source_line_id'] ?? null,
+            'source_ref' => $line['source_ref'] ?? null,
+            'item_code' => $line['item_code'] ?? null,
+        ];
+
+        $present = array_filter($source, static fn ($value) => $value !== null);
+
+        if ($present !== [] && count($present) !== count($source)) {
+            throw ValidationException::withMessages([
+                "lines.{$position}" => 'A source link must be complete: source_type, source_header_id, source_line_id, source_ref and item_code are required together.',
+            ]);
+        }
+
+        return $source;
     }
 
     /**

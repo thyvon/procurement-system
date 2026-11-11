@@ -6,6 +6,7 @@
  */
 import type { BotWebhookRequestMessageChat } from './botWebhookRequestMessageChat';
 import type { BotWebhookRequestMessageFrom } from './botWebhookRequestMessageFrom';
+import type { BotWebhookRequestMessageReplyToMessage } from './botWebhookRequestMessageReplyToMessage';
 
 export type BotWebhookRequestMessage = {
   /** @nullable */
@@ -17,4 +18,5 @@ export type BotWebhookRequestMessage = {
   text?: string | null;
   chat?: BotWebhookRequestMessageChat;
   from?: BotWebhookRequestMessageFrom;
+  reply_to_message?: BotWebhookRequestMessageReplyToMessage;
 };

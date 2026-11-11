@@ -100,6 +100,7 @@ const navItems: NavItem[] = [
     enabled: true,
     children: [
       { key: "directPurchaseInvoices", href: "/invoices/direct-purchase-inv", enabled: true },
+      { key: "proPurchaseInvoices", href: "/invoices/pro-purchase-inv", enabled: true },
     ],
   },
   {

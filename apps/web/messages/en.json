@@ -48,6 +48,7 @@
     "evaluations": "Evaluation List",
     "invoices": "Invoice",
     "directPurchaseInvoices": "Direct Purchase Inv",
+    "proPurchaseInvoices": "Pro Purchase Inv",
     "payments": "Payments",
     "pettyCashRequests": "Petty Cash Requests",
     "advanceRequests": "Advance Requests",
@@ -454,7 +455,159 @@
     "statusInactive": "Inactive",
     "entityId": "Entity ID",
     "email": "Email",
-    "status": "Status"
+    "status": "Status",
+    "welcomeTitle": "Welcome back, {name}",
+    "defaultUser": "User",
+    "mockBadge": "Mock Preview",
+    "subtitle": "Overview of procurement spend, approval workflows, purchase orders, and payment requests.",
+    "periods": {
+      "month": "This Month",
+      "quarter": "This Quarter",
+      "year": "Year to Date"
+    },
+    "quickActions": {
+      "newEvaluation": "New Evaluation",
+      "newCashRequest": "Cash Request",
+      "reviewApprovals": "Approvals Inbox"
+    },
+    "kpis": {
+      "totalSpend": {
+        "title": "Total Procurement Spend",
+        "vsPrevious": "vs previous period",
+        "poLabel": "Purchase Orders",
+        "invoiceLabel": "Direct Invoices"
+      },
+      "pendingApprovals": {
+        "title": "Pending Approvals",
+        "urgentCount": "{count} Urgent",
+        "requiresAttention": "awaiting sign-off",
+        "totalValue": "Pending value"
+      },
+      "activeProcurements": {
+        "title": "Active POs & Evaluations",
+        "poCount": "{count} Open POs",
+        "evalCount": "{count} Evaluations",
+        "epurchaseSynced": "E-Purchase Synced"
+      },
+      "openPayments": {
+        "title": "Open Cash & Advances",
+        "activeRequests": "{count} Active",
+        "acrossBranches": "petty cash & advances",
+        "pendingClearance": "Pending clearance / liquidation",
+        "clearanceCount": "{count} docs"
+      }
+    },
+    "months": {
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov"
+    },
+    "spendTrend": {
+      "title": "Monthly Procurement Spend Trend",
+      "description": "6-month comparison across Purchase Orders, Direct Purchase Invoices, and Cash Requests (click a bar to inspect).",
+      "selectedMonth": "Selected Month",
+      "series": {
+        "purchaseOrders": "Purchase Orders",
+        "directInvoices": "Direct Invoices",
+        "cashRequests": "Cash & Advances"
+      }
+    },
+    "spendBreakdown": {
+      "title": "Spend by Channel & Campus",
+      "description": "Distribution across procurement instruments and campuses.",
+      "byCampus": "Top Campuses",
+      "share": "Allocation",
+      "channels": {
+        "purchaseOrders": "Purchase Orders",
+        "directInvoices": "Direct Purchase Inv",
+        "advanceRequests": "Advance Requests",
+        "pettyCash": "Petty Cash"
+      }
+    },
+    "docTypes": {
+      "purchaseOrder": "Purchase Order",
+      "evaluation": "Supplier Evaluation",
+      "directInvoice": "Direct Purchase Inv",
+      "pettyCash": "Petty Cash Request",
+      "advanceRequest": "Advance Request",
+      "cashClearance": "Cash Clearance",
+      "advanceLiquidation": "Advance Liquidation"
+    },
+    "statuses": {
+      "approved": "Approved",
+      "pending": "Pending",
+      "returned": "Returned",
+      "rejected": "Rejected"
+    },
+    "pendingTable": {
+      "title": "Approvals Awaiting Your Action",
+      "description": "Requests currently routed to your TOCA approval step.",
+      "urgent": "Urgent",
+      "reviewBtn": "Review",
+      "showingCount": "Showing {shown} of {total} pending requests",
+      "openInbox": "Open full Approvals Inbox",
+      "filters": {
+        "all": "All",
+        "evaluation": "Evaluations",
+        "payment": "Payments",
+        "invoice": "Invoices"
+      },
+      "columns": {
+        "code": "Document",
+        "subject": "Description & Campus",
+        "step": "Current Step",
+        "submitted": "Submitted By",
+        "amount": "Amount",
+        "action": "Action"
+      }
+    },
+    "pipeline": {
+      "title": "Approval Pipeline & Shortcuts",
+      "description": "TOCA step workload and turnaround metrics.",
+      "avgTurnaround": "Avg. Turnaround",
+      "days": "days",
+      "approvalRate": "Approval Rate",
+      "byStepHeading": "Active Queue by Approval Step",
+      "pending": "pending",
+      "steps": {
+        "deptHead": "Department Head",
+        "procurement": "Procurement Review",
+        "finance": "Finance Verification",
+        "executive": "Executive Committee"
+      },
+      "shortcutsHeading": "Quick Navigation",
+      "shortcuts": {
+        "clearances": "Cash Clearances",
+        "liquidations": "Liquidations",
+        "directInvoices": "Direct Invoices",
+        "epurchasePrs": "E-Purchase PRs"
+      }
+    },
+    "recentDocs": {
+      "title": "Recent Procurement Documents",
+      "description": "Latest activity across purchase orders, evaluations, invoices, and payments.",
+      "viewAllPos": "All Purchase Orders",
+      "columns": {
+        "document": "Document",
+        "party": "Supplier / Requester",
+        "date": "Date",
+        "status": "Status",
+        "amount": "Amount"
+      }
+    },
+    "suppliers": {
+      "title": "Top Suppliers & Catalog",
+      "description": "Highest awarded suppliers and master item counts.",
+      "ordersCount": "{count} orders",
+      "catalogTitle": "Master Product Catalog",
+      "manageCatalog": "Manage",
+      "products": "Products",
+      "categories": "Categories",
+      "brands": "Brands"
+    }
   },
   "breadcrumb": {
     "create": "Create",
@@ -815,6 +968,25 @@
       "save": "Save",
       "saving": "Saving...",
       "cancel": "Cancel",
+      "linkItems": "Link items from PR/PO",
+      "sourceHint": "At least one line must be linked to a PR or PO item before saving.",
+      "sourceColumn": "Source",
+      "sourcePickerTitle": "Link items from ePurchase",
+      "sourcePickerDescription": "Pick a PR or PO, then tick the items to add as invoice lines.",
+      "sourceTypeLabel": "Source type",
+      "sourceTypePr": "Purchase requisition (PR)",
+      "sourceTypePo": "Purchase order (PO)",
+      "sourceDocumentPlaceholderPr": "Search PR reference...",
+      "sourceDocumentPlaceholderPo": "Search PO reference...",
+      "sourceDocumentEmpty": "No documents found",
+      "sourceSelectDocument": "Select a PR or PO to see its items.",
+      "sourceSelectAll": "Select all items",
+      "sourceItemCode": "Item code",
+      "sourceOrg": "Org",
+      "sourceLoading": "Loading...",
+      "sourceLoadFailed": "We couldn't load the document items.",
+      "sourceNoLines": "This document has no items.",
+      "addSelected": "Add selected ({count})",
       "created": "Invoice created.",
       "updated": "Invoice updated."
     },

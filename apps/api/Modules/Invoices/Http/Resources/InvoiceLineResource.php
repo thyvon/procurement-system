@@ -31,6 +31,11 @@ class InvoiceLineResource extends JsonResource
             'lineTotal' => (float) $this->line_total,
             'grandTotalUsd' => (float) $this->grand_total_usd,
             'position' => $this->position,
+            'sourceType' => $this->source_type,
+            'sourceHeaderId' => $this->source_header_id,
+            'sourceLineId' => $this->source_line_id,
+            'sourceRef' => $this->source_ref,
+            'itemCode' => $this->item_code,
         ];
     }
 }

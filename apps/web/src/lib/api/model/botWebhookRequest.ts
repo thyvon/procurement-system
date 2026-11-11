@@ -4,6 +4,7 @@
  * Procurement
  * OpenAPI spec version: 0.0.1
  */
+import type { BotWebhookRequestCallbackQuery } from './botWebhookRequestCallbackQuery';
 import type { BotWebhookRequestMessage } from './botWebhookRequestMessage';
 
 /**
@@ -17,4 +18,5 @@ import type { BotWebhookRequestMessage } from './botWebhookRequestMessage';
 export interface BotWebhookRequest {
   update_id: number;
   message?: BotWebhookRequestMessage;
+  callback_query?: BotWebhookRequestCallbackQuery;
 }

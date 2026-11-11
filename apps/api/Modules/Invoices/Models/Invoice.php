@@ -16,6 +16,7 @@ use Modules\Invoices\Database\Factories\InvoiceFactory;
 #[Fillable([
     'entity_id',
     'code',
+    'type',
     'invoice_number',
     'status',
     'supplier_name',
@@ -44,6 +45,15 @@ use Modules\Invoices\Database\Factories\InvoiceFactory;
 class Invoice extends Model
 {
     use BelongsToEntity, HasFactory, HasUlids, SoftDeletes;
+
+    public const TYPE_DIRECT_PURCHASE = 'direct_purchase';
+
+    public const TYPE_PRO_PURCHASE_INVOICE = 'pro_purchase_invoice';
+
+    public const TYPES = [
+        self::TYPE_DIRECT_PURCHASE,
+        self::TYPE_PRO_PURCHASE_INVOICE,
+    ];
 
     public const STATUS_DRAFT = 'draft';
 

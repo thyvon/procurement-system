@@ -25,7 +25,7 @@ import {
   requiresEPurchaseLogin,
 } from "@/features/epurchase/components/login-required"
 
-type EPurchasePr = {
+export type EPurchasePr = {
   id: number
   no: number
   refNum: string
@@ -37,7 +37,7 @@ type EPurchasePr = {
   purchaseStatus: string | null
 }
 
-type EPurchasePrsPage = {
+export type EPurchasePrsPage = {
   data: EPurchasePr[]
   meta?: { page: number; perPage: number; total: number }
 }
