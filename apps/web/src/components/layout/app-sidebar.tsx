@@ -25,6 +25,7 @@ import {
 import { approvalsInboxCount } from "@/lib/api/approval-request/approval-request";
 import { unwrap, withAuth } from "@/lib/api-client";
 import { useEntity } from "@/hooks/use-entity";
+import { useMe } from "@/hooks/use-me";
 import {
   Sidebar,
   SidebarContent,
@@ -45,6 +46,8 @@ type NavChild = {
   key: string;
   href: string;
   enabled: boolean;
+  /** `*.view` name from the permission vocabulary; omitted = always visible. */
+  permission?: string;
 };
 
 type NavItem = {
@@ -52,6 +55,8 @@ type NavItem = {
   href?: string;
   icon: React.ComponentType<{ className?: string }>;
   enabled: boolean;
+  /** Gates the whole entry (or the whole group when it has children). */
+  permission?: string;
   children?: NavChild[];
 };
 
@@ -62,15 +67,16 @@ const navItems: NavItem[] = [
     icon: Boxes,
     enabled: true,
     children: [
-      { key: "products", href: "/products", enabled: true },
-      { key: "categories", href: "/products/categories", enabled: true },
-      { key: "brands", href: "/products/brands", enabled: true },
-      { key: "groups", href: "/products/groups", enabled: true },
-      { key: "uoms", href: "/products/uoms", enabled: true },
+      { key: "products", href: "/products", enabled: true, permission: "products.view" },
+      { key: "categories", href: "/products/categories", enabled: true, permission: "categories.view" },
+      { key: "brands", href: "/products/brands", enabled: true, permission: "brands.view" },
+      { key: "groups", href: "/products/groups", enabled: true, permission: "groups.view" },
+      { key: "uoms", href: "/products/uoms", enabled: true, permission: "uoms.view" },
       {
         key: "variationTemplates",
         href: "/products/variation-templates",
         enabled: true,
+        permission: "variations.view",
       },
     ],
   },
@@ -91,7 +97,7 @@ const navItems: NavItem[] = [
     enabled: true,
     children: [
       { key: "purchaseOrdersList", href: "/purchase-orders/list", enabled: true },
-      { key: "evaluations", href: "/purchase-orders/evaluations", enabled: true },
+      { key: "evaluations", href: "/purchase-orders/evaluations", enabled: true, permission: "evaluations.view" },
     ],
   },
   {
@@ -99,14 +105,25 @@ const navItems: NavItem[] = [
     icon: ReceiptText,
     enabled: true,
     children: [
-      { key: "directPurchaseInvoices", href: "/invoices/direct-purchase-inv", enabled: true },
-      { key: "proPurchaseInvoices", href: "/invoices/pro-purchase-inv", enabled: true },
+      {
+        key: "directPurchaseInvoices",
+        href: "/invoices/direct-purchase-inv",
+        enabled: true,
+        permission: "direct_purchase_invoices.view",
+      },
+      {
+        key: "proPurchaseInvoices",
+        href: "/invoices/pro-purchase-inv",
+        enabled: true,
+        permission: "pro_purchase_invoices.view",
+      },
     ],
   },
   {
     key: "payments",
     icon: ClipboardList,
     enabled: true,
+    permission: "payments.view",
     children: [
       { key: "pettyCashRequests", href: "/payments/petty-cash-requests", enabled: true },
       { key: "advanceRequests", href: "/payments/advance-requests", enabled: true },
@@ -124,9 +141,9 @@ const navItems: NavItem[] = [
     icon: Building2,
     enabled: true,
     children: [
-      { key: "campuses", href: "/organization/campuses", enabled: true },
-      { key: "divisions", href: "/organization/divisions", enabled: true },
-      { key: "departments", href: "/organization/departments", enabled: true },
+      { key: "campuses", href: "/organization/campuses", enabled: true, permission: "campuses.view" },
+      { key: "divisions", href: "/organization/divisions", enabled: true, permission: "divisions.view" },
+      { key: "departments", href: "/organization/departments", enabled: true, permission: "departments.view" },
     ],
   },
   {
@@ -134,24 +151,25 @@ const navItems: NavItem[] = [
     icon: Users,
     enabled: true,
     children: [
-      { key: "users", href: "/users", enabled: true },
+      { key: "users", href: "/users", enabled: true, permission: "users.view" },
       {
         key: "employeeProfiles",
         href: "/users/employee-profiles",
         enabled: true,
+        permission: "users.view",
       },
-      { key: "roles", href: "/users/roles", enabled: true },
+      { key: "roles", href: "/users/roles", enabled: true, permission: "roles.view" },
     ],
   },
   { key: "suppliers", href: "#", icon: Store, enabled: false },
   { key: "requisitions", href: "#", icon: ClipboardList, enabled: false },
-  { key: "approvals", href: "/approvals", icon: FileCheck2, enabled: true },
-  { key: "telegram", href: "/telegram", icon: Send, enabled: true },
+  { key: "approvals", href: "/approvals", icon: FileCheck2, enabled: true, permission: "approvals.view" },
+  { key: "telegram", href: "/telegram", icon: Send, enabled: true, permission: "telegram.view" },
   { key: "reports", href: "#", icon: BarChart3, enabled: false },
-  { key: "settings", href: "/settings", icon: Settings, enabled: true },
+  { key: "settings", href: "/settings", icon: Settings, enabled: true, permission: "settings.view" },
 ];
 
-function useApprovalsInboxCount(): number | null {
+function useApprovalsInboxCount(enabled: boolean): number | null {
   const query = useQuery({
     queryKey: ["approvals", "inbox", "count"],
     queryFn: async () =>
@@ -159,9 +177,31 @@ function useApprovalsInboxCount(): number | null {
         await approvalsInboxCount(undefined, withAuth())
       ),
     staleTime: 30_000,
+    enabled,
   });
 
   return query.data?.count ?? null;
+}
+
+/**
+ * Drops entries the signed-in user cannot view (`permission` omitted =
+ * always visible) and groups left with no visible child. Hides until `me`
+ * resolves — same as the feature pages' `permissions.includes(...)` checks.
+ */
+function visibleNavItems(items: NavItem[], permissions: string[]): NavItem[] {
+  const can = (permission?: string) =>
+    permission === undefined || permissions.includes(permission);
+
+  return items
+    .map((item) =>
+      item.children
+        ? {
+            ...item,
+            children: item.children.filter((child) => can(child.permission)),
+          }
+        : item
+    )
+    .filter((item) => can(item.permission) && (!item.children || item.children.length > 0));
 }
 
 function isPathActive(href: string, pathname: string) {
@@ -282,9 +322,13 @@ function NavLinkItem({
 }
 
 export function AppSidebar() {
-  const approvalsCount = useApprovalsInboxCount();
+  const meQuery = useMe();
+  const permissions = (meQuery.data?.permissions ?? []) as string[];
+  const canApprovals = permissions.includes("approvals.view");
+  const approvalsCount = useApprovalsInboxCount(canApprovals);
   const entity = useEntity();
   const logo = entity.data?.logo ?? null;
+  const visibleNav = visibleNavItems(navItems, permissions);
 
   return (
     <Sidebar collapsible="icon">
@@ -318,7 +362,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) =>
+              {visibleNav.map((item) =>
                 item.children ? (
                   <NavGroup key={item.key} item={item} />
                 ) : (
