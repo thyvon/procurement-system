@@ -55,6 +55,10 @@ import {
   SourceItemPicker,
   type PickedSourceLine,
 } from "./components/source-item-picker";
+import {
+  SupplierPicker,
+  type SupplierRow,
+} from "@/features/purchase-orders/components/supplier-picker";
 import { INVOICE_BRANCHES, type InvoiceBranch } from "./invoice-branches";
 import {
   paymentTermOptions,
@@ -358,7 +362,7 @@ export function InvoiceForm({ branch, invoiceId, onBack }: InvoiceFormProps) {
   const txTypeSelectOptions = txTypeOptions(t);
   const paymentTermSelectOptions = paymentTermOptions(t);
   const isEdit = Boolean(invoiceId);
-  const { type, client, sourcedLines } = INVOICE_BRANCHES[branch];
+  const { type, client, sourcedLines, supplierPicker } = INVOICE_BRANCHES[branch];
   const qc = useQueryClient();
   const router = useRouter();
   const meQuery = useMe();
@@ -522,6 +526,26 @@ export function InvoiceForm({ branch, invoiceId, onBack }: InvoiceFormProps) {
       ...current,
       lines: current.lines.filter((_, i) => i !== index),
     }));
+
+  // ePurchase supplier pick fills the whole supplier block, mirroring the
+  // evaluation matrix: name, code, phone and address come from the
+  // directory; phone/address are read-only on this branch.
+  const selectSupplier = (row: SupplierRow | null) =>
+    patch(
+      row
+        ? {
+            supplierName: row.name,
+            supplierCode: row.code,
+            supplierPhone: row.phone,
+            supplierAddress: row.address,
+          }
+        : {
+            supplierName: "",
+            supplierCode: "",
+            supplierPhone: "",
+            supplierAddress: "",
+          }
+    );
 
   const addLine = () =>
     setForm((current) => {
@@ -866,16 +890,33 @@ export function InvoiceForm({ branch, invoiceId, onBack }: InvoiceFormProps) {
               {/* -ml-8/pl-8 centers the border in the grid's 64px gap. */}
               <div className="space-y-3 lg:-ml-8 lg:border-l lg:border-border lg:pl-8">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="inv-supplier" className={fieldLabelClass}>
+                  <Label
+                    htmlFor={supplierPicker ? undefined : "inv-supplier"}
+                    className={fieldLabelClass}
+                  >
                     {t("supplierName")} <RequiredMark />
                   </Label>
-                  <Input
-                    id="inv-supplier"
-                    value={form.supplierName}
-                    onChange={(e) => patch({ supplierName: e.target.value })}
-                    placeholder={t("supplierNamePlaceholder")}
-                    className="flex-1"
-                  />
+                  {supplierPicker ? (
+                    <div className="min-w-0 flex-1">
+                      <SupplierPicker
+                        value={form.supplierCode}
+                        supplierName={form.supplierName}
+                        onSelect={selectSupplier}
+                        placeholder={t("supplierNamePlaceholder")}
+                        emptyMessage={t("supplierEmpty")}
+                        ariaLabel={t("supplierName")}
+                        className="h-8 border border-input bg-transparent px-2.5 text-base shadow-none md:text-sm [&_input]:text-base [&_input]:md:text-sm"
+                      />
+                    </div>
+                  ) : (
+                    <Input
+                      id="inv-supplier"
+                      value={form.supplierName}
+                      onChange={(e) => patch({ supplierName: e.target.value })}
+                      placeholder={t("supplierNamePlaceholder")}
+                      className="flex-1"
+                    />
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -886,7 +927,10 @@ export function InvoiceForm({ branch, invoiceId, onBack }: InvoiceFormProps) {
                     id="inv-phone"
                     value={form.supplierPhone}
                     onChange={(e) => patch({ supplierPhone: e.target.value })}
-                    placeholder={t("supplierPhonePlaceholder")}
+                    placeholder={
+                      supplierPicker ? undefined : t("supplierPhonePlaceholder")
+                    }
+                    readOnly={supplierPicker}
                     className="flex-1"
                   />
                 </div>
@@ -899,7 +943,10 @@ export function InvoiceForm({ branch, invoiceId, onBack }: InvoiceFormProps) {
                     id="inv-address"
                     value={form.supplierAddress}
                     onChange={(e) => patch({ supplierAddress: e.target.value })}
-                    placeholder={t("supplierAddressPlaceholder")}
+                    placeholder={
+                      supplierPicker ? undefined : t("supplierAddressPlaceholder")
+                    }
+                    readOnly={supplierPicker}
                     className="flex-1"
                     rows={2}
                   />

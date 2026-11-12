@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/combobox";
 import { epurchaseSuppliersIndex } from "@/lib/api/epurchase-supplier/epurchase-supplier";
 import { unwrapWithMeta, withAuth } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 
 export type SupplierRow = {
   id: number;
@@ -51,6 +52,8 @@ interface SupplierPickerProps {
   placeholder: string;
   emptyMessage: string;
   ariaLabel: string;
+  /** Merged over the compact table-cell default — form rows pass their own sizing. */
+  className?: string;
 }
 
 export function SupplierPicker({
@@ -60,11 +63,12 @@ export function SupplierPicker({
   placeholder,
   emptyMessage,
   ariaLabel,
+  className,
 }: SupplierPickerProps) {
   const tc = useTranslations("common");
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(() =>
-    value ? selectedLabel(supplierName, value) : ""
+    value || supplierName ? selectedLabel(supplierName, value) : ""
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [prevValue, setPrevValue] = useState(value);
@@ -74,7 +78,9 @@ export function SupplierPicker({
   if (value !== prevValue || supplierName !== prevName) {
     setPrevValue(value);
     setPrevName(supplierName);
-    setInputValue(value ? selectedLabel(supplierName, value) : "");
+    setInputValue(
+      value || supplierName ? selectedLabel(supplierName, value) : ""
+    );
     setSearchTerm("");
   }
 
@@ -158,7 +164,11 @@ export function SupplierPicker({
     >
       <ComboboxInput
         placeholder={placeholder}
-        className="h-7 min-w-0 border-0 bg-background px-1.5 font-normal text-xs shadow-none [&_input]:font-normal [&_input]:text-xs [&_input]:md:text-xs"
+        showClear
+        className={cn(
+          "h-7 min-w-0 border-0 bg-background px-1.5 font-normal text-xs shadow-none [&_input]:font-normal [&_input]:text-xs [&_input]:md:text-xs",
+          className
+        )}
         aria-label={ariaLabel}
       />
       <ComboboxContent>

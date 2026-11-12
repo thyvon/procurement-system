@@ -901,6 +901,7 @@
       "invoiceNumberPlaceholder": "លេខវិក្កយបត្ររបស់អ្នកផ្គត់ផ្គង់",
       "supplierName": "អ្នកផ្គត់ផ្គង់",
       "supplierNamePlaceholder": "ឈ្មោះអ្នកផ្គត់ផ្គង់",
+      "supplierEmpty": "រកមិនឃើញអ្នកផ្គត់ផ្គង់",
       "supplierCode": "កូដអ្នកផ្គត់ផ្គង់",
       "supplierCodePlaceholder": "ឧ. SUP-00056",
       "supplierPhone": "ទូរស័ព្ទអ្នកផ្គត់ផ្គង់",

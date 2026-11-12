@@ -65,12 +65,18 @@ interface InvoiceBranchConfig {
    * save gate only exist on branches that set this.
    */
   sourcedLines: boolean;
+  /**
+   * Supplier fields are picked from the ePurchase supplier directory
+   * (searchable combobox) instead of typed free-hand.
+   */
+  supplierPicker: boolean;
 }
 
 export const INVOICE_BRANCHES: Record<InvoiceBranch, InvoiceBranchConfig> = {
   "direct-purchase-inv": {
     type: "direct_purchase",
     sourcedLines: false,
+    supplierPicker: false,
     client: {
       index: invoicesDirectPurchaseInvoicesIndex,
       show: invoicesDirectPurchaseInvoicesShow,
@@ -83,6 +89,7 @@ export const INVOICE_BRANCHES: Record<InvoiceBranch, InvoiceBranchConfig> = {
   "pro-purchase-inv": {
     type: "pro_purchase_invoice",
     sourcedLines: true,
+    supplierPicker: true,
     client: {
       index: invoicesProPurchaseInvoicesIndex,
       show: invoicesProPurchaseInvoicesShow,

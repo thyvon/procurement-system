@@ -902,6 +902,7 @@
       "invoiceNumberPlaceholder": "Supplier invoice number",
       "supplierName": "Supplier",
       "supplierNamePlaceholder": "Supplier name",
+      "supplierEmpty": "No supplier found",
       "supplierCode": "Supplier code",
       "supplierCodePlaceholder": "e.g. SUP-00056",
       "supplierPhone": "Supplier phone",
