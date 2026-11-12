@@ -70,6 +70,11 @@ interface InvoiceBranchConfig {
    * (searchable combobox) instead of typed free-hand.
    */
   supplierPicker: boolean;
+  /**
+   * The `*.manage` permission this branch's API policy checks — each
+   * invoice branch owns its own permission pair.
+   */
+  managePermission: "direct_purchase_invoices.manage" | "pro_purchase_invoices.manage";
 }
 
 export const INVOICE_BRANCHES: Record<InvoiceBranch, InvoiceBranchConfig> = {
@@ -77,6 +82,7 @@ export const INVOICE_BRANCHES: Record<InvoiceBranch, InvoiceBranchConfig> = {
     type: "direct_purchase",
     sourcedLines: false,
     supplierPicker: false,
+    managePermission: "direct_purchase_invoices.manage",
     client: {
       index: invoicesDirectPurchaseInvoicesIndex,
       show: invoicesDirectPurchaseInvoicesShow,
@@ -90,6 +96,7 @@ export const INVOICE_BRANCHES: Record<InvoiceBranch, InvoiceBranchConfig> = {
     type: "pro_purchase_invoice",
     sourcedLines: true,
     supplierPicker: true,
+    managePermission: "pro_purchase_invoices.manage",
     client: {
       index: invoicesProPurchaseInvoicesIndex,
       show: invoicesProPurchaseInvoicesShow,

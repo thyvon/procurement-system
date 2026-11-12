@@ -286,10 +286,10 @@ export function InvoicesTab({ branch }: { branch: InvoiceBranch }) {
   const tt = useTranslations("invoices.table");
   const router = useRouter();
   const qc = useQueryClient();
-  const { client } = INVOICE_BRANCHES[branch];
+  const { client, managePermission } = INVOICE_BRANCHES[branch];
   const meQuery = useMe();
   const permissions = (meQuery.data?.permissions ?? []) as string[];
-  const canManage = permissions.includes("invoices.manage");
+  const canManage = permissions.includes(managePermission);
   const currentUserId = meQuery.data?.id ?? null;
   const [deleteTarget, setDeleteTarget] = useState<InvoiceRow | null>(null);
   const [search, setSearch] = useState("");

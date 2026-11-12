@@ -362,7 +362,8 @@ export function InvoiceForm({ branch, invoiceId, onBack }: InvoiceFormProps) {
   const txTypeSelectOptions = txTypeOptions(t);
   const paymentTermSelectOptions = paymentTermOptions(t);
   const isEdit = Boolean(invoiceId);
-  const { type, client, sourcedLines, supplierPicker } = INVOICE_BRANCHES[branch];
+  const { type, client, sourcedLines, supplierPicker, managePermission } =
+    INVOICE_BRANCHES[branch];
   const qc = useQueryClient();
   const router = useRouter();
   const meQuery = useMe();
@@ -500,14 +501,14 @@ export function InvoiceForm({ branch, invoiceId, onBack }: InvoiceFormProps) {
   }
 
   const permissions = (meQuery.data?.permissions ?? []) as string[];
-  const canManage = permissions.includes("invoices.manage");
+  const canManage = permissions.includes(managePermission);
   const status = showQuery.data?.status ?? null;
   const isOwner =
     !isEdit ||
     (showQuery.data != null &&
       meQuery.data != null &&
       showQuery.data.createdById === meQuery.data.id);
-  // Mirrors the API: invoices.manage AND owner, only while still a draft.
+  // Mirrors the API: the branch's *.manage AND owner, only while a draft.
   const locked = !canManage || (isEdit && (status !== "draft" || !isOwner));
 
   const patch = (changes: Partial<InvoiceFormValue>) =>

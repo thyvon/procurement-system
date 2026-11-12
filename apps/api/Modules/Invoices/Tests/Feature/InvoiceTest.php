@@ -1069,6 +1069,60 @@ it('forbids a manage holder from editing or deleting a draft owned by someone el
         ->and(Invoice::onlyTrashed()->find($id))->toBeNull();
 });
 
+it('grants direct purchase permissions only on the direct purchase branch', function () {
+    $directOnly = User::factory()->create(['entity_id' => $this->entity->getKey()]);
+    $directOnly->givePermissionTo([
+        'direct_purchase_invoices.view',
+        'direct_purchase_invoices.manage',
+    ]);
+
+    // Own branch: read and write resolve against direct_purchase_invoices.*.
+    $id = storeInvoice([], $directOnly)->assertCreated()->json('data.id');
+
+    $this->actingAs($directOnly, 'sanctum')
+        ->getJson('/api/v1/direct-purchase-invoices')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1);
+
+    $this->actingAs($directOnly, 'sanctum')
+        ->patchJson("/api/v1/direct-purchase-invoices/{$id}", invoicePayload())
+        ->assertOk();
+
+    // The pro purchase branch checks pro_purchase_invoices.* — denied here.
+    $this->actingAs($directOnly, 'sanctum')
+        ->getJson('/api/v1/pro-purchase-invoices')
+        ->assertStatus(403);
+
+    storeProInvoice([], $directOnly)->assertStatus(403);
+});
+
+it('grants pro purchase permissions only on the pro purchase branch', function () {
+    $proOnly = User::factory()->create(['entity_id' => $this->entity->getKey()]);
+    $proOnly->givePermissionTo([
+        'pro_purchase_invoices.view',
+        'pro_purchase_invoices.manage',
+    ]);
+
+    // Own branch: read and write resolve against pro_purchase_invoices.*.
+    $id = storeProInvoice([], $proOnly)->assertCreated()->json('data.id');
+
+    $this->actingAs($proOnly, 'sanctum')
+        ->getJson('/api/v1/pro-purchase-invoices')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1);
+
+    $this->actingAs($proOnly, 'sanctum')
+        ->patchJson("/api/v1/pro-purchase-invoices/{$id}", proInvoicePayload())
+        ->assertOk();
+
+    // The direct purchase branch checks direct_purchase_invoices.* — denied here.
+    $this->actingAs($proOnly, 'sanctum')
+        ->getJson('/api/v1/direct-purchase-invoices')
+        ->assertStatus(403);
+
+    storeInvoice([], $proOnly)->assertStatus(403);
+});
+
 it('never returns other entities invoices', function () {
     $foreignAdmin = User::factory()->create(['entity_id' => $this->otherEntity->getKey()]);
     $foreignAdmin->assignRole('admin');

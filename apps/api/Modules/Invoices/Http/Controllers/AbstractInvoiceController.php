@@ -36,7 +36,7 @@ abstract class AbstractInvoiceController extends Controller
 
     public function index(IndexInvoicesRequest $request): JsonResponse
     {
-        $this->authorize('viewAny', Invoice::class);
+        $this->authorize('viewAny', [Invoice::class, $this->type()]);
 
         $filters = $request->validated();
         $filters['type'] = $this->type();
@@ -60,7 +60,7 @@ abstract class AbstractInvoiceController extends Controller
 
     public function store(StoreInvoiceRequest $request): JsonResponse
     {
-        $this->authorize('create', Invoice::class);
+        $this->authorize('create', [Invoice::class, $this->type()]);
 
         /** @var User $user */
         $user = $request->user();

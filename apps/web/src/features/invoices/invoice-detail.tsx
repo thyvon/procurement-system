@@ -51,7 +51,7 @@ export function InvoiceDetail({ branch, invoiceId }: InvoiceDetailProps) {
   const td = useTranslations("invoices.detail");
   const tt = useTranslations("invoices.table");
   const tc = useTranslations("invoices.columns");
-  const { client, sourcedLines } = INVOICE_BRANCHES[branch];
+  const { client, sourcedLines, managePermission } = INVOICE_BRANCHES[branch];
   const meQuery = useMe();
 
   const showQuery = useQuery({
@@ -78,12 +78,12 @@ export function InvoiceDetail({ branch, invoiceId }: InvoiceDetailProps) {
   const invoice = showQuery.data;
   const status = invoice.status;
   const permissions = (meQuery.data?.permissions ?? []) as string[];
-  const canManage = permissions.includes("invoices.manage");
+  const canManage = permissions.includes(managePermission);
   const isOwner =
     invoice.createdById != null &&
     meQuery.data != null &&
     invoice.createdById === meQuery.data.id;
-  // Mirrors the API: invoices.manage AND owner, only while a draft.
+  // Mirrors the API: the branch's *.manage AND owner, only while a draft.
   const canEdit = canManage && isOwner && status === "draft";
 
   const txTypeText = txTypeLabel(tf, invoice.transactionType);

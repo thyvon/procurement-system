@@ -46,8 +46,10 @@ class PermissionSeeder extends Seeder
         'variations.manage',
         'evaluations.view',
         'evaluations.manage',
-        'invoices.view',
-        'invoices.manage',
+        'direct_purchase_invoices.view',
+        'direct_purchase_invoices.manage',
+        'pro_purchase_invoices.view',
+        'pro_purchase_invoices.manage',
         'payments.view',
         'payments.manage',
         'approvals.view',
@@ -58,6 +60,17 @@ class PermissionSeeder extends Seeder
         'settings.manage',
     ];
 
+    /**
+     * Permission names retired by the per-branch invoice split. Deleting the
+     * rows cascades their role grants away with them.
+     *
+     * @var array<int, string>
+     */
+    public const RETIRED = [
+        'invoices.view',
+        'invoices.manage',
+    ];
+
     public function run(): void
     {
         static::seed();
@@ -66,10 +79,15 @@ class PermissionSeeder extends Seeder
     /**
      * Idempotent baseline: creates the vocabulary, grants `admin` every
      * ability and `staff` every read. Only ever adds grants — custom
-     * permissions granted after seeding are never revoked.
+     * permissions granted after seeding are never revoked — except for the
+     * retired names above, which are removed outright.
      */
     public static function seed(): void
     {
+        Permission::where('guard_name', self::GUARD)
+            ->whereIn('name', self::RETIRED)
+            ->delete();
+
         $admin = Role::findOrCreate('admin', self::GUARD);
         $staff = Role::findOrCreate('staff', self::GUARD);
 
